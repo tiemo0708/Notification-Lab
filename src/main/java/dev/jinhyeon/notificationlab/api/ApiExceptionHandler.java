@@ -1,0 +1,33 @@
+package dev.jinhyeon.notificationlab.api;
+
+import dev.jinhyeon.notificationlab.notification.NotificationNotFoundException;
+import dev.jinhyeon.notificationlab.notification.StoreCapacityExceededException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+@RestControllerAdvice
+public class ApiExceptionHandler {
+    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
+            MethodArgumentTypeMismatchException.class})
+    public ProblemDetail invalidInput(Exception exception) {
+        // Avoid echoing rejected recipient IDs/payloads or relying on default warning logs.
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid notification request or ID");
+    }
+
+    @ExceptionHandler(NotificationNotFoundException.class)
+    public ProblemDetail notFound(NotificationNotFoundException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(StoreCapacityExceededException.class)
+    public ResponseEntity<ProblemDetail> full(StoreCapacityExceededException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage()));
+    }
+}

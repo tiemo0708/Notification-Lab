@@ -1,0 +1,32 @@
+server:
+  address: 127.0.0.1
+  port: 8080
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 32
+    accept-count: 64
+    max-connections: 256
+
+spring:
+  application:
+    name: notification-lab
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+
+app:
+  # Local-only baseline. No real provider calls or durable storage yet.
+  mock:
+    delay-ms: 100
+    outcome: SUCCESS
+  store:
+    max-records: 10000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
