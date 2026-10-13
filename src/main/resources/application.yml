@@ -21,11 +21,53 @@ spring:
       maximum-pool-size: 8
       minimum-idle: 1
       connection-timeout: 3000
+  task:
+    scheduling:
+      pool:
+        size: 2
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:${KAFKA_PORT:19092}}
+    admin:
+      fail-fast: false
+      properties:
+        default.api.timeout.ms: 5000
+        request.timeout.ms: 3000
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      buffer-memory: 1048576
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+        max.block.ms: 3000
+        request.timeout.ms: 3000
+        delivery.timeout.ms: 10000
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      max-poll-records: 1
+      properties:
+        max.poll.interval.ms: 60000
+        fetch.max.bytes: 1048576
+        max.partition.fetch.bytes: 1048576
+    listener:
+      ack-mode: record
+      log-container-config: false
   flyway:
     clean-disabled: true
 
 app:
-  # Local-only synchronous Mock. Outbox publishing starts in S3.
+  async:
+    topic: notification.requested.v1
+    group: notification-worker-v1
+    max-publish-attempts: 10
+    relay-enabled: true
+    worker-enabled: true
+  # Local-only Mock; no real network push.
   mock:
     delay-ms: 100
     outcome: SUCCESS

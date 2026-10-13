@@ -75,7 +75,7 @@ class MySqlNotificationTest {
     static void startApplication() {
         app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(
                 NotificationLabApplication.class, ProviderProbeConfiguration.class).run(
-                "--server.port=0", "--spring.profiles.active=mysql", "--app.mock.delay-ms=0",
+                "--server.port=0", "--spring.profiles.active=sync", "--app.mock.delay-ms=0",
                 "--spring.datasource.url=" + MYSQL.getJdbcUrl(),
                 "--spring.datasource.username=" + MYSQL.getUsername(),
                 "--spring.datasource.password=" + MYSQL.getPassword());
@@ -110,9 +110,46 @@ class MySqlNotificationTest {
         HttpResponse<String> after = request("GET", location, null);
         assertThat(after.statusCode()).isEqualTo(200);
         assertThat(json(after)).isEqualTo(before);
-        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(1);
+        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(2);
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event", Integer.class)).isZero();
         assertThat(probe().attempts.get()).isZero();
+    }
+
+    @Test
+    void versionTwoMigrationPreservesExistingVersionOneResults() throws Exception {
+        String schema = "notification_upgrade_test";
+        executeAsRoot("CREATE DATABASE " + schema);
+        String upgradeUrl = MYSQL.getJdbcUrl().replace("/notification_lab", "/" + schema);
+        try {
+            Flyway.configure().dataSource(upgradeUrl, "root", MYSQL.getPassword())
+                    .target("1").load().migrate();
+            UUID id = UUID.randomUUID();
+            try (var connection = DriverManager.getConnection(upgradeUrl, "root", MYSQL.getPassword());
+                 var statement = connection.prepareStatement("""
+                         INSERT INTO notification (notification_id, recipient_id, title, body, status,
+                             provider_message_id, created_at, completed_at)
+                         VALUES (?, 'synthetic', 'existing title', 'existing body', 'PROVIDER_ACCEPTED',
+                             'existing-result', '2026-10-13 00:00:00.123456', '2026-10-13 00:00:01.123456')
+                         """)) {
+                statement.setString(1, id.toString());
+                statement.executeUpdate();
+            }
+            Flyway.configure().dataSource(upgradeUrl, "root", MYSQL.getPassword()).load().migrate();
+            try (var connection = DriverManager.getConnection(upgradeUrl, "root", MYSQL.getPassword());
+                 var statement = connection.createStatement();
+                 var rows = statement.executeQuery("SELECT * FROM notification")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("notification_id")).isEqualTo(id.toString());
+                assertThat(rows.getString("status")).isEqualTo("PROVIDER_ACCEPTED");
+                assertThat(rows.getString("body")).isEqualTo("existing body");
+                assertThat(rows.getString("provider_message_id")).isEqualTo("existing-result");
+                assertThat(rows.getString("completed_at")).isEqualTo("2026-10-13 00:00:01.123456");
+                assertThat(rows.getString("worker_token")).isNull();
+                assertThat(rows.next()).isFalse();
+            }
+        } finally {
+            executeAsRoot("DROP DATABASE " + schema);
+        }
     }
 
     @Test

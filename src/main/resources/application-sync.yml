@@ -1,0 +1,5 @@
+# S2 comparison: MySQL + synchronous HTTP 201, no Kafka clients.
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration

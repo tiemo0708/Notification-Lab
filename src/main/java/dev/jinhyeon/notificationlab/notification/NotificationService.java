@@ -37,12 +37,19 @@ public class NotificationService {
         // Persist PROCESSING before calling the provider (reserve capacity in the memory profile).
         store.create(notification);
         Timer.Sample sample = Timer.start(registry);
+        Notification completed = attempt(notification);
+        store.update(completed);
+        recordCompletion(completed, sample);
+        return completed;
+    }
+
+    public Notification attempt(Notification notification) {
         registry.counter("notification.provider.attempts").increment();
 
         Notification completed;
         try {
             PushResult result = provider.send(new PushRequest(notification.notificationId(),
-                    request.recipientId(), request.title(), request.body()));
+                    notification.recipientId(), notification.title(), notification.body()));
             var status = switch (result.outcome()) {
                 case ACCEPTED -> NotificationStatus.PROVIDER_ACCEPTED;
                 case RETRYABLE_FAILURE -> NotificationStatus.RETRYABLE_FAILURE;
@@ -57,12 +64,14 @@ public class NotificationService {
             completed = notification.completed(NotificationStatus.INTERNAL_FAILURE,
                     null, "INTERNAL_PROVIDER_ERROR", clock.instant());
         }
-        store.update(completed);
+        return completed;
+    }
+
+    public void recordCompletion(Notification completed, Timer.Sample sample) {
         String status = completed.status().name();
         registry.counter("notification.completed", "status", status).increment();
         sample.stop(Timer.builder("notification.processing")
                 .tag("status", status).publishPercentileHistogram().register(registry));
-        return completed;
     }
 
     public Notification get(UUID id) {

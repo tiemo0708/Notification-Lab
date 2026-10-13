@@ -77,6 +77,7 @@ BREAKING CHANGE: POST /notifications 응답이 최종 처리 결과를 담은 20
 - 기존 실행 버전을 유지해야 하는 큰 실험에만 작업 브랜치를 만든다. 이름은 `feat/outbox-persistence`, `fix/worker-offset`처럼 작성한다.
 - PR은 선택 사항이다. 사용하면 커밋 형식의 제목과 변경 이유/범위/검증/한계를 기록하고 템플릿을 따른다.
 - PR을 사용한 변경은 관련 테스트와 diff 검토 후 Squash merge할 수 있다. 자동 병합하지 않는다.
+- 매 커밋마다 푸시할 필요는 없다. 작은 논리적 변경은 로컬 커밋으로 쌓고, 검증된 단계나 작업 세션 종료 시 사용자가 검토한 커밋들을 함께 푸시한다. 푸시 전 커밋은 해당 컴퓨터에만 있으므로 원격 백업이 아니다.
 - 작업 순서: 완료 조건 정의 -> 구현 -> 테스트 -> diff 확인 -> 결과 기록 -> 로컬 커밋 -> 사용자 검토 -> 푸시.
 - AI 도구는 푸시 전에 변경 이유, 확인할 파일, 실제 테스트 결과, 미검증 항목, 커밋을 제시하고 사용자의 푸시 승인을 기다린다.
 - 테스트 실패 또는 핵심 완료 조건 미검증 상태를 완료로 보고하거나 푸시하지 않는다.
@@ -97,7 +98,7 @@ BREAKING CHANGE: POST /notifications 응답이 최종 처리 결과를 담은 20
 - 트랜잭션 경계를 코드와 문서에 명시한다. 외부 공급자 호출 중 DB 트랜잭션을 유지하지 않는다.
 - 새 import는 와일드카드를 피한다. 규칙 적용을 위해 관련 없는 기존 파일을 일괄 수정하지 않는다.
 - 테스트 클래스는 `대상Test`, 메서드는 검증하는 동작을 설명하는 영문 `lowerCamelCase`로 작성한다.
-- 기본 `./gradlew test`에서 단위/HTTP/실제 MySQL 테스트를 실행한다. DB 검증은 Testcontainers를 사용하며 Docker가 없다고 자동 스킵하지 않는다.
+- 기본 `./gradlew test`에서 단위/HTTP/실제 MySQL 테스트를 실행한다. DB/Kafka 검증은 Testcontainers를 사용하며 Docker가 없다고 자동 스킵하지 않는다.
 - 테스트 데이터는 가상 값만 사용한다. 구현을 그대로 반복하는 테스트보다 동작, 실패, 동시성, 트랜잭션 경계를 검증한다.
 
 ## DB와 API
@@ -106,12 +107,12 @@ BREAKING CHANGE: POST /notifications 응답이 최종 처리 결과를 담은 20
 - 스키마 변경은 `V번호__설명.sql` Flyway migration으로 관리한다. 적용된 migration은 수정하지 않고 다음 버전을 추가한다.
 - 저장 시간은 UTC, DB 시간 정밀도는 마이크로초로 통일한다. UUID는 문자열 식별자로 저장한다.
 - JSON 필드는 `lowerCamelCase`, 상태 값은 `UPPER_SNAKE_CASE`를 사용한다. 오류 응답에 payload/DB 오류 상세를 노출하지 않는다.
-- S2는 동기식 처리와 HTTP 201을 유지한다. 요청/Outbox 커밋 후 HTTP 202는 S3에서 도입한다.
+- 현재 기본 실행(S3)은 요청/Outbox 커밋 후 HTTP 202를 반환한다. `sync`(S2), `memory`(S1) 비교 프로필은 동기식 HTTP 201을 유지한다.
 
 ## CI
 
 - `.github/workflows/test.yml`은 push와 PR에서 Java 21로 `./gradlew --no-daemon --console=plain build`를 실행한다.
-- Docker를 제공하는 GitHub hosted runner에서 실제 MySQL 테스트와 실행 JAR 생성까지 확인한다. Gradle 의존성 캐시를 사용한다.
+- Docker를 제공하는 GitHub hosted runner에서 실제 MySQL/Kafka 테스트와 실행 JAR 생성까지 확인한다. Gradle 의존성 캐시를 사용한다.
 - CI 결과는 원격 실행 결과를 확인한 경우에만 통과로 기록한다. 브랜치 보호 및 자동 포맷터는 현재 설정하지 않는다.
 
 ## 비밀정보와 산출물

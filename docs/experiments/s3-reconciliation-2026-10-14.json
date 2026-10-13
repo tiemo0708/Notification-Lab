@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-14",
+  "timezone": "Asia/Seoul",
+  "command": "./gradlew --no-daemon --console=plain build reconciliationTest",
+  "kind": "correctness reconciliation, not a throughput benchmark",
+  "successfulRuns": 1,
+  "environment": {
+    "os": "macOS 15.7.7 arm64",
+    "cpu": "Apple M4 10 cores",
+    "hostMemoryBytes": 17179869184,
+    "dockerMemoryBytes": 8217575424,
+    "jdk": "Amazon Corretto 21.0.6",
+    "gradle": "8.14.5",
+    "springBoot": "3.5.16",
+    "springKafka": "3.3.16",
+    "kafkaClient": "3.9.2",
+    "mysql": "8.4.8",
+    "kafkaBroker": "4.0.2"
+  },
+  "settings": {
+    "httpConcurrency": 8,
+    "requestsPerTask": 1250,
+    "workerConcurrency": 1,
+    "partitions": 3,
+    "replicationFactor": 1,
+    "mockDelayMs": 0,
+    "mockOutcome": "SUCCESS",
+    "hikariMaxPoolSize": 8,
+    "relayBatchLimit": 50,
+    "relayDelayMs": 100
+  },
+  "tests": {
+    "test": {
+      "tests": 43,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "reconciliationTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "stdout": "RECONCILIATION accepted=10000 providerAccepted=10000 failure=0 pending=0 published=10000 lag=0 elapsedSeconds=158.122",
+  "result": {
+    "accepted": 10000,
+    "providerAccepted": 10000,
+    "failure": 0,
+    "pending": 0,
+    "published": 10000,
+    "lag": 0,
+    "elapsedSeconds": 158.122
+  },
+  "limitations": [
+    "Single broker; no high availability claim",
+    "Mock acceptance is not device delivery",
+    "An earlier pre-fix experiment was interrupted after a full-scan/filesort was observed; it is not counted as a passed run or a baseline performance measurement"
+  ]
+}

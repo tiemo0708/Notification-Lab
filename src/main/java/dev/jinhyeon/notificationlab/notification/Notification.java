@@ -16,7 +16,7 @@ public record Notification(
 
     public Notification completed(NotificationStatus nextStatus, String messageId,
                                   String nextErrorCode, Instant now) {
-        if (status != NotificationStatus.PROCESSING || nextStatus == NotificationStatus.PROCESSING) {
+        if (status != NotificationStatus.PROCESSING || (nextStatus == NotificationStatus.PROCESSING || nextStatus == NotificationStatus.QUEUED)) {
             throw new IllegalStateException("Invalid notification transition");
         }
         return new Notification(notificationId, recipientId, title, body, nextStatus,

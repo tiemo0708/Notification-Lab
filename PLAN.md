@@ -58,18 +58,20 @@ S1은 트래픽 벤치마크가 아니다. 1만 건 검증은 S3 이후 진행�
 
 완료 조건: 재시작 후 조회 가능. 제약/인덱스/롤백을 실제 MySQL에서 검증.
 실행 JAR와 Compose MySQL 컨테이너 재생성 후 기존 volume의 알림 조회도 확인.
-구현/검증은 로컬 완료이며 원격 반영은 사용자 검토 후 진행한다.
+S2와 Gradle 전환은 2026-10-14 main에 푸시했으며 해당 원격 CI 성공을 확인했다.
 
 ### S3. Outbox + Kafka 수직 흐름
-- [ ] 요청/Outbox를 하나의 트랜잭션으로 저장한 후 202 반환
-- [ ] Kafka 단일 브로커 KRaft 로컬 구성, 토픽/파티션 수 명시
-- [ ] Relay: 짧은 DB 선점 트랜잭션 -> DB 트랜잭션 밖 publish -> ACK 확인 -> 상태 갱신
-- [ ] 선점 lease와 PROCESSING 복구, publish 실패 backoff
-- [ ] Worker: 단건 순차 처리, 결과 영속화 후 offset 커밋
-- [ ] Outbox age/미발행 수, consumer lag 측정 추가
-- [ ] 테스트 데이터 1만 건 접수/처리/실패/대기 개수 대조
+- [x] 요청/Outbox를 하나의 트랜잭션으로 저장한 후 202 반환
+- [x] Kafka 단일 브로커 KRaft 로컬 구성, 토픽/파티션 수 명시
+- [x] Relay: 짧은 DB 선점 트랜잭션 -> DB 트랜잭션 밖 publish -> ACK 확인 -> 상태 갱신
+- [x] 선점 lease와 PROCESSING 복구, publish 실패 backoff
+- [x] Worker: 단건 순차 처리, 결과 영속화 후 offset 커밋
+- [x] Outbox age/미발행 수, consumer lag 측정 추가
+- [x] 테스트 데이터 1만 건 접수/처리/실패/대기 개수 대조
 
 완료 조건: DB 커밋 후 메시지 작업이 끝까지 추적된다. 단일 브로커로 브로커 고가용성을 증명하지 않는다.
+
+로컬 일반 테스트 43개와 별도 1만 건 정합성 실험 1개 통과. S3는 사용자 검토 후 푸시한다.
 
 ## 2주차: 유실·중복·재시도
 

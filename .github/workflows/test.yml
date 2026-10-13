@@ -22,5 +22,5 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - name: Build and run unit, HTTP and MySQL tests
+      - name: Build and run unit, HTTP, MySQL and Kafka tests
         run: ./gradlew --no-daemon --console=plain build

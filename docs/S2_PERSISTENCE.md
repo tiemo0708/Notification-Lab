@@ -1,5 +1,8 @@
 # S2: MySQL 영속화
 
+이 문서는 S2 동기 기준선을 설명한다. 현재 기본 동작은 [S3](S3_ASYNC.md)이며,
+S2 비교 실행은 `./gradlew bootRun --args='--spring.profiles.active=sync'`를 사용한다.
+
 ## 범위와 선택
 
 S1에서 재시작하면 사라지던 알림을 MySQL 8.4.8에 저장한다. Spring JDBC를 사용해 SQL과

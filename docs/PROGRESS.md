@@ -166,3 +166,75 @@ Docker 가용성을 먼저 확인하고, 없으면 Testcontainers 통과를 주�
 선택 근거: [Spring Boot 3.5 빌드 도구 호환 범위](https://docs.spring.io/spring-boot/3.5/system-requirements.html),
 [BOM 의존성 관리](https://docs.spring.io/spring-boot/3.5/gradle-plugin/managing-dependencies.html),
 [Gradle Wrapper 검증 방법](https://docs.gradle.org/current/userguide/gradle_wrapper.html).
+
+## 2026-10-14: main 푸시와 기본 브랜치 전환
+
+- 사용자 승인으로 로컬 main의 개인 개발 규칙/CI, S2 MySQL, Gradle 전환 커밋을 함께 푸시.
+- 원격 main과 HEAD 모두 `c95a444b19d4454f52a2731d76dc93d147cc5183` 일치 확인.
+- GitHub 기본 브랜치를 `main`으로 변경. 기존 `feat/s1-mock-api`와 이력은 보존.
+- [GitHub Actions 실행 38436621291](https://github.com/tiemo0708/Notification-Lab/actions/runs/38436621291): **success** 확인.
+  해당 c95a444의 Gradle build/기존 32개 테스트에 대한 결과이며 이후 S3 코드의 원격 검증은 아니다.
+- force push, PR/병합, 브랜치 보호 변경은 수행하지 않음.
+- 커밋은 작은 논리적 변경마다 로컬에 쌓고, 검증된 단계의 커밋들을 사용자 검토 후 일괄 푸시하는 방식을 CONTRIBUTING에 명시.
+
+## 2026-10-14: S3 Outbox + Kafka — 로컬 구현 및 정합성 검증
+
+### 구현
+
+- 기본 POST를 HTTP 202 + QUEUED로 변경. notification/Outbox를 같은 DB 트랜잭션으로 저장.
+- S1 `memory`, S2 `sync` 비교 프로필은 HTTP 201 동기 동작 유지.
+- V1 SQL은 보존하고 V2 migration으로 상태/CHECK/Relay와 Worker lease/token 추가.
+- Kafka 4.0.2 공식 이미지, 단일 KRaft broker, 파티션 3/복제본 1. loopback 기본 19092, named volume.
+- Relay: 짧은 DB 선점 -> 트랜잭션 없는 publish -> future ACK -> token 조건 PUBLISHED 업데이트.
+- 선점 30초, 실패 backoff 1~60초, 최대 10회 후 FAILED 보존. producer 내부 retry도 3회로 제한.
+- Worker: concurrency 1/max.poll.records 1, 원자적 DB 선점, 트랜잭션 밖 Mock 호출, 결과 커밋 후 RECORD offset 커밋.
+- DB/이벤트 오류는 컨슈머 중지. 미완료 offset을 성공 처리하지 않음. 완료 결과 재소비 시 Mock 재호출하지 않음.
+- Outbox 미발행/FAILED/최고 age, consumer committed lag, sample age/Worker running 지표 추가. 수집 오류는 NaN.
+- README, S3 상세 문서, PLAN, 개발 규칙을 현재 동작과 배치 푸시 방식에 맞춰 갱신.
+
+### 실제 자동 검증
+
+`./gradlew --no-daemon --console=plain build reconciliationTest` 성공.
+
+- 일반 테스트 **43개 통과 / 실패 0 / 오류 0 / 스킵 0**.
+  - 기존 32개 회귀 테스트.
+  - S2 결과가 들어 있는 V1 DB에 V2를 적용하고 결과/시간/ID 보존 확인 1개.
+  - 실제 MySQL/Kafka를 사용하는 S3 검증 10개: 원자적 접수/롤백, 선점 경합/만료/token fencing,
+    ACK 전 PUBLISHED 금지, 발행 실패 backoff/최대 횟수, 처리 후 offset/완료 replay,
+    결과 저장 실패 시 offset 보존 및 복구, Worker stale token 거절, 공급자 실패 결과, 잘못된 이벤트 중지.
+  - ACK 지연과 발행 예외 타이밍은 제어 가능한 KafkaTemplate fake로 검증. 나머지 Kafka 소비/offset 흐름은 실제 브로커 사용.
+- 별도 1만 건 정합성 실험 **1개 통과 / 실패 0 / 오류 0 / 스킵 0**.
+  - HTTP 접수 10,000 = DB 알림 10,000 = Mock 수락 10,000 + 실패 0 + 대기 0.
+  - Outbox 10,000 / PUBLISHED 10,000 / 미발행 0, provider 시도 10,000, committed offset 합계 10,000, lag 0.
+  - 실험 구간 **158.122초**, 정상 종료한 실행 1회. 성능 비교/운영 처리량으로 해석하지 않음.
+  - HTTP 동시성 8(각 작업 1,250건), 실제 Mock SUCCESS/지연 0ms, Worker 1, 파티션 3, DB 풀 8.
+  - Apple M4 10코어 / RAM 16GiB / Docker 할당 10 CPU·8,217,575,424 bytes / macOS 15.7.7 arm64.
+  - Amazon Corretto 21.0.6, Gradle 8.14.5, Boot 3.5.16, Spring Kafka 3.3.16, kafka-clients 3.9.2, MySQL 8.4.8.
+  - [명령·환경·결과와 원본 요약 출력](experiments/s3-reconciliation-2026-10-14.json) 보존.
+- 실행 JAR `build/libs/notification-lab-0.3.0-SNAPSHOT.jar` 생성 성공.
+
+### 검증 중 수정과 한계
+
+- 첫 1만 건 실험 도중 Relay 조회의 전체 스캔/filesort를 확인해 해당 테스트 실행을 중단.
+  중단된 실행은 통과나 변경 전 성능 기준으로 계산하지 않았다.
+- 상태별 한 건 조회로 수정한 뒤 전체 빌드/실험 재실행. 실제 EXPLAIN에서 기존
+  `idx_outbox_status_available`의 range/Using index condition 사용 확인. 성능 개선 비율은 주장하지 않음.
+- 초기 Compose smoke에서 Kafka volume 권한 오류 확인. 이미지 안의 appuser 소유 경로
+  `/var/lib/kafka/data`로 수정. Testcontainers 성공만으로 Compose 성공을 주장하지 않음.
+- BOM의 Flyway 11.7.2는 MySQL 8.4 관련 지원 버전 경고를 출력한다. 실제 migration/업그레이드/제약 검증은 통과했으며 경고를 숨기거나 BOM을 임의로 바꾸지 않았다.
+- FAILED Outbox는 수동 조사 필요. 공급자 성공과 DB 결과 저장 사이 종료 시 외부 호출 중복 가능.
+- 브로커 실제 중단/프로세스 강제 종료/rebalance/다중 인스턴스 실험, 운영 HA, API 멱등성/Retry/DLQ는 미검증 또는 다음 단계.
+- S3는 로컬 검증 결과이며 사용자 검토 전에는 푸시하지 않는다. 원격 CI 성공은 위 c95a444까지만 해당.
+
+### 최종 Compose / 실행 JAR 확인
+
+- volume 경로 수정 후 별도 `notification-lab-s3-check` Compose 프로젝트와 임시 비밀번호/포트로 재실행 성공.
+- POST **202 QUEUED** -> GET **PROVIDER_ACCEPTED**, health UP 확인.
+- Kafka 토픽의 실제 **파티션 3개 / replication factor 1** 확인.
+- 앱 종료 -> MySQL/Kafka 컨테이너 제거(volume 보존) -> 재생성 -> 앱 재시작 후 기존 알림 응답 완전 일치.
+- 재시작한 Worker의 running 지표 1 확인. 진행 중 강제 종료/불완전 처리 복구 전체를 검증한 것은 아님.
+- 검증용 컨테이너·volume·네트워크·임시 비밀번호 파일 정리 완료. 다른 프로젝트 자원은 변경하지 않음.
+- 최종 diff 공백, Markdown 로컬 링크/코드 블록, YAML/결과 JSON 검사 완료. 비밀정보/빌드 산출물 제외.
+
+S3 로컬 완료. 다음은 S4의 API Idempotency-Key 정책/원자적 중복 방지부터 진행한다.
+이번 요청에서는 S4를 시작하지 않는다.

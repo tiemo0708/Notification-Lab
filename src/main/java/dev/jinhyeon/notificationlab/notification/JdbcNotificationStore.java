@@ -33,8 +33,8 @@ public class JdbcNotificationStore implements NotificationStore {
     @Override
     @Transactional
     public void create(Notification notification) {
-        if (notification.status() != NotificationStatus.PROCESSING) {
-            throw new IllegalArgumentException("New notification must be PROCESSING");
+        if (notification.status() != NotificationStatus.PROCESSING && notification.status() != NotificationStatus.QUEUED) {
+            throw new IllegalArgumentException("New notification must be QUEUED or PROCESSING");
         }
         jdbc.update("""
                 INSERT INTO notification
@@ -48,13 +48,13 @@ public class JdbcNotificationStore implements NotificationStore {
     @Override
     @Transactional
     public void update(Notification notification) {
-        if (notification.status() == NotificationStatus.PROCESSING) {
+        if (notification.status() == NotificationStatus.PROCESSING || notification.status() == NotificationStatus.QUEUED) {
             throw new IllegalArgumentException("Completion must have a terminal status");
         }
         int changed = jdbc.update("""
                 UPDATE notification
                 SET status = ?, provider_message_id = ?, error_code = ?, completed_at = ?
-                WHERE notification_id = ? AND status = 'PROCESSING'
+                WHERE notification_id = ? AND status = 'PROCESSING' AND worker_token IS NULL
                 """, notification.status().name(), notification.providerMessageId(), notification.errorCode(),
                 utc(notification.completedAt()), notification.notificationId().toString());
         if (changed != 1) {
