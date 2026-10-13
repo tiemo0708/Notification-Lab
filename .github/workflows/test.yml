@@ -21,6 +21,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: maven
-      - name: Run unit, HTTP and MySQL tests
-        run: ./mvnw --batch-mode --no-transfer-progress test
+          cache: gradle
+      - name: Build and run unit, HTTP and MySQL tests
+        run: ./gradlew --no-daemon --console=plain build

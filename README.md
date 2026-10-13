@@ -7,13 +7,13 @@ Outbox 테이블은 준비했으며, 이벤트 저장·Kafka 발행/소비는 S3
 ## 시작
 
 Java 21, Docker(Compose 포함), 인터넷 연결이 필요하다.
-Maven Wrapper가 최초 실행 시 Maven과 의존성을 받는다. AWS/FCM 키는 필요하지 않다.
+Gradle Wrapper가 최초 실행 시 Gradle과 의존성을 받는다. AWS/FCM 키는 필요하지 않다.
 
 테스트는 임시 MySQL 컨테이너를 직접 생성하고 종료한다. `.env`나 Compose 기동은 필요 없다.
 Docker가 없거나 실행되지 않으면 실제 DB 테스트는 실패하며 자동으로 스킵하지 않는다.
 
 ```bash
-./mvnw test
+./gradlew test
 ```
 
 애플리케이션 실행:
@@ -29,13 +29,24 @@ docker compose up -d --wait
 set -a
 . ./.env
 set +a
-./mvnw spring-boot:run
+./gradlew bootRun
 ```
 
 위 환경변수 로딩 명령은 bash/zsh 기준이다. `.env` 값은 셸에서도 읽을 수 있게 작성한다.
-Windows에서는 같은 값을 환경변수로 설정한 뒤 `mvnw.cmd test`, `mvnw.cmd spring-boot:run`을 사용한다.
-Maven이 설치되어 있다면 `mvn test`와 `mvn spring-boot:run`도 가능하다.
+Windows에서는 같은 값을 환경변수로 설정한 뒤 `gradlew.bat test`, `gradlew.bat bootRun`을 사용한다.
+별도 Gradle 설치 없이 저장소의 Wrapper를 사용한다. 빌드 설정은 `build.gradle`(Groovy DSL)이다.
 Java 버전이 다르면 로컬의 JAVA_HOME을 JDK 21로 설정한다.
+
+전체 빌드와 실행 JAR 생성:
+
+```bash
+./gradlew build
+java -jar build/libs/notification-lab-0.2.0-SNAPSHOT.jar
+```
+
+`build`는 테스트와 실행 JAR 생성을 함께 수행한다. JAR 실행 시에도 앞에서 설정한 DB 환경변수가 필요하다.
+테스트 HTML 보고서는 `build/reports/tests/test/index.html`, XML 결과는 `build/test-results/test/`에 생성된다.
+이미 테스트를 통과한 코드의 JAR만 다시 만들 때는 `./gradlew bootJar`를 사용한다.
 
 `MYSQL_PORT`를 바꾸면 Compose와 앱의 기본 JDBC 주소에 함께 반영된다.
 별도 DB 연결은 `DB_URL`로 재정의할 수 있다. 운영 자격증명이나 외부 DB를 사용하지 않는다.
@@ -85,9 +96,9 @@ Outbox 단계에서는 API를 비동기 접수(202)로 변경한다. 지금 202�
 서버를 정상 종료한 다음 다음 중 하나로 시작한다. 현재 설정은 런타임 동적 변경이 아니다.
 
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.arguments="--app.mock.outcome=TRANSIENT_FAILURE"
-./mvnw spring-boot:run -Dspring-boot.run.arguments="--app.mock.outcome=PERMANENT_FAILURE"
-./mvnw spring-boot:run -Dspring-boot.run.arguments="--app.mock.delay-ms=1000"
+./gradlew bootRun --args='--app.mock.outcome=TRANSIENT_FAILURE'
+./gradlew bootRun --args='--app.mock.outcome=PERMANENT_FAILURE'
+./gradlew bootRun --args='--app.mock.delay-ms=1000'
 ```
 
 기본값: 지연 100ms, SUCCESS. 허용 지연 0~5000ms.
@@ -96,12 +107,12 @@ DB 연결 풀은 최대 8개, 연결 대기 3초로 제한한다. 레코드 보�
 ## S1 비교 실행
 
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=memory
+./gradlew bootRun --args='--spring.profiles.active=memory'
 ```
 
 이 프로필은 Docker/DB 없이 실행하며 메모리 최대 10,000건, 재시작 시 데이터 삭제라는 S1 특성을 유지한다.
-전체 테스트 명령 `./mvnw test`에는 여전히 MySQL 테스트가 포함된다.
-단위/메모리 HTTP 테스트만 실행하려면 `./mvnw -Dtest='!MySqlNotificationTest' test`를 사용하고,
+전체 테스트 명령 `./gradlew test`에는 여전히 MySQL 테스트가 포함된다.
+특정 단위 테스트만 실행하려면 `./gradlew test --tests '*NotificationServiceTest'`를 사용하고,
 그 결과를 S2 전체 검증 통과로 기록하지 않는다.
 
 | 항목 | S1 `memory` | S2 기본 실행 |

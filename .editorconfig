@@ -11,5 +11,5 @@ indent_size = 4
 [*.{yml,yaml}]
 indent_size = 2
 
-[mvnw.cmd]
+[gradlew.bat]
 end_of_line = crlf

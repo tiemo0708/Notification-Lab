@@ -1,5 +1,7 @@
 # 진행 기록
 
+아래 기록은 실행 당시의 도구와 명령을 보존한다. 현재 빌드/실행 명령은 README의 Gradle Wrapper 기준을 따른다.
+
 ## 2026-10-13: S0 계획 + S1 동기식 Mock 기준선
 
 ### 작성됨
@@ -134,3 +136,33 @@ Docker 가용성을 먼저 확인하고, 없으면 Testcontainers 통과를 주�
 - GitHub Actions는 파일만 준비했으며 원격 실행 결과는 아직 없음. PR/병합/force push는 수행하지 않음.
 
 다음 구현은 S3이며, 이번 작업에서는 시작하지 않는다.
+
+## 2026-10-13: Maven에서 Gradle로 전환 — 로컬 완료, 푸시 검토 대기
+
+### 변경
+
+- 사용자가 익숙한 Gradle로 빌드 도구를 전환. Java 21 / Spring Boot 3.5.16 / 프로젝트 0.2.0-SNAPSHOT 유지.
+- `build.gradle`/`settings.gradle`의 Groovy DSL과 Gradle Wrapper 8.14.5 도입.
+- Spring Boot BOM을 `enforcedPlatform`으로 사용해 기존 관리 의존성 버전 유지. Mockito 제외도 유지.
+- Gradle JUnit Platform 실행을 위한 launcher 의존성을 테스트 런타임에 명시.
+- `pom.xml`, Maven Wrapper 스크립트와 설정 제거. 과거 커밋의 Maven 이력과 당시 검증 기록은 보존.
+- CI는 Gradle 캐시와 `./gradlew --no-daemon --console=plain build`로 변경. 테스트와 실행 JAR를 함께 확인.
+- README/AGENTS/CONTRIBUTING/PLAN/S2 문서의 현재 실행 명령 및 보고서/산출물 경로 갱신.
+- `.gradle/`, `build/`를 Git에서 제외. 이전 `target/` 산출물의 제외도 유지.
+
+### 실제 검증
+
+- 공식 배포 ZIP SHA-256을 Wrapper에 설정하고 Wrapper JAR도 Gradle 공식 체크섬과 일치 확인.
+- `./gradlew --no-daemon --console=plain clean build`: **32개 통과 / 실패 0 / 오류 0 / 스킵 0**, 실행 JAR 생성 성공.
+- 실제 MySQL Testcontainers 14개와 기존 단위/메모리 HTTP 테스트 18개를 모두 재실행.
+- `src/` 아래 애플리케이션·테스트·리소스 28개 파일은 전환 전과 SHA-256이 동일.
+- Maven/Gradle 실행 JAR 내 런타임 라이브러리 54개의 파일명과 내용 SHA-256이 모두 동일.
+- Gradle 실행 JAR의 memory 프로필을 임시 loopback 포트로 기동해 POST 201 / GET 200 / health UP / Prometheus 확인 후 종료.
+- 실제 MySQL에 연결한 앱의 재시작 후 조회는 위 14개 테스트에서 재검증. DB 컨테이너 재생성/volume 보존 smoke는 이전 S2에서 검증했으며 이번 전환에서는 반복하지 않음.
+- 문서 로컬 링크/코드 블록, workflow YAML, diff 공백 검사 통과.
+- macOS에서 검증했으며 Windows `gradlew.bat` 실행과 원격 GitHub Actions는 미실행.
+- 사용자 검토 전이므로 푸시 및 원격 main 기본 브랜치 지정은 계속 대기. S3 미시작.
+
+선택 근거: [Spring Boot 3.5 빌드 도구 호환 범위](https://docs.spring.io/spring-boot/3.5/system-requirements.html),
+[BOM 의존성 관리](https://docs.spring.io/spring-boot/3.5/gradle-plugin/managing-dependencies.html),
+[Gradle Wrapper 검증 방법](https://docs.gradle.org/current/userguide/gradle_wrapper.html).

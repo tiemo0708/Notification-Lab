@@ -62,7 +62,7 @@ BREAKING CHANGE: POST /notifications 응답이 최종 처리 결과를 담은 20
 2. 기능과 이를 검증하는 테스트는 같은 커밋에 포함할 수 있다.
 3. 관련 없는 리팩터링과 기능 추가는 분리한다. 타입을 맞추기 위해 컴파일되지 않는 단위로 쪼개지 않는다.
 4. 커밋 전에 변경 파일과 스테이징된 diff를 확인하고, 비밀정보나 무관한 파일을 포함하지 않는다.
-5. 기본 검증은 `./mvnw test`이다. Windows에서는 `mvnw.cmd test`를 사용한다.
+5. 기본 검증은 `./gradlew test`이다. Windows에서는 `gradlew.bat test`를 사용한다.
 6. 추가 통합/부하 테스트가 필요한 변경은 해당 명령과 결과도 남긴다.
 7. 실행하지 못한 검증은 미실행 이유와 남은 위험을 기록한다. CI나 테스트 통과를 추정하지 않는다.
 8. `perf`라는 타입 자체가 개선의 증거는 아니다. 수치는 실제 측정한 경우에만 제시한다.
@@ -89,6 +89,7 @@ BREAKING CHANGE: POST /notifications 응답이 최종 처리 결과를 담은 20
 
 ## 코드와 테스트
 
+- 빌드는 Gradle Wrapper 8.14.5와 Groovy DSL(`build.gradle`, `settings.gradle`)을 사용한다. 의존성 버전은 기존 Spring Boot BOM을 따른다.
 - Java 21, UTF-8, 공백 4칸을 사용한다. YAML은 공백 2칸이다. `.editorconfig`를 따른다.
 - 클래스/record/interface는 `UpperCamelCase`, 메서드/변수는 `lowerCamelCase`, 상수는 `UPPER_SNAKE_CASE`로 작성한다.
 - `dev.jinhyeon.notificationlab` 아래 `api`, `notification`, `provider`, `config` 패키지를 유지한다. 새 패키지는 실제 책임이 생길 때 추가한다.
@@ -96,7 +97,7 @@ BREAKING CHANGE: POST /notifications 응답이 최종 처리 결과를 담은 20
 - 트랜잭션 경계를 코드와 문서에 명시한다. 외부 공급자 호출 중 DB 트랜잭션을 유지하지 않는다.
 - 새 import는 와일드카드를 피한다. 규칙 적용을 위해 관련 없는 기존 파일을 일괄 수정하지 않는다.
 - 테스트 클래스는 `대상Test`, 메서드는 검증하는 동작을 설명하는 영문 `lowerCamelCase`로 작성한다.
-- 기본 `./mvnw test`에서 단위/HTTP/실제 MySQL 테스트를 실행한다. DB 검증은 Testcontainers를 사용하며 Docker가 없다고 자동 스킵하지 않는다.
+- 기본 `./gradlew test`에서 단위/HTTP/실제 MySQL 테스트를 실행한다. DB 검증은 Testcontainers를 사용하며 Docker가 없다고 자동 스킵하지 않는다.
 - 테스트 데이터는 가상 값만 사용한다. 구현을 그대로 반복하는 테스트보다 동작, 실패, 동시성, 트랜잭션 경계를 검증한다.
 
 ## DB와 API
@@ -109,8 +110,8 @@ BREAKING CHANGE: POST /notifications 응답이 최종 처리 결과를 담은 20
 
 ## CI
 
-- `.github/workflows/test.yml`은 push와 PR에서 Java 21로 `./mvnw --batch-mode --no-transfer-progress test`를 실행한다.
-- Docker를 제공하는 GitHub hosted runner에서 실제 MySQL 테스트까지 실행한다.
+- `.github/workflows/test.yml`은 push와 PR에서 Java 21로 `./gradlew --no-daemon --console=plain build`를 실행한다.
+- Docker를 제공하는 GitHub hosted runner에서 실제 MySQL 테스트와 실행 JAR 생성까지 확인한다. Gradle 의존성 캐시를 사용한다.
 - CI 결과는 원격 실행 결과를 확인한 경우에만 통과로 기록한다. 브랜치 보호 및 자동 포맷터는 현재 설정하지 않는다.
 
 ## 비밀정보와 산출물

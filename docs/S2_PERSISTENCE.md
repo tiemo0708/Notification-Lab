@@ -55,7 +55,7 @@ JDBC는 시간 값을 UTC `LocalDateTime`으로 변환하고 앱 Clock도 마이
 테스트는 같은 MySQL 버전의 임시 컨테이너와 무작위 loopback 포트를 사용하며 Compose 데이터와 분리한다.
 임시 비밀번호는 실행 시 생성한다. 실제 수신자와 외부 공급자는 사용하지 않는다.
 
-`./mvnw test`에는 기존 단위/메모리 HTTP 테스트와 `MySqlNotificationTest`가 포함된다.
+`./gradlew test`에는 기존 단위/메모리 HTTP 테스트와 `MySqlNotificationTest`가 포함된다.
 실제 HTTP 서버 및 DB로 다음을 검증한다.
 
 - 성공 결과/한글·이모지/UTC 시간의 저장과 앱 재시작 후 동일 응답, Flyway 재실행 안전성.
