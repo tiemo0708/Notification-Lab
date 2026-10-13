@@ -68,7 +68,7 @@ Docker 가용성을 먼저 확인하고, 없으면 Testcontainers 통과를 주�
 - Git 초기화/커밋/원격 푸시/PR 생성/병합은 아직 수행하지 않음.
 - GitHub Actions와 브랜치 보호는 문서화만으로 설정되지 않으며, 이번 작업에서 설정하지 않음.
 
-## 2026-10-13: macOS 환경 재검증 및 초기 Git 등록 준비
+## 2026-10-13: macOS 환경 재검증 및 초기 Git 등록
 
 - 작업 폴더: `/Users/jinhyeon/notification-lab`. 필수 문서와 S1 소스/테스트 파일 확인.
 - Git 작성자: `JinHyeon <tiemo0708@naver.com>` (기존 설정 사용).
@@ -80,5 +80,6 @@ Docker 가용성을 먼저 확인하고, 없으면 Testcontainers 통과를 주�
 - Maven 캐시 쓰기와 네트워크 접근을 허용한 실행에서 검증. TLS 검증을 끄거나 프로젝트 의존성을 변경하지 않음.
 - 비밀정보 패턴과 포함 파일 확인. `target/` 등 빌드 산출물은 커밋에서 제외.
 - 이번 실행에서는 실제 서버 smoke test, Docker/MySQL/Kafka 통합 및 부하 테스트를 재실행하지 않음. 이전 환경의 검증 기록과 구분.
-- 이 기록 작성 시점에는 커밋/푸시 전이며, 최종 반영 여부는 실제 Git 결과로 확인한다.
+- 초기 커밋 `7bd347631a978144c180680180e57c5c597d227f` 생성 및 `git push -u origin feat/s1-mock-api` 성공. 이후 `git ls-remote`로 원격 브랜치와 로컬 커밋 해시 일치 확인.
+- 빈 저장소의 첫 브랜치 푸시로 GitHub 기본 브랜치가 `feat/s1-mock-api`로 설정됨. `main`은 아직 없으며, CONTRIBUTING.md의 목표 구조로 전환하는 작업은 이번 요청에서 수행하지 않음.
 - S2는 시작하지 않음. force push, PR 생성, 병합 및 GitHub 설정 변경은 수행하지 않음.
