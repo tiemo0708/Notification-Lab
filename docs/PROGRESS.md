@@ -83,3 +83,12 @@ Docker 가용성을 먼저 확인하고, 없으면 Testcontainers 통과를 주�
 - 초기 커밋 `7bd347631a978144c180680180e57c5c597d227f` 생성 및 `git push -u origin feat/s1-mock-api` 성공. 이후 `git ls-remote`로 원격 브랜치와 로컬 커밋 해시 일치 확인.
 - 빈 저장소의 첫 브랜치 푸시로 GitHub 기본 브랜치가 `feat/s1-mock-api`로 설정됨. `main`은 아직 없으며, CONTRIBUTING.md의 목표 구조로 전환하는 작업은 이번 요청에서 수행하지 않음.
 - S2는 시작하지 않음. force push, PR 생성, 병합 및 GitHub 설정 변경은 수행하지 않음.
+
+## 2026-10-13: 개인 개발 운영 규칙과 CI 준비
+
+- 기존 `b206023` 이력에서 로컬 `main` 생성. 기존 S1 브랜치와 커밋은 보존.
+- `CONTRIBUTING.md`: main 직접 개발, 작업 브랜치/PR 선택, 사용자 검토 후 푸시 방식으로 변경.
+- Java/테스트/DB/API 최소 컨벤션과 `.editorconfig` 추가. S2의 HTTP 201 유지와 S3의 202 전환을 명확히 구분.
+- `.github/workflows/test.yml`: push/PR에서 Java 21 + Maven Wrapper 테스트 실행. 공식 checkout/setup-java v5 커밋에 고정.
+- `./mvnw --batch-mode --no-transfer-progress test`: 기존 **18개 통과 / 실패 0 / 오류 0 / 스킵 0**.
+- 사용자 검토 전이므로 푸시/원격 기본 브랜치 변경은 대기. CI 원격 실행 및 브랜치 보호 설정은 아직 수행하지 않음.

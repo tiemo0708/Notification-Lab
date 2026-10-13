@@ -73,18 +73,45 @@ BREAKING CHANGE: POST /notifications 응답이 최종 처리 결과를 담은 20
 
 ## 브랜치와 PR
 
-- 기본 브랜치: `main`. 별도의 `develop` 브랜치는 두지 않는다.
-- 작업 브랜치: `feat/outbox-persistence`, `fix/worker-offset`, `docs/commit-convention`처럼 작성한다.
-- PR 하나는 작은 기능/수정 하나를 대상으로 하고, 제목도 커밋 메시지 형식을 따른다.
-- PR에는 변경 이유, 변경 범위, 검증 결과, 미검증 항목과 한계를 작성한다.
-- 관련 테스트와 diff를 확인한 후 Squash merge한다. `main`에는 PR 단위의 설명 가능한 이력을 남긴다.
-- PR에 기재한 미검증 항목이 핵심 완료 조건이라면 해소 전에는 완료/병합 처리하지 않는다.
+- 혼자 개발하는 기본 흐름은 `main`에서 작은 논리적 단위로 직접 커밋하는 방식이다. `develop`은 두지 않는다.
+- 기존 실행 버전을 유지해야 하는 큰 실험에만 작업 브랜치를 만든다. 이름은 `feat/outbox-persistence`, `fix/worker-offset`처럼 작성한다.
+- PR은 선택 사항이다. 사용하면 커밋 형식의 제목과 변경 이유/범위/검증/한계를 기록하고 템플릿을 따른다.
+- PR을 사용한 변경은 관련 테스트와 diff 검토 후 Squash merge할 수 있다. 자동 병합하지 않는다.
+- 작업 순서: 완료 조건 정의 -> 구현 -> 테스트 -> diff 확인 -> 결과 기록 -> 로컬 커밋 -> 사용자 검토 -> 푸시.
+- AI 도구는 푸시 전에 변경 이유, 확인할 파일, 실제 테스트 결과, 미검증 항목, 커밋을 제시하고 사용자의 푸시 승인을 기다린다.
+- 테스트 실패 또는 핵심 완료 조건 미검증 상태를 완료로 보고하거나 푸시하지 않는다.
 - 게시된 이력을 임의로 재작성하지 않는다. force push, 자동 병합, 보호 규칙 우회는 하지 않는다.
 - 원격 커밋/푸시/PR 생성과 병합은 각각 사용자 요청 범위 및 실제 권한을 확인한 뒤 진행한다.
 - 원격 상태를 확인할 수 없다면 기존 `main`이나 README 유무를 추정해서 덮어쓰지 않는다.
 
 `.github/pull_request_template.md`를 PR 작성 체크리스트로 사용한다.
 문서만으로 CI나 브랜치 보호가 자동 설정되는 것은 아니다. 미설정 기능을 설정 완료로 기록하지 않는다.
+
+## 코드와 테스트
+
+- Java 21, UTF-8, 공백 4칸을 사용한다. YAML은 공백 2칸이다. `.editorconfig`를 따른다.
+- 클래스/record/interface는 `UpperCamelCase`, 메서드/변수는 `lowerCamelCase`, 상수는 `UPPER_SNAKE_CASE`로 작성한다.
+- `dev.jinhyeon.notificationlab` 아래 `api`, `notification`, `provider`, `config` 패키지를 유지한다. 새 패키지는 실제 책임이 생길 때 추가한다.
+- 생성자 주입을 사용하고 컨트롤러는 HTTP 변환과 입력 검증, 서비스는 처리 흐름, 저장소는 데이터 접근을 담당한다.
+- 트랜잭션 경계를 코드와 문서에 명시한다. 외부 공급자 호출 중 DB 트랜잭션을 유지하지 않는다.
+- 새 import는 와일드카드를 피한다. 규칙 적용을 위해 관련 없는 기존 파일을 일괄 수정하지 않는다.
+- 테스트 클래스는 `대상Test`, 메서드는 검증하는 동작을 설명하는 영문 `lowerCamelCase`로 작성한다.
+- 기본 `./mvnw test`에서 단위/HTTP/실제 MySQL 테스트를 실행한다. DB 검증은 Testcontainers를 사용하며 Docker가 없다고 자동 스킵하지 않는다.
+- 테스트 데이터는 가상 값만 사용한다. 구현을 그대로 반복하는 테스트보다 동작, 실패, 동시성, 트랜잭션 경계를 검증한다.
+
+## DB와 API
+
+- 테이블/컬럼은 소문자 `snake_case`, 인덱스는 `idx_`, 유니크 제약은 `uk_`, 외래 키는 `fk_`, 체크 제약은 `chk_` 접두사를 쓴다.
+- 스키마 변경은 `V번호__설명.sql` Flyway migration으로 관리한다. 적용된 migration은 수정하지 않고 다음 버전을 추가한다.
+- 저장 시간은 UTC, DB 시간 정밀도는 마이크로초로 통일한다. UUID는 문자열 식별자로 저장한다.
+- JSON 필드는 `lowerCamelCase`, 상태 값은 `UPPER_SNAKE_CASE`를 사용한다. 오류 응답에 payload/DB 오류 상세를 노출하지 않는다.
+- S2는 동기식 처리와 HTTP 201을 유지한다. 요청/Outbox 커밋 후 HTTP 202는 S3에서 도입한다.
+
+## CI
+
+- `.github/workflows/test.yml`은 push와 PR에서 Java 21로 `./mvnw --batch-mode --no-transfer-progress test`를 실행한다.
+- Docker를 제공하는 GitHub hosted runner에서 실제 MySQL 테스트까지 실행한다.
+- CI 결과는 원격 실행 결과를 확인한 경우에만 통과로 기록한다. 브랜치 보호 및 자동 포맷터는 현재 설정하지 않는다.
 
 ## 비밀정보와 산출물
 
