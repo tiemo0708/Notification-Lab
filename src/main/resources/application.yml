@@ -13,13 +13,24 @@ spring:
     name: notification-lab
   lifecycle:
     timeout-per-shutdown-phase: 10s
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:${MYSQL_PORT:13316}/notification_lab?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&connectTimeout=3000&socketTimeout=5000}
+    username: ${MYSQL_USER:notification_lab}
+    password: ${MYSQL_PASSWORD}
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 1
+      connection-timeout: 3000
+  flyway:
+    clean-disabled: true
 
 app:
-  # Local-only baseline. No real provider calls or durable storage yet.
+  # Local-only synchronous Mock. Outbox publishing starts in S3.
   mock:
     delay-ms: 100
     outcome: SUCCESS
   store:
+    # Used only by the optional memory profile.
     max-records: 10000
 
 management:

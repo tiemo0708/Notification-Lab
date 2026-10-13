@@ -51,12 +51,14 @@
 S1은 트래픽 벤치마크가 아니다. 1만 건 검증은 S3 이후 진행한다.
 
 ### S2. MySQL 영속화
-- [ ] Docker Compose에 MySQL 추가 (포트는 127.0.0.1에 제한)
-- [ ] Flyway로 notification과 outbox_event 스키마 도입
-- [ ] Testcontainers로 실제 MySQL 트랜잭션 테스트
-- [ ] 동기식 기준선과 DB 버전의 API 차이/상태 전이 문서화
+- [x] Docker Compose에 MySQL 추가 (127.0.0.1:13316, named volume)
+- [x] Flyway로 notification과 outbox_event 스키마 도입
+- [x] Testcontainers로 실제 MySQL 트랜잭션 테스트 (14개 + 기존 18개 통과)
+- [x] 동기식 기준선과 DB 버전의 API 차이/상태 전이 문서화
 
 완료 조건: 재시작 후 조회 가능. 제약/인덱스/롤백을 실제 MySQL에서 검증.
+실행 JAR와 Compose MySQL 컨테이너 재생성 후 기존 volume의 알림 조회도 확인.
+구현/검증은 로컬 완료이며 원격 반영은 사용자 검토 후 진행한다.
 
 ### S3. Outbox + Kafka 수직 흐름
 - [ ] 요청/Outbox를 하나의 트랜잭션으로 저장한 후 202 반환

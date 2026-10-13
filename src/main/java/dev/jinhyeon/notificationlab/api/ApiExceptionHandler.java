@@ -2,6 +2,8 @@ package dev.jinhyeon.notificationlab.api;
 
 import dev.jinhyeon.notificationlab.notification.NotificationNotFoundException;
 import dev.jinhyeon.notificationlab.notification.StoreCapacityExceededException;
+import org.springframework.dao.DataAccessException;
+import org.springframework.transaction.TransactionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,13 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler({DataAccessException.class, TransactionException.class})
+    public ProblemDetail storageUnavailable(Exception exception) {
+        // SQL exceptions may contain bound recipient/payload values; do not log or echo them.
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Notification storage is temporarily unavailable");
+    }
+
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class})
     public ProblemDetail invalidInput(Exception exception) {

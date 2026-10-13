@@ -92,3 +92,45 @@ Docker 가용성을 먼저 확인하고, 없으면 Testcontainers 통과를 주�
 - `.github/workflows/test.yml`: push/PR에서 Java 21 + Maven Wrapper 테스트 실행. 공식 checkout/setup-java v5 커밋에 고정.
 - `./mvnw --batch-mode --no-transfer-progress test`: 기존 **18개 통과 / 실패 0 / 오류 0 / 스킵 0**.
 - 사용자 검토 전이므로 푸시/원격 기본 브랜치 변경은 대기. CI 원격 실행 및 브랜치 보호 설정은 아직 수행하지 않음.
+
+## 2026-10-13: S2 MySQL 영속화 — 로컬 검증 완료, 푸시 검토 대기
+
+### 구현
+
+- Spring JDBC + MySQL 저장소를 기본으로 사용. `memory` 프로필로 S1 비교 실행 가능.
+- PROCESSING 생성 커밋 -> 트랜잭션 없는 Mock 호출 -> 결과 커밋 -> HTTP 201.
+- Flyway V1: notification/outbox_event, PK/FK/유니크/CHECK 제약과 상태/시간 복합 인덱스.
+- Outbox는 스키마만 준비. API의 Outbox 저장/발행, Kafka, HTTP 202는 S3에서 구현.
+- Compose: MySQL 8.4.8, loopback 바인딩, named volume, healthcheck, 메모리 상한.
+- 기존 로컬 SSH 터널이 13306을 사용 중이어서 기본 MySQL 포트는 13316으로 선택.
+- 연결 풀 상한 8, 연결 대기 3초. DB/트랜잭션 오류는 세부 데이터 없이 503으로 응답.
+- README와 `docs/S2_PERSISTENCE.md`에 실행, 스키마, 실패 상태, 트랜잭션 경계와 한계 기록.
+
+### 실제 검증
+
+- 환경: macOS arm64 / Amazon Corretto 21.0.6 / Maven 3.9.11 / Docker Engine 27.5.1 / Compose 2.32.4.
+- Spring Boot 3.5.16, BOM 관리 Flyway 11.7.2 / Testcontainers 1.21.4 / MySQL Connector/J 9.7.0.
+- `./mvnw --batch-mode --no-transfer-progress test`: **32개 통과 / 실패 0 / 오류 0 / 스킵 0**.
+  - 기존 단위/메모리 HTTP 테스트: 18개.
+  - `MySqlNotificationTest`: 실제 MySQL 8.4.8 + HTTP 서버로 14개.
+  - 앱 재시작 후 동일 결과, 한글/이모지/시간 보존, Flyway 중복 적용 방지.
+  - DB 커밋 이후 트랜잭션 없이 공급자 호출, 중복 PK 동시 삽입 차단, 최종 결과 덮어쓰기 방지.
+  - 같은 트랜잭션의 알림/Outbox 롤백, UPDATE 롤백, FK/유니크/CHECK/JSON 제약과 인덱스 구성.
+  - 저장/연결 실패 503과 오류 상세 비노출, 결과 저장 실패 후 PROCESSING 유지 및 자동 재시도 부재.
+- `./mvnw --batch-mode --no-transfer-progress -DskipTests package`: 실행 JAR 패키징 성공. 직전 테스트를 반복하지 않음.
+- 별도 검증용 Compose 프로젝트에서 JAR 실제 기동: POST 201, GET 200, health UP, Prometheus 확인.
+- 앱 종료 -> `docker compose down`(volume 보존) -> `up -d --wait` -> 앱 재기동 후 같은 알림 응답 일치 확인.
+- `127.0.0.1:13316` 바인딩 확인. 이번에 생성한 검증용 컨테이너/volume/임시 비밀번호 파일 정리 완료.
+- 기존 다른 프로젝트의 컨테이너와 SSH 터널은 변경하지 않음.
+- POM XML, 문서 로컬 링크/코드 블록, diff 공백 검사 통과. 빌드 산출물과 비밀번호는 커밋에서 제외.
+
+### 검증 중 조정과 한계
+
+- MySQL CHECK 위반은 Spring의 예외 하위 타입에 의존하지 않고 실제 MySQL 오류 코드(3819)를 검증하도록 조정.
+- 장애 주입용 trigger DDL은 임시 테스트 컨테이너의 root로 실행하며 앱 사용자의 권한이나 MySQL 보안 설정은 확대하지 않음.
+- 초기 DB 저장과 결과 저장은 별도 커밋. 중간 종료 시 PROCESSING이 남고 자동 복구하지 않는다.
+- 요청 멱등성, 재시도, Outbox/Kafka 처리, 부하/성능, DB 고가용성 검증은 미구현/미실행.
+- 로컬 main에서 구현과 검증 완료. 사용자 검토 후 푸시 및 GitHub 기본 브랜치 main 지정 예정.
+- GitHub Actions는 파일만 준비했으며 원격 실행 결과는 아직 없음. PR/병합/force push는 수행하지 않음.
+
+다음 구현은 S3이며, 이번 작업에서는 시작하지 않는다.

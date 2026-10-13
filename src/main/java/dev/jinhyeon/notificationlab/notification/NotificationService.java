@@ -10,6 +10,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class NotificationService {
@@ -27,10 +29,12 @@ public class NotificationService {
         this.registry = registry;
     }
 
+    // Each store write commits separately. Never hold a DB transaction across the provider call.
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Notification send(NotificationRequest request) {
         var notification = new Notification(UUID.randomUUID(), request.recipientId(), request.title(),
                 request.body(), NotificationStatus.PROCESSING, null, null, clock.instant(), null);
-        // Reserve bounded storage before calling the provider. No background work in phase 1.
+        // Persist PROCESSING before calling the provider (reserve capacity in the memory profile).
         store.create(notification);
         Timer.Sample sample = Timer.start(registry);
         registry.counter("notification.provider.attempts").increment();

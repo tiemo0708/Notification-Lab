@@ -1,0 +1,26 @@
+name: notification-lab
+
+services:
+  mysql:
+    image: mysql:8.4.8
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-13316}:3306"
+    environment:
+      MYSQL_DATABASE: notification_lab
+      MYSQL_USER: ${MYSQL_USER:-notification_lab}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      TZ: UTC
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command: ["--default-time-zone=+00:00"]
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u \"$$MYSQL_USER\" -D \"$$MYSQL_DATABASE\" -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    mem_limit: 768m
+
+volumes:
+  mysql-data:

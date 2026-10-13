@@ -4,10 +4,12 @@ import dev.jinhyeon.notificationlab.config.StoreProperties;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 /** Bounded, volatile storage for the synchronous baseline, not the final outbox store. */
 @Repository
+@Profile("memory")
 public class InMemoryNotificationStore implements NotificationStore {
     private final ConcurrentHashMap<UUID, Notification> notifications = new ConcurrentHashMap<>();
     private final int maxRecords;
