@@ -50,6 +50,10 @@ POST의 `202 Accepted`와 `Location`은 요청/발송 작업/Outbox가 DB에 커
 응답 스냅샷은 `QUEUED`이며 실제 진행 상황은 GET으로 조회한다. 기동 후 브로커 장애 중에도 DB 접수는 가능하다.
 브로커 없이 처음 기동해 토픽이 생성되지 않았다면 복구 후 앱을 재시작한다.
 
+기동 후 Kafka 컨테이너를 실제 중단하고 복구하는 [S5 실험](docs/S5_KAFKA_RECOVERY.md)에서
+장애 중 5건의 202 접수와 앱 재시작 없는 후속 처리를 확인했다. 단, Outbox 발행 상한을 소진한 `FAILED`는
+복구 후에도 자동 처리하지 않는다. Kafka lag가 0이어도 이 미발행 요청은 남을 수 있다.
+
 | 상태/응답 | 의미 |
 | --- | --- |
 | `QUEUED` | 접수 완료, Worker 처리 대기 |
@@ -177,6 +181,7 @@ Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 �
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S5_KAFKA_RECOVERY.md](docs/S5_KAFKA_RECOVERY.md): 실제 브로커 중단·복구, 접수/발행 대조와 상한 소진의 한계
 - [docs/S4_UNCERTAIN_OUTCOMES.md](docs/S4_UNCERTAIN_OUTCOMES.md): 중단 지점별 증거, 중복 가능성, 확인·복구 절차
 - [docs/S4_DLQ_REDRIVE.md](docs/S4_DLQ_REDRIVE.md): 선택 재발행 API, 감사 이력, 계보·횟수 상한
 - [docs/S4_RETRY_TOPICS_DLQ.md](docs/S4_RETRY_TOPICS_DLQ.md): 토픽 분리, DLQ 계약, ACK/offset 관계

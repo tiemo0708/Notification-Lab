@@ -484,3 +484,48 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   장시간 호출 중 lease 교체/다중 인스턴스 실험을 수행한 결과로 표현하지 않음.
 - 1만 건·Compose 재생성 실험 및 실행 JAR 생성은 이번 문서 작업에서 재실행하지 않음. 로컬 사용자 DB 변경 없음.
 - 다음은 S5의 Kafka 중단 중 API 접수와 복구 후 발행 실험. 이번 변경에서는 S5를 시작하지 않음.
+
+## 2026-10-14: S5 첫 단계 — 실제 Kafka 중단 중 접수와 복구 검증
+
+### 범위와 구현
+
+- 기본 테스트에 `KafkaRecoveryTest` 2개 추가. 앱 기능 코드와 DB migration은 변경하지 않음.
+- 별도 Testcontainers MySQL 8.4.8/Kafka 4.0.2와 실제 HTTP API 사용. 기존 Compose DB/volume/.env/IDE 설정 변경 없음.
+- 정상 기동과 기준 요청 처리 후 테스트 전용 Kafka 컨테이너만 실제 stop/start.
+  같은 컨테이너 데이터·주소를 유지하고 Spring Boot 앱/Relay 스케줄러/Worker는 재시작하지 않음.
+- 장애 중 202 접수, QUEUED 조회, Outbox 발행 실패와 PENDING 복귀, 공급자 호출 전 상태를 검증.
+- 복구 후 요청·작업·이벤트 ID 보존, PUBLISHED, 공급자 수락/시도 이력, committed offset, 지표 대조.
+- 발행 예산을 1회로 줄인 별도 테스트에서 FAILED Outbox를 보존하며 복구 후 신규 요청은 정상 처리되는지 확인.
+- 학습용 [실험 문서](S5_KAFKA_RECOVERY.md)에 재현 명령·단계별 상태·lag와 Outbox의 차이·한계를 정리.
+  README와 PLAN은 검증한 S5 첫 항목만 갱신.
+
+### 실제 실행 결과
+
+- 최초 선택 실행 `./gradlew --no-daemon --console=plain test --tests '*KafkaRecoveryTest'`:
+  **2개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL (1분 41초).
+- 첫 전체 실행은 **기존 90개 통과 + 새 클래스 초기화 오류 1개**로 실패 (1분 44초).
+  빈 포트 선택과 Docker 바인딩 사이에 `address already in use`가 발생했으며 새 2개 테스트는 시작되지 못함.
+  이 실행을 전체 통과로 집계하지 않음.
+- 초기 인프라 생성만 최대 3회로 제한하고 생성 시도마다 새 포트를 선택하도록 보완.
+  테스트 assertion 재실행이나 중단·복구 중 컨테이너 교체로 오류를 숨기지 않음.
+- 최종 `./gradlew --no-daemon --console=plain test --rerun-tasks`:
+  **92개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (2분 51초), 4개 작업 모두 실행.
+  JUnit XML 10개 suite와 Gradle 종료 코드 0을 확인.
+- 자동 복구: 장애 중 접수 5건 + 기준 1건 = 총 6건. 기존 ID 유지,
+  발행/공급자 수락/시도 이력/Mock 호출/요청 토픽 committed offset 합계 각각 6, 미발행·FAILED·lag 0.
+  중단 중 미발행 5, lag NaN, 공급자 추가 호출 0. Retry/DLQ 레코드 0.
+- 상한 소진: 총 접수 3건 중 기준·복구 후 신규 2건 처리. 장애 중 1건은 QUEUED/발송 시도 0,
+  Outbox FAILED/발행 시도 1로 보존. 미발행 1, FAILED 1이지만 lag 0. DLQ 레코드 0.
+- Java 21.0.6 / Gradle 8.14.5 / Docker Engine 27.5.1 로컬 환경. 소량 정합성 실험이며 성능 벤치마크가 아님.
+- 문서 내부 링크·코드 블록 및 diff 공백 검사 통과.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증, 원격 기본 main/HEAD c95a444 확인.
+
+### 한계와 다음 단계
+
+- S5 첫 항목만 완료. Kafka 없이 최초 기동, volume 손실, 다중 브로커/인스턴스, 장시간 장애는 검증하지 않음.
+- stop/start의 종료 유예는 10초. 앱 강제 종료·ACK/DB 경계 종료·offset 경계 종료·명시적 리밸런스 실험은 남아 있음.
+- 발행 상한 소진은 1회 설정으로 검증했으며 기본 10회 전체 대기 시간을 측정하지 않음.
+  FAILED Outbox는 자동 복구/현재 DLQ 재발행 API의 대상이 아니므로 별도 조사가 필요.
+- 1만 건 실험·실행 JAR 생성·새 원격 CI는 이번에 실행하지 않음.
+- 다음은 publish ACK 후 PUBLISHED 저장 전 종료로 인한 중복 재발행 재현.
+- 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.
