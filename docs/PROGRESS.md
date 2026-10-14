@@ -529,3 +529,45 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 1만 건 실험·실행 JAR 생성·새 원격 CI는 이번에 실행하지 않음.
 - 다음은 publish ACK 후 PUBLISHED 저장 전 종료로 인한 중복 재발행 재현.
 - 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.
+
+## 2026-10-14: S5 두 번째 단계 — ACK 후 Relay JVM 강제 종료와 중복 발행 검증
+
+### 범위와 구현
+
+- `OutboxProcessCrashTest` 1개와 테스트 전용 `RelayProcess` 진입점을 추가.
+  앱 기능 코드·DB migration은 변경하지 않고 Gradle test에 자식 JVM용 runtime classpath 전달만 추가.
+- 전용 Testcontainers MySQL 8.4.8/Kafka 4.0.2 사용. 부모 앱은 API/Worker, 자식 앱은 Relay 역할로 실행해
+  Relay 종료의 영향을 분리했다. 운영 구조를 별도 서비스로 변경한 것이 아니다.
+- 첫 자식에서만 테스트용 저장소가 실제 Kafka ACK 이후 `published()` 진입 시 표식을 남기고 대기.
+  DB 갱신 SQL/트랜잭션 시작 전이며 부모는 Kafka 레코드·Worker 완료·offset을 독립 확인했다.
+- 아직 Outbox가 PROCESSING/발행 시도 1/유효한 lease인 상태에서 부모가 자신이 만든 자식 JVM만 강제 종료.
+  비정상 종료 코드와 프로세스 종료, 종료 전후 Outbox 행 동일성을 확인했다.
+- 중단 장치 없는 새 PID의 Relay를 시작하고 실제 30초 lease 만료를 기다렸다.
+  DB 시각/available_at을 앞당기지 않았으며 PUBLISHED 시각이 원래 lease 만료 시각 이후임을 검증했다.
+- Kafka 레코드 2개의 동일 key/payload/eventId/taskId, 동일 파티션·연속 offset을 직접 읽어 대조했다.
+- README·PLAN 갱신 및 [중단 지점/재현/한계 문서](S5_OUTBOX_ACK_CRASH.md) 추가. S5 두 번째 항목만 완료 표시.
+
+### 실제 검증
+
+- `./gradlew --no-daemon --console=plain test --tests '*OutboxProcessCrashTest'`:
+  **1개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL (53초).
+- `./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **93개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (3분 32초), 6개 작업 모두 실행.
+  기존 92개와 새 프로세스 종료 테스트 1개 포함. JUnit XML 11개 suite와 종료 코드 0 확인.
+- 고유 요청/작업/Outbox 각각 1개 유지, 발행 시도 2, Kafka 레코드 2, eventId 1, taskId 1.
+  공급자 호출·작업 시도·시도 이력은 각각 1, Worker replay 1, 요청 토픽 committed offset 합계 2.
+- 재발행 후 알림 결과 전체와 첫 시도 이력은 변경되지 않음. Retry/DLQ 레코드 0, 미발행·consumer lag 0.
+- 실제 실행 JAR 생성 후 ZIP 항목 검사: 프로덕션 OutboxRelay 포함, 테스트 진입점/ACK 중단 장치 미포함.
+- 문서 내부 링크·코드 블록과 diff 공백 검사 통과.
+- 종료 후 Relay 자식 프로세스 및 테스트 컨테이너 잔존 없음. 기존 로컬 MySQL은 healthy 상태 유지.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증, 원격 기본 main/HEAD c95a444 확인.
+
+### 한계와 다음 단계
+
+- 이 실험에서는 첫 이벤트의 DB 결과와 offset이 완료된 Worker가 계속 살아 있다.
+  Worker 동시 종료나 공급자 수락 후 결과 미기록 구간을 검증한 것이 아니다.
+- 테스트 전용 Spring Boot 진입점을 자식 JVM에서 실행했다. 생성한 실행 JAR 자체를 별도 기동한 실험은 아니다.
+- 브로커·DB 손실, 다중 Relay 경쟁, 명시적 리밸런스, Graceful Shutdown, 단말 도착/exactly-once는 검증 범위 밖.
+- 1만 건 실험과 새 원격 CI는 실행하지 않음. 로컬 DB/.env/IDE 설정 변경 및 푸시 없음.
+- 다음은 Worker DB 완료 후 offset 커밋 전 프로세스 종료와 재소비 검증.
+- 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.

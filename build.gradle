@@ -48,6 +48,10 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('test') {
     useJUnitPlatform { excludeTags 'reconciliation' }
+    doFirst {
+        // The process-crash experiment forks a test-only Spring Boot entry point.
+        systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
+    }
     testLogging {
         events 'passed', 'skipped', 'failed'
     }
