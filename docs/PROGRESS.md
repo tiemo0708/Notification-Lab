@@ -615,3 +615,53 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 프로덕션 코드·설정·DB migration·로컬 DB/.env/IDE 설정 변경 없음.
 - 다음은 S5의 Relay/Worker 재시작 및 명시적 리밸런스 검증. S6는 아직 시작하지 않았다.
 - 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.
+
+## 2026-10-14: S5 네 번째 단계 — Relay/Worker JVM 재시작과 처리 중 리밸런스
+
+### 범위와 구현
+
+- `WorkerRebalanceTest`와 테스트 전용 `RebalanceWorkerProcess` 추가. 프로덕션 코드·설정·스키마 변경 없음.
+- API만 부모 앱에서 실행하고 Relay 및 Worker A/B는 독립 자식 JVM으로 시작.
+  테스트 전용 MySQL/Kafka와 같은 group을 유지하고 역할을 한 번에 하나씩 변경했다.
+- A의 첫 공급자 호출을 최대 25초 대기시키고 실제 B를 시작.
+  A의 PROCESSING·offset 미커밋 중 Kafka PREPARING_REBALANCE를 확인한 뒤 대기를 해제해 실제 Mock을 호출했다.
+- 안정된 group의 1 → 2 → 1 → 2명 전환과 요청/Retry 총 6개 파티션의 중복·누락 없는 배정을 대조.
+- 처리/offset 완료 후 Relay 강제 종료, 그 사이 접수된 PENDING의 ID 확인, 다른 PID의 Relay로 복구.
+  기존 taskId/eventId 목록이 유지됨을 확인했다.
+- 처리 완료 후 B 강제 종료, A의 모든 요청 파티션 인계, 다른 PID의 B 복귀 후 새 요청 처리 검증.
+- 매 구간 요청 파티션 세 곳을 포함하는 가상 API 데이터를 접수한다. UUID 키 매핑에 따라 건수가 달라지며
+  한 구간 최대 60건으로 제한한다. 처리량 비교/성능 벤치마크가 아니다.
+- 각 구간의 접수 ID·DB 결과/이력·Kafka 레코드 수·파티션별 offset을 확인.
+  JVM별 공급자 호출은 종료 전 B의 값도 포함해 합산한다.
+- README·PLAN 갱신과 [학습/재현 문서](S5_RESTART_REBALANCE.md) 추가. S5 네 번째 항목만 완료 표시.
+
+### 실제 검증
+
+- `./gradlew --no-daemon --console=plain test --tests '*WorkerRebalanceTest'`:
+  **1개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL (1분 16초), 본체 60.646초.
+  접수 17건, 공급자 호출 17회, Kafka 레코드/committed offset 합 각각 17, lag 0.
+  최초 합류 단계까지 6건 처리, 이후 Relay 재시작과 Worker 이탈/복귀 구간에서 나머지 11건 처리.
+- 집중 테스트 후 해제 직전 DB lease 유효 여부와 종료 전 B의 Worker 오류 0 검증을 보강했다.
+- `./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **95개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (5분 37초), 6개 작업 모두 실행.
+  JUnit XML 13개 suite와 종료 코드 0 확인. 새 리밸런스 테스트 본체 58.429초.
+- 전체 빌드의 리밸런스 실험은 접수 26건, 최초 합류 단계까지 5건.
+  공급자 호출·Kafka 레코드·committed offset 합 각각 26, 요청 각 파티션 committed=end offset.
+  각 작업/Outbox 발행 시도 1, 수락 이력 26, Retry/DLQ·Worker 오류·미발행·lag 0.
+- PROCESSING/committed 0/PREPARING_REBALANCE/lease 유효를 실제 관찰.
+  안정된 그룹 1 → 2 → 1 → 2명, 각 단계 요청/Retry 파티션 6개 중복·누락 없음.
+  종료한 B의 호출 값과 재시작 B의 호출 값을 구분해 전체 호출 수를 합산했다.
+- 실행 JAR 생성/ZIP 검사: 프로덕션 Worker 포함, 테스트 진입점·공급자 대기 장치 미포함.
+- 문서 링크·코드 블록·diff 공백 검사 통과. 테스트 JVM/컨테이너 잔존 없음, 기존 로컬 MySQL healthy 유지.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증,
+  원격 기본 main/HEAD c95a444 확인. 로컬 변경만 진행했으며 푸시하지 않음.
+
+### 한계와 다음 단계
+
+- 합류는 첫 호출을 lease/poll 제한 안에 끝내는 조건, Relay/Worker 종료는 해당 구간 처리와 offset 완료 후다.
+  장시간 공급자 정지, lease/poll 만료 후 리밸런스, Retry backlog, 동시 다중 장애를 검증한 것은 아니다.
+- 이번 실험의 호출 수 일치는 모든 장애에서의 외부 발송 exactly-once나 단말 도착 보장이 아니다.
+- 테스트 classpath의 Spring Boot 진입점을 사용했다. 배포 JAR 별도 기동, 1만 건 실험, 새 원격 CI는 실행하지 않음.
+- 로컬 DB/.env/IDE 설정과 기존 이력 변경 없음. S6는 시작하지 않았다.
+- 다음은 S5 마지막 항목인 Graceful Shutdown: 신규 수신 중지, 진행 중 작업 정리, 유예 시간 초과 시 복구.
+- 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.

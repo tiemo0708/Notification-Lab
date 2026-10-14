@@ -91,14 +91,15 @@ S4는 로컬 완료했다. API 멱등성, 발송 작업/시도 이력, 유한 �
 불확실한 결과의 중복 가능성·lease 경계·확인/복구 절차는 [S4 정책](docs/S4_UNCERTAIN_OUTCOMES.md)에 정리했다.
 로컬 일반 테스트 90개 재실행 통과. 실제 프로세스 중단/브로커 장애 실험까지 완료했다는 뜻은 아니다.
 S5에서 Kafka 중단·복구와 ACK 후 Outbox 기록 전 Relay 프로세스 종료를 검증했다.
-Worker DB 완료 후 offset 커밋 전 종료와 재소비도 검증했다. 다음은 재시작·명시적 리밸런스 실험이다.
+Worker DB 완료 후 offset 커밋 전 종료와 재소비도 검증했다.
+Relay/Worker 재시작, 처리 중 합류와 작업 완료 후 이탈에 따른 리밸런스도 검증했다. 다음은 Graceful Shutdown이다.
 실제 검증 결과는 docs/PROGRESS.md에 기록한다.
 
 ### S5. 장애·배포 실험
 - [x] Kafka 중단 후 접수, Kafka 복구 후 발행
 - [x] publish ACK 후 PUBLISHED 저장 전 종료 -> 중복 재발행 재현
 - [x] Worker 처리 완료/offset 커밋 전 종료 -> 재처리 재현
-- [ ] Relay와 Worker 재시작 및 리밸런스 검증
+- [x] Relay와 Worker 재시작 및 리밸런스 검증
 - [ ] Graceful Shutdown: 신규 수신 중지, 진행 중 작업 정리, 유예 시간 초과 시 복구
 
 완료 조건: 정의한 장애에서 접수 건 각각의 상태가 설명된다. 무조건적인 '유실 0' 표현을 사용하지 않는다.
@@ -113,7 +114,10 @@ API/Worker는 살아 있는 조건이며 [중단 지점과 한계](docs/S5_OUTBO
 세 번째 항목은 DB 완료 후 offset 커밋 전 Worker JVM을 강제 종료하고 같은 group으로 재시작했다.
 Kafka 레코드 1개를 재소비하되 공급자 호출은 총 1회, 작업/이력은 그대로 유지되었다.
 [DB/offset 경계 실험과 한계](docs/S5_WORKER_OFFSET_CRASH.md)를 참고한다.
-S5 전체 완료가 아니며 명시적 리밸런스·종료 유예 검증은 남아 있다.
+네 번째 항목은 독립 Relay/Worker JVM에서 처리 중 합류, Relay 중단 중 접수와 재시작, Worker 이탈/복귀를 검증했다.
+Worker 1 → 2 → 1 → 2명 구성에서 파티션 배정, 각 파티션 offset, 고유 접수/공급자 호출 수를 대조했다.
+[재시작·리밸런스 실험과 한계](docs/S5_RESTART_REBALANCE.md)를 참고한다.
+S5 전체 완료가 아니며 Graceful Shutdown과 종료 유예 초과 복구 검증은 남아 있다.
 
 ## 3주차: 외부 API 트래픽 제어
 
