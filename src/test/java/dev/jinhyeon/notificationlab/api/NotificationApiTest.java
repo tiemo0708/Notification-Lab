@@ -48,6 +48,15 @@ class NotificationApiTest {
     }
 
     @Test
+    void redriveIsNotAvailableInMemoryProfile() throws Exception {
+        String path = "/dead-letters/00000000-0000-0000-0000-000000000001";
+        mvc.perform(get(path)).andExpect(status().isNotFound());
+        mvc.perform(post(path + "/redrive").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"MANUAL_REVIEW\",\"acknowledgePossibleDuplicate\":true}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void emptyRecipientIsRejected() throws Exception {
         mvc.perform(post("/notifications").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"recipientId\":\" \",\"title\":\"t\",\"body\":\"b\"}"))

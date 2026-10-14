@@ -2,7 +2,7 @@
 
 Kafka 기반 알림 시스템을 단계별로 만드는 Java/Spring 학습 프로젝트.
 현재 v0.3(S3)는 **요청과 Outbox를 MySQL에 함께 저장하고 Kafka Worker가 Mock을 호출하는 비동기 API**이다.
-S4에서 선택적 `Idempotency-Key` 접수 중복 방지, 발송 작업/시도 이력, 일시 실패의 유한 지연 재시도와 Retry 토픽/DLQ를 추가했다. 실제 푸시나 단말 도착을 의미하지 않는다.
+S4에서 선택적 `Idempotency-Key` 접수 중복 방지, 발송 작업/시도 이력, 일시 실패의 유한 지연 재시도, Retry 토픽/DLQ, 선택 재발행을 추가했다. 실제 푸시나 단말 도착을 의미하지 않는다.
 
 ## 실행
 
@@ -100,9 +100,12 @@ Worker DB/이벤트 오류는 컨슈머를 멈춘다. 오류를 해결하고 진
 지수 backoff와 equal jitter를 적용한다. 예약 시각은 DB에 저장하고 delivery 조회의 nextAttemptAt으로 확인한다.
 재시도는 due 이후 별도 Retry 토픽으로 보내고, 최종 실패는 결과와 함께 DLQ Outbox를 저장한다.
 원본 offset은 이 영속 인계 후 처리하며, Relay는 Kafka ACK를 확인한 후 PUBLISHED로 바꾼다.
-DLQ는 자동 소비/재발송하지 않는다. [토픽·DLQ 정책](docs/S4_RETRY_TOPICS_DLQ.md)을 참고한다.
+DLQ는 자동 소비/재발송하지 않는다. 선택한 PUBLISHED DLQ는 사유와 중복 가능성 확인을 입력해
+`POST /dead-letters/{eventId}/redrive`로 재접수할 수 있다. 최초 202/동일 요청 200이며 원본을 보존하고 새 작업을 만든다.
+같은 DLQ는 한 번, 원본 기준 계보 전체는 최대 3회 재발행한다.
+[선택 재발행 API](docs/S4_DLQ_REDRIVE.md)와 [토픽·DLQ 정책](docs/S4_RETRY_TOPICS_DLQ.md)을 참고한다.
 [작업/복구 정책](docs/S4_DELIVERY_TASKS.md)과 [재시도 정책](docs/S4_RETRY_POLICY.md)을 참고한다.
-기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V5 DB와 재시도/DLQ 이벤트는 이전 앱·Relay와 혼합 실행하지 않는다.
+기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V6 DB를 사용하며 재시도/DLQ 이벤트는 이전 앱·Relay와 혼합 실행하지 않는다.
 
 기본 Mock 지연은 100ms(허용 0~5000ms), SUCCESS다. 앱 재시작으로 설정한다.
 
@@ -168,11 +171,12 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-DLQ 선택 재발행, Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S4_DLQ_REDRIVE.md](docs/S4_DLQ_REDRIVE.md): 선택 재발행 API, 감사 이력, 계보·횟수 상한
 - [docs/S4_RETRY_TOPICS_DLQ.md](docs/S4_RETRY_TOPICS_DLQ.md): 토픽 분리, DLQ 계약, ACK/offset 관계
 - [docs/S4_RETRY_POLICY.md](docs/S4_RETRY_POLICY.md): 오류 분류, 횟수 상한, backoff+jitter, 영속 예약
 - [docs/S4_DELIVERY_TASKS.md](docs/S4_DELIVERY_TASKS.md): 작업 ID, 이력, 유한 복구와 버전 전환

@@ -91,6 +91,7 @@ class AsyncNotificationTest {
         group = "worker-test-" + UUID.randomUUID();
         boolean experiment = info.getTags().contains("reconciliation");
         startApplication(experiment);
+        jdbc().update("DELETE FROM dead_letter_redrive");
         jdbc().update("DELETE FROM delivery_attempt");
         jdbc().update("DELETE FROM delivery_task");
         jdbc().update("DELETE FROM outbox_event");
@@ -1168,6 +1169,226 @@ class AsyncNotificationTest {
             });
             return messages;
         }
+    }
+
+    private static final String REDRIVE = "{\"reason\":\"PROVIDER_RECOVERED\",\"acknowledgePossibleDuplicate\":true}";
+
+    @Test
+    void selectedRedrivePreservesOriginalAndCompletesNewWorkAfterRestart() throws Exception {
+        String original = publishedFailure("redrive-original");
+        String event = deadLetterId(original);
+        var oldNotification = json(post(PAYLOAD, "redrive-original"));
+        var oldDelivery = delivery(original);
+        var response = redrive(event, REDRIVE);
+        assertThat(response.statusCode()).isEqualTo(202);
+        var audit = json(response);
+        String target = audit.path("targetNotificationId").asText();
+        assertThat(target).isNotEqualTo(original);
+        assertThat(response.headers().firstValue("Location")).contains("/notifications/" + target);
+        assertThat(audit.path("rootNotificationId").asText()).isEqualTo(original);
+        assertThat(audit.path("redriveNo").asInt()).isEqualTo(1);
+        assertThat(audit.path("acknowledgedPossibleDuplicate").asBoolean()).isTrue();
+        assertThat(delivery(target).path("taskId")).isNotEqualTo(oldDelivery.path("taskId"));
+        assertThat(delivery(target).path("attemptCount").asInt()).isZero();
+        assertThat(json(post(PAYLOAD, "redrive-original"))).isEqualTo(oldNotification);
+        assertThat(delivery(original)).isEqualTo(oldDelivery);
+        assertThat(json(deadLetterGet(event)).path("redrive")).isEqualTo(audit);
+        assertThat(deadLetterGet(event).body()).doesNotContain("synthetic-user", "비동기 테스트", "가상 데이터");
+        // Replaying old work cannot consume the fresh redrive's budget or invoke its provider.
+        String oldEvent = jdbc().queryForObject("SELECT payload FROM outbox_event WHERE notification_id = ? "
+                + "AND event_type = 'NOTIFICATION_REQUESTED'", String.class, original);
+        kafka().send(topic, original, oldEvent).get(10, TimeUnit.SECONDS);
+        awaitCommitted(2);
+        assertThat(status(target)).isEqualTo("QUEUED");
+        assertThat(probe().attempts.get()).isEqualTo(1);
+        app.close();
+        startApplication(false);
+        var replay = redrive(event, REDRIVE);
+        assertThat(replay.statusCode()).isEqualTo(200);
+        assertThat(json(replay)).isEqualTo(audit);
+        assertThat(count("dead_letter_redrive")).isEqualTo(1);
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(3);
+        assertThat(status(target)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(status(original)).isEqualTo("PERMANENT_FAILURE");
+        assertThat(probe().attempts.get()).isEqualTo(1);
+        assertThat(committedOn(topic + ".dlq")).isZero();
+    }
+
+    @Test
+    void concurrentIdenticalRedrivesCreateOnlyOneChildAndAudit() throws Exception {
+        String original = publishedFailure(null);
+        String event = deadLetterId(original);
+        CountDownLatch ready = new CountDownLatch(8);
+        Callable<HttpResponse<String>> send = () -> {
+            ready.countDown();
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            return redrive(event, REDRIVE);
+        };
+        try (var executor = Executors.newFixedThreadPool(8)) {
+            var jobs = java.util.Collections.nCopies(8, send);
+            var responses = executor.invokeAll(jobs);
+            var codes = new java.util.ArrayList<Integer>();
+            var targets = new java.util.HashSet<String>();
+            for (var result : responses) {
+                codes.add(result.get().statusCode());
+                targets.add(json(result.get()).path("targetNotificationId").asText());
+            }
+            assertThat(codes).containsExactlyInAnyOrder(202, 200, 200, 200, 200, 200, 200, 200);
+            assertThat(targets).hasSize(1);
+        }
+        assertThat(count("notification")).isEqualTo(2);
+        assertThat(count("delivery_task")).isEqualTo(2);
+        assertThat(count("outbox_event")).isEqualTo(3);
+        assertThat(count("dead_letter_redrive")).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentDifferentRedriveReasonsConflictWithoutChangingAudit() throws Exception {
+        String event = deadLetterId(publishedFailure(null));
+        CountDownLatch ready = new CountDownLatch(2);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var jobs = List.<Callable<HttpResponse<String>>>of(
+                    () -> { ready.countDown(); ready.await(5, TimeUnit.SECONDS); return redrive(event, REDRIVE); },
+                    () -> { ready.countDown(); ready.await(5, TimeUnit.SECONDS); return redrive(event, REDRIVE.replace("PROVIDER_RECOVERED", "MANUAL_REVIEW")); });
+            var results = executor.invokeAll(jobs);
+            assertThat(List.of(results.get(0).get().statusCode(), results.get(1).get().statusCode()))
+                    .containsExactlyInAnyOrder(202, 409);
+        }
+        assertThat(count("notification")).isEqualTo(2);
+        assertThat(count("dead_letter_redrive")).isEqualTo(1);
+    }
+
+    @Test
+    void invalidUnknownAndUnpublishedDeadLettersCannotBeRedriven() throws Exception {
+        String original = publishedFailure(null);
+        String event = deadLetterId(original);
+        for (String invalid : List.of("{}", REDRIVE.replace("true", "false"),
+                REDRIVE.replace("PROVIDER_RECOVERED", "unknown"), "{", "{\"acknowledgePossibleDuplicate\":true}")) {
+            assertThat(redrive(event, invalid).statusCode()).isEqualTo(400);
+        }
+        assertThat(redrive("not-a-uuid", REDRIVE).statusCode()).isEqualTo(400);
+        assertThat(redrive(UUID.randomUUID().toString(), REDRIVE).statusCode()).isEqualTo(404);
+        String requestEvent = jdbc().queryForObject("SELECT event_id FROM outbox_event WHERE event_type = 'NOTIFICATION_REQUESTED'", String.class);
+        assertThat(redrive(requestEvent, REDRIVE).statusCode()).isEqualTo(404);
+        assertThat(deadLetterGet(requestEvent).statusCode()).isEqualTo(404);
+        for (String state : List.of("PENDING", "FAILED")) {
+            jdbc().update("UPDATE outbox_event SET status = ?, published_at = NULL WHERE event_id = ?", state, event);
+            assertThat(redrive(event, REDRIVE).statusCode()).isEqualTo(409);
+        }
+        assertThat(count("notification")).isEqualTo(1);
+        assertThat(count("dead_letter_redrive")).isZero();
+    }
+
+    @Test
+    void redriveAuditAndOutboxFailuresRollBackAllNewWork() throws Exception {
+        String original = publishedFailure(null);
+        String event = deadLetterId(original);
+        var history = delivery(original);
+        for (String table : List.of("dead_letter_redrive", "outbox_event")) {
+            root("CREATE TRIGGER reject_redrive BEFORE INSERT ON " + table + " FOR EACH ROW "
+                    + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test fault'");
+            try {
+                var response = redrive(event, REDRIVE);
+                assertThat(response.statusCode()).isEqualTo(503);
+                assertThat(response.body()).doesNotContain("test fault", "synthetic-user", "INSERT", "PROVIDER_RECOVERED");
+                assertThat(count("notification")).isEqualTo(1);
+                assertThat(count("delivery_task")).isEqualTo(1);
+                assertThat(count("outbox_event")).isEqualTo(2);
+                assertThat(count("dead_letter_redrive")).isZero();
+                assertThat(delivery(original)).isEqualTo(history);
+                assertThat(committedTotal()).isEqualTo(1);
+            } finally {
+                root("DROP TRIGGER reject_redrive");
+            }
+        }
+        assertThat(redrive(event, REDRIVE).statusCode()).isEqualTo(202);
+        assertThat(count("dead_letter_redrive")).isEqualTo(1);
+    }
+
+    @Test
+    void manualRedriveChainStopsAtThreeAndInheritsTheOriginalAttemptBudget() throws Exception {
+        app.close();
+        startApplication(false, "--app.delivery.max-attempts=1");
+        String original = publishedFailure(null);
+        String current = original;
+        String firstEvent = deadLetterId(original);
+        app.close();
+        startApplication(false, "--app.delivery.max-attempts=10");
+        probe().behavior = request -> transientFailure();
+        startWorker();
+        for (int number = 1; number <= 3; number++) {
+            var response = redrive(deadLetterId(current), REDRIVE);
+            assertThat(response.statusCode()).isEqualTo(202);
+            var audit = json(response);
+            current = audit.path("targetNotificationId").asText();
+            assertThat(audit.path("rootNotificationId").asText()).isEqualTo(original);
+            assertThat(audit.path("redriveNo").asInt()).isEqualTo(number);
+            assertThat(delivery(current).path("maxAttempts").asInt()).isEqualTo(1);
+            app.getBean(OutboxRelay.class).relay();
+            awaitCommitted(number + 1);
+            app.getBean(OutboxRelay.class).relay();
+            assertThat(status(current)).isEqualTo("RETRYABLE_FAILURE");
+        }
+        assertThat(redrive(deadLetterId(current), REDRIVE).statusCode()).isEqualTo(409);
+        assertThat(redrive(firstEvent, REDRIVE).statusCode()).isEqualTo(200);
+        assertThat(count("dead_letter_redrive")).isEqualTo(3);
+        assertThat(count("notification")).isEqualTo(4);
+        assertThat(count("delivery_attempt")).isEqualTo(4);
+        assertThat(probe().attempts.get()).isEqualTo(3);
+        assertThatThrownBy(() -> jdbc().update("UPDATE dead_letter_redrive SET redrive_no = 4 WHERE redrive_no = 3"))
+                .isInstanceOf(org.springframework.dao.DataAccessException.class);
+    }
+
+    @Test
+    void redriveReplayReadsCommittedAuditOutsideCallersOldSnapshot() throws Exception {
+        String original = publishedFailure(null);
+        String event = deadLetterId(original);
+        var transaction = new TransactionTemplate(app.getBean(PlatformTransactionManager.class));
+        transaction.executeWithoutResult(outer -> {
+            assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM dead_letter_redrive", Integer.class)).isZero();
+            try {
+                assertThat(redrive(event, REDRIVE).statusCode()).isEqualTo(202);
+            } catch (Exception exception) {
+                throw new RuntimeException(exception);
+            }
+            var result = app.getBean(dev.jinhyeon.notificationlab.deadletter.DeadLetterService.class).redrive(
+                    UUID.fromString(event), new dev.jinhyeon.notificationlab.deadletter.RedriveRequest(
+                            dev.jinhyeon.notificationlab.deadletter.RedriveRequest.Reason.PROVIDER_RECOVERED, true));
+            assertThat(result.replayed()).isTrue();
+            outer.setRollbackOnly();
+        });
+        assertThat(count("dead_letter_redrive")).isEqualTo(1);
+        assertThat(count("notification")).isEqualTo(2);
+    }
+
+    private String publishedFailure(String key) throws Exception {
+        probe().behavior = request -> new PushResult(PushResult.Outcome.PERMANENT_FAILURE, null, "MOCK_INVALID_TARGET");
+        String id = json(key == null ? post() : post(PAYLOAD, key)).path("notificationId").asText();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        app.getBean(OutboxRelay.class).relay();
+        assertThat(jdbc().queryForObject("SELECT status FROM outbox_event WHERE event_id = ?", String.class, deadLetterId(id)))
+                .isEqualTo("PUBLISHED");
+        return id;
+    }
+
+    private String deadLetterId(String notificationId) {
+        return jdbc().queryForObject("SELECT event_id FROM outbox_event WHERE notification_id = ? "
+                + "AND event_type = 'NOTIFICATION_DEAD_LETTER'", String.class, notificationId);
+    }
+
+    private HttpResponse<String> redrive(String event, String body) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base() + "/dead-letters/" + event + "/redrive"))
+                .timeout(Duration.ofSeconds(20)).header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> deadLetterGet(String event) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base() + "/dead-letters/" + event)).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
     }
 
     @Test

@@ -3,7 +3,7 @@
 기본 비동기 프로필에 자동 재시도 분류, 유한 횟수, 지수 backoff와 equal jitter를 추가했다.
 최초 구현은 기존 Outbox와 `notification.requested.v1` 토픽을 사용했다.
 이후 [Retry 토픽/DLQ 단계](S4_RETRY_TOPICS_DLQ.md)에서 재시도 목적지를 분리하고 최종 실패의 DLQ 인계를 추가했다.
-DLQ 선택 재발행은 아직 구현하지 않았다. sync/memory 비교 프로필은 한 번만 호출한다.
+수동 선택 재발행은 [DLQ 재발행 정책](S4_DLQ_REDRIVE.md)에 따라 원본을 보존하고 새 작업으로 접수한다. sync/memory 비교 프로필은 한 번만 호출한다.
 
 ## 상태와 횟수
 

@@ -89,6 +89,7 @@ class MySqlNotificationTest {
 
     @BeforeEach
     void clearRecords() {
+        jdbc().update("DELETE FROM dead_letter_redrive");
         jdbc().update("DELETE FROM delivery_attempt");
         jdbc().update("DELETE FROM delivery_task");
         jdbc().update("DELETE FROM outbox_event");
@@ -112,7 +113,7 @@ class MySqlNotificationTest {
         HttpResponse<String> after = request("GET", location, null);
         assertThat(after.statusCode()).isEqualTo(200);
         assertThat(json(after)).isEqualTo(before);
-        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(5);
+        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(6);
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event", Integer.class)).isZero();
         assertThat(probe().attempts.get()).isZero();
     }
@@ -205,7 +206,14 @@ class MySqlNotificationTest {
             db.update("UPDATE notification SET status = 'RETRYABLE_FAILURE', provider_message_id = NULL, "
                     + "error_code = 'OLD_TRANSIENT' WHERE notification_id = ?", completed);
             var beforeRetryMigration = db.queryForList("SELECT * FROM notification ORDER BY notification_id");
+            Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).target("5").load().migrate();
+            var outboxBeforeRedrive = db.queryForList("SELECT * FROM outbox_event ORDER BY event_id");
+            var tasksBeforeRedrive = db.queryForList("SELECT * FROM delivery_task ORDER BY task_id");
             Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).load().migrate();
+            assertThat(db.queryForList("SELECT * FROM outbox_event ORDER BY event_id")).isEqualTo(outboxBeforeRedrive);
+            assertThat(db.queryForList("SELECT * FROM delivery_task ORDER BY task_id"))
+                    .usingRecursiveComparison().isEqualTo(tasksBeforeRedrive);
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM dead_letter_redrive", Integer.class)).isZero();
             assertThat(db.queryForList("SELECT * FROM notification ORDER BY notification_id")).isEqualTo(beforeRetryMigration);
             assertThat(db.queryForObject("SELECT COUNT(*) FROM outbox_event", Integer.class)).isEqualTo(3);
             assertThat(db.queryForList("SELECT retry_generation FROM outbox_event", Integer.class)).containsOnly(0);

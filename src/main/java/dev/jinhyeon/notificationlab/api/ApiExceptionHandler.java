@@ -1,6 +1,8 @@
 package dev.jinhyeon.notificationlab.api;
 
 import dev.jinhyeon.notificationlab.notification.NotificationNotFoundException;
+import dev.jinhyeon.notificationlab.deadletter.DeadLetterNotFoundException;
+import dev.jinhyeon.notificationlab.deadletter.RedriveConflictException;
 import dev.jinhyeon.notificationlab.notification.InvalidIdempotencyKeyException;
 import dev.jinhyeon.notificationlab.notification.IdempotencyConflictException;
 import dev.jinhyeon.notificationlab.notification.StoreCapacityExceededException;
@@ -38,6 +40,16 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(IdempotencyConflictException.class)
     public ProblemDetail idempotencyConflict(IdempotencyConflictException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(DeadLetterNotFoundException.class)
+    public ProblemDetail deadLetterNotFound(DeadLetterNotFoundException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(RedriveConflictException.class)
+    public ProblemDetail redriveConflict(RedriveConflictException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
     }
 

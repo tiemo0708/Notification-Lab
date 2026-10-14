@@ -403,3 +403,48 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - DLQ 발행도 최대 10회 한도를 사용하며 FAILED Outbox는 수동 조사. Outbox 발행 실패를 다른 DLQ로 순환시키지 않음.
 - 새 Relay 토픽 분류 때문에 기존 앱/Relay/Worker를 모두 종료한 후 업그레이드해야 함. 혼합 버전 실행 미지원.
 - 다음 단계는 DLQ 선택 재발행과 원인/시도 이력 기록. S4 전체 완료가 아니며 이번 변경은 로컬 main에 커밋하고 푸시는 보류.
+
+## 2026-10-14: S4 다섯 번째 단계 — DLQ 선택 재발행과 감사 이력 로컬 완료
+
+### 범위와 변경
+
+- GET /dead-letters/{eventId}로 DLQ 발행/실패 상태·작업·재발행 이력 조회.
+- POST /dead-letters/{eventId}/redrive로 PUBLISHED DLQ 한 건을 선택 재접수.
+  사유 코드와 acknowledgePossibleDuplicate=true 필수. 최초 202/같은 사유 재요청 200/다른 사유 409.
+- 원본 알림/작업/시도 이력/멱등 키 보존. 새 notification/task/요청 Outbox를 만들고 원본과 연결한 감사 이력 저장.
+- 같은 DLQ/원본에서 자식 하나, 원본 계보 전체 수동 재발행 최대 3회. 새 작업은 원본의 maxAttempts 상속.
+- REQUIRES_NEW 트랜잭션으로 호출자의 이전 snapshot에서 분리. source 행 잠금과 DB 유니크 제약으로 동시 중복 방지.
+- 신규 접수/Outbox/감사 기록을 원자적으로 커밋하며 Kafka 발행/공급자 호출은 트랜잭션 안에서 수행하지 않음.
+- V1~V5 보존, V6에서 dead_letter_redrive 추가. 사유·명시적 확인·시각·source/root/target 연결·회차 보존.
+- DLQ 자동 소비/일괄 재발행/내용 수정/이력 삭제 API는 없음. 기존 DLQ offset을 바꾸지 않음.
+- [재발행 API와 정책](S4_DLQ_REDRIVE.md), README, PLAN, 기존 S4 문서 연결 갱신.
+
+### 실제 검증
+
+- 첫 빌드 90개 중 1개 실패: 새 migration 보존 assertion이 VARBINARY의 byte[]를 객체 동일성으로 비교함.
+  기존 데이터 내용은 같았으며 recursive 내용 비교로 assertion 수정. 실패 실행을 통과로 집계하지 않음.
+- 최종 `./gradlew --no-daemon --console=plain build`: **90개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (1분 31초).
+  테스트 재실행, 변경 없는 실행 JAR 생성 등 4개 작업 up-to-date.
+- 기존 82개 회귀 + 신규 8개(실제 MySQL/Kafka/HTTP 재발행 7개, memory 프로필 비노출 1개).
+- 최초 202로 새 ID/작업 생성, 원본 API 멱등 키·실패 상태·시도 이력 유지. 원본 이벤트 replay가 자식 작업을 선점하지 않음.
+- 앱 재시작 후 동일 요청 200/동일 감사 응답·Location. 새 작업 성공, 원본 영구 실패 유지, DLQ Worker offset 없음.
+- 동시 동일 요청 8건: 202 한 건/200 일곱 건, 알림/작업 각각 총 2개, Outbox 3개, 감사 기록 1개.
+- 동시 상충 사유 2건: 202 한 건/409 한 건, 감사 이력과 자식 작업 각각 하나.
+- 잘못된 사유/확인 누락/UUID는 400, 없는 ID·다른 타입 이벤트는 404, PENDING/FAILED DLQ는 409. 새 접수 없음.
+- 감사 INSERT 및 Outbox INSERT 실패 각각 주입: 503, 새 알림/작업/Outbox/감사 기록 모두 롤백,
+  원본 이력 및 offset 보존. 원인 제거 후 같은 이벤트/사유로 202 접수 성공.
+- 원본 maxAttempts=1을 새 설정 10에서도 상속. 재실패 계보 3회 후 네 번째 재발행 409,
+  작업/시도 총 4개, 감사 기록 3개. 최초 이벤트 재요청은 기존 200 응답으로 유지.
+- 오래된 호출자 트랜잭션 snapshot에서도 커밋된 감사 기록을 재사용. 호출자 롤백은 독립 접수를 취소하지 않음.
+- V5 → V6에서 기존 알림/작업/Outbox 보존, 감사 테이블 빈 상태로 생성. 기존 V1 이후 upgrade 회귀 검증 통과.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증, 원격 기본 main/HEAD c95a444 확인.
+  사용자 로컬 DB/IDE 설정/.env 변경 없음.
+
+### 한계와 다음 단계
+
+- 현재 로컬 API에는 인증된 운영자 신원 기록이 없음. 사유·시각·명시적 확인·대상 관계의 감사 이력만 제공.
+- 수동 재발행은 외부에서 이미 수락했을 가능성을 제거하지 않음. UNKNOWN/상한 소진은 전달 실패 확정이 아님.
+- 원본 계보 상한은 별도 POST /notifications의 신규 접수까지 제한하는 전역 rate limit이 아님.
+- 실제 프로세스/브로커 중단, 다중 인스턴스, 1만 건/Compose 재생성 실험은 이번에 실행하지 않음. 새 원격 CI 없음.
+- 다음은 공급자 수락 후 DB 저장 전 종료의 불확실성 정책 종합 정리. S4 전체 완료 표시는 아직 하지 않음.
+- 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.

@@ -2,7 +2,7 @@
 
 이 문서는 S4의 Idempotency-Key 접수 정책을 설명한다. 이후 추가한 Worker 작업 모델은
 [발송 작업과 시도 이력](S4_DELIVERY_TASKS.md), 자동 재시도는 [지연 재시도 정책](S4_RETRY_POLICY.md)을 참고한다.
-[Retry 토픽/DLQ](S4_RETRY_TOPICS_DLQ.md)는 최종 실패를 영속 인계하며 선택 재발행은 후속 작업이다.
+[Retry 토픽/DLQ](S4_RETRY_TOPICS_DLQ.md)는 최종 실패를 영속 인계하며 [선택 재발행](S4_DLQ_REDRIVE.md)은 원본 멱등 키를 유지한 채 별도 작업을 생성한다.
 
 ## API 계약
 

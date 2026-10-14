@@ -12,7 +12,7 @@
 
 세 이름은 서로 달라야 하며 겹치면 설정 검증에서 기동을 거절한다.
 Worker 하나가 요청/Retry 토픽을 함께 구독한다. concurrency=1, max-poll-records=1은 유지한다.
-DLQ에는 자동 소비자나 자동 재발송이 없다. 처리량을 높이기 위한 별도 Worker 증설은 이번 범위가 아니다.
+DLQ에는 자동 소비자나 자동 재발송이 없다. 이후 추가한 [선택 재발행 API](S4_DLQ_REDRIVE.md)는 명시적 요청만 처리한다. 처리량을 높이기 위한 별도 Worker 증설은 이번 범위가 아니다.
 
 지연은 토픽 이름이나 Kafka 기능에 맡기지 않는다.
 [재시도 정책](S4_RETRY_POLICY.md)의 DB next_attempt_at과 Outbox available_at을 사용해
@@ -76,7 +76,7 @@ Relay의 실제 publish는 DB 트랜잭션 밖에서 실행하며 ACK 전에는 
 Outbox 유니크 제약으로 알림마다 DLQ 이벤트 하나를 생성한다.
 DLQ Outbox의 retry_generation은 0이고 payload의 retryGeneration은 실패한 작업의 세대를 나타낸다.
 ACK/DB 갱신 사이 장애로 Kafka에는 같은 eventId가 여러 번 올 수 있다.
-향후 DLQ 소비/재발행 도구는 이 eventId 기준 중복 방지를 해야 한다. exactly-once를 주장하지 않는다.
+DLQ 소비/재발행 도구는 이 eventId 기준 중복 방지를 해야 한다. 선택 재발행 API는 이를 DB 유니크 제약으로 보장한다. exactly-once를 주장하지 않는다.
 DLQ 발행 자체도 기존 Relay 최대 10회 정책을 따른다. FAILED는 수동 조사하며 또 다른 DLQ로 순환시키지 않는다.
 
 ## 조회와 업그레이드
@@ -111,5 +111,5 @@ publish future 실패와 ACK 이후 DB 저장 실패를 각각 주입한다.
 `./gradlew --no-daemon --console=plain build`: **82개 통과, 실패/오류/스킵 0**.
 상세 실행 결과는 [PROGRESS.md](PROGRESS.md)에 기록한다.
 
-다음은 DLQ 선택 재발행과 재발행 원인/시도 이력 정책이다.
-이번 단계는 실패 이벤트를 보존하고 전달하는 범위이며 관리 API/자동 재발송 기능은 포함하지 않는다.
+이 토픽 도입 단계 이후 [DLQ 선택 재발행과 이력](S4_DLQ_REDRIVE.md)을 추가했다.
+실패 이벤트 보존과 선택 재접수를 구분하며 자동 재발송 기능은 포함하지 않는다.
