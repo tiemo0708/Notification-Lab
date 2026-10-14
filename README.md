@@ -137,6 +137,21 @@ DLQ는 자동 소비/재발송하지 않는다. 선택한 PUBLISHED DLQ는 사�
 DB 풀은 최대 8개, Relay는 한 번에 한 publish/한 주기 최대 50건, Worker concurrency 1/poll 1건이다.
 단일 브로커 고가용성, 다중 인스턴스의 모든 장애 조합, 운영 성능을 입증한 구성이 아니다.
 
+## 별도 HTTP Mock (S6 첫 단계)
+
+독립 HTTP Mock을 DB/Kafka 없이 `127.0.0.1:18081`에서 실행할 수 있다.
+현재 Worker는 기존 내부 Mock을 사용한다. HTTP 연동은 다음 timeout/연결 풀 단계에서 추가한다.
+
+```bash
+./gradlew mockServer
+./gradlew mockServer --args='--mock.http.mode=SERVER_ERROR'
+./gradlew mockServer --args='--mock.http.response-delay-ms=2000'
+```
+
+`POST /pushes`로 수락/429/500/영구 실패와 클라이언트 timeout을 재현하고 `/mock/stats`에서 집계를 확인한다.
+요청 한도와 동시 처리 상한이 있으며, timeout 뒤에도 수락 기록이 남을 수 있다.
+[실행·요청 예시·설정·한계](docs/S6_HTTP_MOCK.md)를 참고한다.
+
 ## 테스트와 빌드
 
 테스트가 격리된 MySQL/Kafka 컨테이너를 생성·삭제하므로 `.env`와 Compose 사전 실행은 필요 없다.
@@ -151,7 +166,7 @@ Docker가 없으면 실패하며 자동 스킵하지 않는다.
 java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 ```
 
-`build`는 일반 테스트와 실행 JAR 생성을 포함한다. 1만 건 실험은 별도 명령이며 성능 벤치마크가 아니다.
+`build`는 일반 테스트와 알림 앱/HTTP Mock의 실행 JAR 생성을 포함한다. 1만 건 실험은 별도 명령이며 성능 벤치마크가 아니다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`에 저장된다.
 코드를 바꾸지 않고 JAR만 다시 만들려면 `./gradlew bootJar`를 사용한다.
 
@@ -195,6 +210,7 @@ Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 �
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S6_HTTP_MOCK.md](docs/S6_HTTP_MOCK.md): 별도 HTTP Mock, 지연/429/500/한도 및 timeout의 불확실성
 - [docs/S5_GRACEFUL_SHUTDOWN.md](docs/S5_GRACEFUL_SHUTDOWN.md): SIGTERM 종료 순서, 신규 접수 차단과 유예 초과 후 복구/중복 호출
 - [docs/S5_RESTART_REBALANCE.md](docs/S5_RESTART_REBALANCE.md): 처리 중 합류, Relay/Worker JVM 재시작과 파티션·호출·offset 대조
 - [docs/S5_KAFKA_RECOVERY.md](docs/S5_KAFKA_RECOVERY.md): 실제 브로커 중단·복구, 접수/발행 대조와 상한 소진의 한계

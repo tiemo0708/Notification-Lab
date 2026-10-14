@@ -72,3 +72,29 @@ tasks.register('reconciliationTest', Test) {
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
     shouldRunAfter test
 }
+
+// Standalone local HTTP provider simulator; excluded from the notification application's JAR/scan.
+sourceSets {
+    mockServer
+}
+configurations {
+    mockServerImplementation.extendsFrom implementation
+    mockServerRuntimeOnly.extendsFrom runtimeOnly
+}
+dependencies {
+    testImplementation sourceSets.mockServer.output
+}
+tasks.register('mockServer', JavaExec) {
+    group = 'application'
+    description = 'Run the local HTTP mock provider on 127.0.0.1:18081'
+    classpath = sourceSets.mockServer.runtimeClasspath
+    mainClass = 'dev.jinhyeon.notificationmock.MockServerApplication'
+}
+tasks.register('mockServerJar', org.springframework.boot.gradle.tasks.bundling.BootJar) {
+    group = 'build'
+    archiveClassifier = 'http-mock'
+    targetJavaVersion = JavaVersion.VERSION_21
+    mainClass = 'dev.jinhyeon.notificationmock.MockServerApplication'
+    classpath = sourceSets.mockServer.runtimeClasspath
+}
+tasks.named('assemble') { dependsOn tasks.named('mockServerJar') }

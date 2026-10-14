@@ -1,0 +1,31 @@
+server:
+  address: 127.0.0.1
+  port: 18081
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 16
+      min-spare: 2
+    accept-count: 16
+    max-connections: 32
+    connection-timeout: 2s
+spring:
+  application:
+    name: notification-http-mock
+  lifecycle:
+    timeout-per-shutdown-phase: 12s
+mock:
+  http:
+    mode: SUCCESS
+    response-delay-ms: 100
+    requests-per-window: 100
+    window-ms: 1000
+    max-in-flight: 4
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

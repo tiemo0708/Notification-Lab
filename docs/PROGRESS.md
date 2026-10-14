@@ -721,3 +721,52 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 테스트 classpath 진입점으로 실행했으며 배포 JAR 별도 기동·1만 건 실험은 이번에 하지 않았다.
 - DB migration·로컬 DB/.env/IDE 설정 변경 없음. 다음은 S6의 별도 HTTP Mock(지연/timeout/429/5xx/요청 한도)이다.
 - S5는 정의한 다섯 장애 실험 범위에서 로컬 완료. S6는 시작하지 않았고 사용자 검토 전 푸시하지 않는다.
+
+## 2026-10-14: S6 첫 단계 — 독립 HTTP Mock 공급자 서버
+
+### 범위와 구현
+
+- `src/mockServer` source set과 별도 패키지/`mock-server.yml`을 추가.
+  `mockServer` 실행 task, `mockServerJar` 별도 실행 JAR, build의 두 JAR 생성과 테스트 classpath 연결을 구성했다.
+- `127.0.0.1:18081`에서 DB/Kafka/공급자 키 없이 실행한다.
+  `POST /pushes`, `GET /mock/config`, `GET /mock/stats`, Actuator health 제공.
+- SUCCESS 202, 강제 429/Retry-After, 강제 500, 가상 수신자 영구 실패 400과 최대 10초 응답 지연 지원.
+- 프로세스 단위 고정 윈도우 quota, 최대 8개 처리 슬롯(기본 4), 포화 시 즉시 503을 구현.
+  기본 서버 스레드 16/연결 32/accept backlog 16. 입력 검증과 Content-Length 유무에 무관한 8KiB 본문 상한 적용.
+- 요청/수신자 ID 목록을 보관하지 않고 집계만 유지한다. 같은 ID의 재호출도 별도 수락하며 새 providerMessageId를 반환한다.
+- 수락 후 응답을 지연하므로 클라이언트 timeout이 이미 기록한 수락을 취소하지 않는 불확실성을 재현한다.
+- 기존 Worker는 여전히 내부 Mock을 사용한다. HTTP 어댑터는 다음 timeout/연결 풀 상한 항목에서 연결한다.
+  Redis 전역 제한, Worker 보호, Circuit Breaker까지 구현한 것이 아니다.
+- README·PLAN 갱신과 [설정/재현/한계 문서](S6_HTTP_MOCK.md) 추가. S6 첫 항목만 완료 표시.
+
+### 실제 검증
+
+- 최초 빌드는 사용자 정의 BootJar의 targetJavaVersion 미설정으로 테스트 실행 전에 실패.
+  Java 21을 명시한 뒤 다시 빌드했다.
+- `./gradlew --no-daemon --console=plain test --tests 'dev.jinhyeon.notificationmock.*' mockServerJar`:
+  **11개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL (16초).
+- 실제 HTTP 202/429/500/400, 20개 동시 요청에서 quota 3 수락·17개 429,
+  슬롯 2의 동시 처리 상한/초과 503, 800ms 응답 지연/200ms client timeout 뒤 수락 유지 검증.
+  잘못된 JSON·trailing token·빈 필드·8KiB 초과 본문(고정 길이/청크 모두), 설정 상한도 검증했다.
+- 별도 quota 테스트로 monotonic 경계의 리필/미사용 예산 비누적과 40개 동시 시도 중 3개만 허용함을 확인.
+- 첫 실행 JAR 기동 검증은 전체 빌드의 JAR 재생성과 겹쳐 클래스 로딩 오류로 실패했다.
+  빌드 파일과 분리한 사본으로 재실행해 health UP, POST 202, requests/accepted 1, active 0을 확인했다.
+  기동에 사용한 사본과 최종 Mock JAR의 SHA-256 일치를 확인하고 소유 프로세스만 SIGTERM 종료(143)했다.
+- JAR ZIP 검사: 알림 앱 JAR에 HTTP Mock 클래스 미포함, Mock JAR에 알림 앱/테스트 진입점 미포함,
+  Mock 설정 파일 포함 확인. 독립 HTTP Mock JAR 자체를 실제 기동한 검증이다.
+- `./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **110개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (9분 23초), 9개 작업 모두 실행.
+  JUnit XML 16개 suite와 종료 코드 0을 확인했다. 기존 99개와 신규 11개를 모두 실행했다.
+- 문서 링크·코드 블록·diff 공백 검사 통과. 테스트/Mock JVM과 테스트 컨테이너 잔존 없음.
+  기존 `notification-lab-mysql-1`은 healthy를 유지했다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과
+  원격 기본 main/HEAD c95a444를 확인했다. 사용자 검토 전 푸시하지 않는다.
+
+### 한계와 다음 단계
+
+- S6의 별도 HTTP Mock 항목만 완료했다. Worker HTTP 연동, 클라이언트 timeout/연결 풀,
+  Redis 전역 Rate Limit, pause/resume와 Circuit Breaker는 다음 작업이다.
+- 요청 한도는 서버 프로세스별 고정 윈도우다. 윈도우 경계의 순간 버스트와 다중 서버의 한도 합산을 막지 않는다.
+  timeout 뒤 재호출의 중복 수락 가능성이 있으며 단말 도착이나 exactly-once를 보장하지 않는다.
+- 1만 건 실험과 원격 CI는 이번에 실행하지 않았다. 로컬 HTTP/동시성 검증을 운영 성능으로 해석하지 않는다.
+- DB migration·로컬 DB/.env/IDE 설정 변경 없음. 다음은 HTTP 어댑터와 connect/response timeout·연결 풀 상한이다.
