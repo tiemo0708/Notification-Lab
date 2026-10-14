@@ -665,3 +665,59 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 로컬 DB/.env/IDE 설정과 기존 이력 변경 없음. S6는 시작하지 않았다.
 - 다음은 S5 마지막 항목인 Graceful Shutdown: 신규 수신 중지, 진행 중 작업 정리, 유예 시간 초과 시 복구.
 - 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.
+
+## 2026-10-14: S5 마지막 단계 — Graceful Shutdown과 유예 초과 복구
+
+### 범위와 구현
+
+- 사용 중인 Spring Boot 3.5.16 / Spring Kafka 3.3.16 소스 JAR에서 기본 종료 순서를 확인.
+  Kafka의 기본 phase(MAX-100)가 HTTP graceful phase(MAX-1024)보다 높아 Worker 종료 대기 중 HTTP가 열려 있을 수 있었다.
+- `AsyncConfiguration`에 container customizer를 추가해 HTTP graceful 다음 phase로 Worker를 이동하고
+  `stopImmediate=true`로 현재 레코드 처리 뒤 종료한다. 기존 RECORD ack·poll 1·10초/phase 설정 유지.
+- `OutboxRelay`는 ContextClosedEvent 이후 선점 루프를 중지한다. 이미 진행 중인 ACK/DB 기록은 마무리하되
+  나머지 PENDING은 다음 프로세스에서 처리한다. 새로운 scheduler나 별도 종료 스레드를 만들지 않았다.
+- `GracefulShutdownTest`의 4개 시나리오와 테스트 전용 `ShutdownProcess` 추가.
+  각 시나리오는 전용 MySQL/Kafka, 부모 검사 앱, 실제 HTTP API/Relay/Worker를 가진 자식 JVM을 사용한다.
+- Worker는 실제 Mock 수락 후 DB 기록 전, Relay는 실제 ACK 후 DB 트랜잭션 전에 대기한다.
+  부모가 SIGTERM을 보내고 신규 HTTP POST 미접수·자식 생존·offset 미커밋을 확인한다.
+- 유예 내 완료는 대기를 해제하고, 초과는 해제하지 않은 채 실제 10초 phase 유예에 따른 종료를 기다린다.
+  통과시키기 위한 SIGKILL 대체 없이 SIGTERM 종료 코드 143을 검증한다. 실패/종료 후 정리만 별도로 강제 종료한다.
+- 초과 시 DB의 실제 30초 lease 만료 후 새 PID로 시작. taskId/eventId, 공급자 호출 파일 기록,
+  상태/시도 이력·Kafka 레코드/offset·lag를 대조한다. DB 시각/offset 변경 없음.
+- README·PLAN 갱신과 [종료 정책/학습/재현 문서](S5_GRACEFUL_SHUTDOWN.md) 추가.
+  S5의 정의된 다섯 항목을 로컬 완료로 표시하고 S6는 시작하지 않았다.
+
+### 실제 검증
+
+- `./gradlew --no-daemon --console=plain test --tests '*GracefulShutdownTest'`:
+  **4개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL (2분 23초), suite 137.040초.
+- 집중 테스트의 SIGTERM→프로세스 종료: Worker 정상 347ms / 초과 10,081ms,
+  Relay 정상 284ms / 초과 10,084ms. 테스트 대기 장치를 해제하는 시점에 따른 관찰값이며 운영 성능 보장이 아니다.
+- 각 시나리오 접수 2건. Worker 정상과 Relay 정상은 공급자 호출/레코드/offset 합 각각 2.
+  Worker 초과는 공급자 호출 3, 레코드/offset 합 2, UNKNOWN 이력 1.
+  Relay 초과는 공급자 호출 2, 레코드/offset 합 3. 모두 최종 수락 2·미발행/lag/Retry/DLQ 0.
+- `./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **99개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (7분 48초), 6개 작업 모두 실행.
+  JUnit XML 14개 suite와 종료 코드 0 확인. 종료 시나리오 suite 132.821초.
+- 전체 빌드의 SIGTERM→종료: Worker 정상 332ms / 초과 10,074ms,
+  Relay 정상 289ms / 초과 10,077ms. 네 경우 모두 SIGTERM 코드 143, 신규 접수 없음,
+  후속 작업 미선점 상태 확인 후 새 JVM에서 두 요청의 최종 수락과 lag 0 확인.
+- 유예 초과 Worker는 실제 Mock 수락을 두 번 받는 첫 요청을 재현했다(총 호출 3, UNKNOWN 1).
+  유예 초과 Relay는 동일 이벤트 재발행을 재현했다(레코드/offset 3, 공급자 호출 2).
+  기존 작업/이벤트 ID와 각 시도 이력은 보존했다.
+- 실행 JAR 생성/ZIP 검사: 프로덕션 종료 변경 포함, 테스트 진입점·대기 장치 미포함.
+- 문서 링크·코드 블록·diff 공백 검사 통과. 테스트 JVM/컨테이너 잔존 없음, 기존 로컬 MySQL healthy 유지.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증,
+  원격 기본 main/HEAD c95a444 확인. 푸시하지 않음.
+
+### 한계와 다음 단계
+
+- 10초는 각 lifecycle phase의 유예다. 모든 장애에서 전체 프로세스가 10초 이내 종료됨을 보장하지 않는다.
+  Worker/Relay 동시 정지, 느린 HTTP 요청의 종료 유예 초과, DB/브로커 동시 장애는 이번 범위 밖이다.
+- 실제 단말 도착이나 외부 발송 exactly-once를 보장하지 않는다. 공급자 수락 후 DB 미기록 상태의
+  중복 가능성은 정책 설명에 그치지 않고 이번 테스트에서 실제 재현했다.
+- 활성 lease가 남은 채 너무 빨리 재시작하면 Worker가 멈출 수 있다. 원인/lease 만료 확인 후 명시적으로 재시작한다.
+- macOS에서 SIGTERM을 검증했다. Linux CI 대상 코드이지만 이번 원격 CI는 실행하지 않았고 Windows 신호 동작은 미검증이다.
+- 테스트 classpath 진입점으로 실행했으며 배포 JAR 별도 기동·1만 건 실험은 이번에 하지 않았다.
+- DB migration·로컬 DB/.env/IDE 설정 변경 없음. 다음은 S6의 별도 HTTP Mock(지연/timeout/429/5xx/요청 한도)이다.
+- S5는 정의한 다섯 장애 실험 범위에서 로컬 완료. S6는 시작하지 않았고 사용자 검토 전 푸시하지 않는다.

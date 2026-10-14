@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -20,6 +22,7 @@ public class OutboxRelay {
     private final KafkaTemplate<String, String> kafka;
     private final AsyncProperties properties;
     private final MeterRegistry registry;
+    private volatile boolean stopping;
 
     public OutboxRelay(OutboxStore store, KafkaTemplate<String, String> kafka,
                        AsyncProperties properties, MeterRegistry registry) {
@@ -29,11 +32,17 @@ public class OutboxRelay {
         this.registry = registry;
     }
 
+    @EventListener(ContextClosedEvent.class)
+    public void stopClaiming() {
+        // Finish the already claimed publish; leave the remaining durable queue for the next process.
+        stopping = true;
+    }
+
     @Scheduled(fixedDelayString = "${app.async.relay-delay-ms:100}",
             initialDelayString = "${app.async.relay-initial-delay-ms:0}")
     public void relay() {
         try {
-            for (int i = 0; i < 50; i++) {
+            for (int i = 0; i < 50 && !stopping; i++) {
                 var next = store.claim(properties.maxPublishAttempts());
                 if (next.isEmpty()) return;
                 var claim = next.get();

@@ -103,6 +103,10 @@ Relay는 30초 lease/token으로 오래된 소유자의 상태 덮어쓰기를 �
 [재시작·리밸런스 실험](docs/S5_RESTART_REBALANCE.md)에서는 처리 중 Worker 합류와 1 → 2 → 1 → 2대 전환을 검증했다.
 Relay 중단 중 접수된 요청도 기존 ID로 복구했으며, 단계마다 접수/호출/레코드 수와 파티션별 offset을 대조했다.
 
+SIGTERM 종료 시 HTTP 신규 접수를 먼저 중지한 뒤 현재 Kafka 레코드의 완료를 기다린다.
+Relay도 종료 신호 이후 다음 선점 루프를 진행하지 않는다. 유예는 phase마다 10초이며 전체 프로세스의 10초 제한은 아니다.
+[종료 실험과 복구 절차](docs/S5_GRACEFUL_SHUTDOWN.md)에서 정상 완료와 유예 초과를 각각 검증했다.
+
 Worker DB/이벤트 오류는 컨슈머를 멈춘다. 오류를 해결하고 진행 중 lease(30초)가 만료된 후 앱을 재시작한다.
 그 전에는 미완료 offset을 넘기지 않는다. 완료된 DB 결과를 다시 읽으면 공급자를 호출하지 않고 offset만 처리한다.
 공급자 성공 직후 DB 저장 전 종료되면 재호출이 가능하다. 외부 발송 exactly-once는 보장하지 않는다.
@@ -191,6 +195,7 @@ Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 �
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S5_GRACEFUL_SHUTDOWN.md](docs/S5_GRACEFUL_SHUTDOWN.md): SIGTERM 종료 순서, 신규 접수 차단과 유예 초과 후 복구/중복 호출
 - [docs/S5_RESTART_REBALANCE.md](docs/S5_RESTART_REBALANCE.md): 처리 중 합류, Relay/Worker JVM 재시작과 파티션·호출·offset 대조
 - [docs/S5_KAFKA_RECOVERY.md](docs/S5_KAFKA_RECOVERY.md): 실제 브로커 중단·복구, 접수/발행 대조와 상한 소진의 한계
 - [docs/S5_WORKER_OFFSET_CRASH.md](docs/S5_WORKER_OFFSET_CRASH.md): DB 완료 후 Worker JVM 종료, 미커밋 레코드 재소비와 공급자 재호출 방지
