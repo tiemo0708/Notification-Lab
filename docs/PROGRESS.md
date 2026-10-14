@@ -770,3 +770,58 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   timeout 뒤 재호출의 중복 수락 가능성이 있으며 단말 도착이나 exactly-once를 보장하지 않는다.
 - 1만 건 실험과 원격 CI는 이번에 실행하지 않았다. 로컬 HTTP/동시성 검증을 운영 성능으로 해석하지 않는다.
 - DB migration·로컬 DB/.env/IDE 설정 변경 없음. 다음은 HTTP 어댑터와 connect/response timeout·연결 풀 상한이다.
+
+## 2026-10-14: S6 두 번째 단계 — Worker HTTP 어댑터와 timeout/연결 풀 상한
+
+### 범위와 구현
+
+- `app.provider.mode=HTTP`로 별도 HTTP Mock을 호출하는 PushProvider를 추가했다. 기본값은 기존 내부 `MOCK`이다.
+  알 수 없는 mode/무제한 timeout/외부 URL은 기동 또는 설정 구성 시 실패한다.
+- Apache HttpClient 5.5.2 / HttpCore 5.3.6을 기존 Boot BOM으로 선택했다.
+  STRICT 풀 전체/목적지별 기본 연결 2개, 추가 진입 4개, 풀 대기 200ms/연결 500ms/응답 1000ms로 제한한다.
+- 응답이 조금씩 도착해도 전체 3000ms deadline에서 취소한다. 예약 작업은 진입 호출 수 이내이며 완료 시 제거한다.
+  종료 시 진행 중 요청과 연결 풀/타이머를 정리한다. 설정 상한은 deadline 10초/연결 8개/추가 진입 16개다.
+- 로컬 HTTP Mock 전용으로 `http://127.0.0.1:명시적포트` origin만 허용하고 DNS/TLS를 도입하지 않았다.
+  자동 HTTP 재시도/redirect/cookie/압축을 끄고 정상 응답을 8KiB/Mock message ID 형식으로 제한한다.
+- 429/5xx는 재시도 가능, 일반 4xx는 영구 실패, timeout/잘못된 응답/연결 오류는 `HTTP_UNKNOWN_*`로 구분한다.
+  기존 DB 기반 최대 3회/Retry/DLQ 정책을 사용한다. lease 복구 이력의 UNKNOWN outcome과는 구분한다.
+- DB 선점 → 트랜잭션 밖 HTTP → 결과/이력/후속 Outbox 저장 → Kafka offset 커밋 경계를 유지한다.
+- README/PLAN과 [HTTP 연동 문서](S6_HTTP_CLIENT.md)를 갱신했다. S6 두 번째 항목까지 완료 표시한다.
+
+### 실제 검증
+
+- 의존성 확인 및 `compileJava` 성공. BOM 해석 결과 HttpClient 5.5.2 / HttpCore 5.3.6 확인.
+- `./gradlew --no-daemon --console=plain test --tests '*HttpPushProviderTest'`:
+  최초 집중 실행 **15개 통과**, BUILD SUCCESSFUL (19초). 이후 종료 중 호출 취소 테스트 1개를 추가하여 전체 빌드에 포함했다.
+- 실제 HTTP 결과 분류/자동 재시도 없음, 풀 1개 + 추가 호출 1개에서 BUSY와 pool timeout,
+  유휴 연결 재사용, 600ms 지연/150ms 응답 timeout 뒤 수락 유지, 느린 본문의 600ms 전체 deadline을 검증했다.
+  redirect 미추적, 큰/잘못된/민감한 응답 거절, 닫힌 포트 연결 실패, 호출 전 interrupt 보존도 검증했다.
+- `./gradlew --no-daemon --console=plain test --tests '*HttpWorkerTest'`:
+  **5개 통과**, BUILD SUCCESSFUL (34초). 실제 MySQL/Kafka/HTTP를 사용했다.
+- 정상: 호출/수락/시도 이력/offset 합 1, DLQ 0. 500·429: 호출/이력/offset 합 3, 수락 0, DLQ 1.
+  영구 실패 400: 호출/이력/offset 합 1, 수락 0, DLQ 1.
+- 응답 지연 700ms/클라이언트 timeout 200ms: 호출/수락/이력/offset 합 모두 3, DLQ 1.
+  각 시도와 DB 최종 오류는 HTTP_UNKNOWN_TIMEOUT. 실제 수락 3회와 Worker의 응답 실패가 동시에 남는 것을 확인했다.
+- 빌드된 두 실행 JAR를 별도 사본으로 기동해 실제 연동을 확인했다.
+  memory 프로필 알림 API 201 → HTTP Mock → PROVIDER_ACCEPTED, Mock requests/accepted 1, active 0, 양쪽 health UP.
+  검증 프로세스는 모두 SIGTERM 143으로 종료했다. 이 smoke는 패키징 검증이며 Kafka 흐름은 위 통합 테스트에서 확인했다.
+- JAR 검사: 알림 앱에 HTTP 어댑터와 HttpClient 5.5.2 의존성 포함, HTTP Mock 서버 클래스/테스트 진입점 미포함.
+  기동한 사본과 빌드 산출물 SHA-256 일치 확인.
+- `./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **131개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (10분 12초), 9개 작업 모두 실행.
+  JUnit XML 18개 suite와 종료 코드 0 확인. 기존 110개 + HTTP 어댑터 16개 + Worker 연동 5개다.
+- 문서 링크/코드 블록/diff 공백 검사 통과. 테스트/검증 JVM과 테스트 컨테이너 잔존 없음.
+  기존 notification-lab-mysql-1은 healthy 유지. 로컬 DB/.env/IDE 설정 변경 없음.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증,
+  원격 기본 main/HEAD c95a444 확인. 원격 푸시는 하지 않았다.
+
+### 한계와 다음 단계
+
+- TCP connect timeout은 설정했으나 패킷 드롭 네트워크에서 실제 만료 시간을 측정하지 않았다.
+  실제 연결 실패 검증은 loopback의 닫힌 포트이며 DNS/TLS/원격 네트워크는 범위 밖이다.
+- timeout/비정상 응답 이후 기존 재시도 정책은 중복 수락을 허용할 수 있다. 최종 실패/DLQ도 미발송 확정이 아니다.
+  429 Retry-After는 아직 예약 시각에 반영하지 않으며 DB backoff를 사용한다.
+- 연결 풀/진입 상한은 프로세스별이다. 전역 공급자 quota 준수나 Worker 병렬 처리/유한 대기열을 완료한 것이 아니다.
+  다음은 Worker 동시성 제한과 유한 대기열이며 Redis 전역 제한/pause/resume/Circuit Breaker도 남아 있다.
+- 1만 건 실험과 원격 CI는 이번에 실행하지 않았다. 테스트 수치를 운영 성능으로 제시하지 않는다.
+- DB migration·기존 로컬 MySQL/.env/IDE 설정은 변경하지 않았다. 사용자 검토 전 원격에 푸시하지 않는다.

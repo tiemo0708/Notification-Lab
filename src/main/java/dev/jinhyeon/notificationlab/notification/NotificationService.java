@@ -59,7 +59,7 @@ public class NotificationService {
                     result.errorCode(), clock.instant());
         } catch (RuntimeException exception) {
             // Do not log payload, recipient, tokens or exception messages that may contain them.
-            log.warn("Mock attempt failed: notificationId={}, exceptionType={}",
+            log.warn("Provider attempt failed: notificationId={}, exceptionType={}",
                     notification.notificationId(), exception.getClass().getSimpleName());
             completed = notification.completed(NotificationStatus.INTERNAL_FAILURE,
                     null, "INTERNAL_PROVIDER_ERROR", clock.instant());

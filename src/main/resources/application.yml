@@ -74,6 +74,16 @@ app:
     max-publish-attempts: 10
     relay-enabled: true
     worker-enabled: true
+  provider:
+    mode: MOCK
+    http:
+      base-url: http://127.0.0.1:18081
+      max-connections: 2
+      max-pending: 4
+      acquire-timeout-ms: 200
+      connect-timeout-ms: 500
+      response-timeout-ms: 1000
+      deadline-ms: 3000
   # Local-only Mock; no real network push.
   mock:
     delay-ms: 100

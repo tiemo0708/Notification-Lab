@@ -2,9 +2,11 @@ package dev.jinhyeon.notificationlab.provider;
 
 import dev.jinhyeon.notificationlab.config.MockProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 /** Deterministic in-process fake. It does not contact FCM, APNs, or an HTTP server. */
 @Component
+@ConditionalOnProperty(name = "app.provider.mode", havingValue = "MOCK", matchIfMissing = true)
 public class MockPushProvider implements PushProvider {
     private final MockProperties properties;
 

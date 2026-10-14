@@ -3,8 +3,8 @@
 ## 현재 범위
 
 `src/mockServer`에 독립 Spring Boot HTTP 서버를 추가했다. DB/Kafka 없이 실행하며 실제 FCM/APNs를 호출하지 않는다.
-기존 알림 앱과 Worker는 아직 JVM 내부 `MockPushProvider`를 사용한다.
-다음 단계에서 connect/response timeout·연결 풀 상한을 가진 HTTP 어댑터를 연결한다.
+기본 알림 앱과 Worker는 JVM 내부 `MockPushProvider`를 사용한다.
+`app.provider.mode=HTTP`로 [timeout·연결 풀 상한을 가진 HTTP 어댑터](S6_HTTP_CLIENT.md)를 선택할 수 있다.
 이번 서버의 요청 한도는 공급자 측 장애 재현용이며, 아직 Redis 전역 Rate Limit이나 Worker 보호 장치가 아니다.
 
 기본 주소는 `127.0.0.1:18081`. 별도 source set·패키지·설정 파일을 사용하며 알림 앱 JAR에는 포함하지 않는다.
@@ -111,4 +111,5 @@ active는 지연을 포함한 현재 처리 수, maxActive는 기동 후 관찰�
 
 실제 HTTP의 202/429/500/400, 동시 한도, 처리 슬롯, timeout 후 수락 유지, 잘못된 입력/큰 본문,
 설정 상한과 monotonic 윈도우 리필을 검증한다. 상세 실행 결과는 [PROGRESS](PROGRESS.md)에 기록한다.
-현재 Worker HTTP 연동·연결 풀·Redis 제한·Circuit Breaker는 미구현이다. 다음은 HTTP 어댑터와 timeout/연결 풀 상한이다.
+Worker HTTP 연동과 timeout/연결 풀 상한까지 추가했다. Redis 제한·Circuit Breaker는 남아 있다.
+다음은 Worker 동시성 제한과 유한 대기열이다.

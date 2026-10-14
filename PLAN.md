@@ -93,7 +93,8 @@ S4는 로컬 완료했다. API 멱등성, 발송 작업/시도 이력, 유한 �
 S5에서 Kafka 중단·복구와 ACK 후 Outbox 기록 전 Relay 프로세스 종료를 검증했다.
 Worker DB 완료 후 offset 커밋 전 종료와 재소비도 검증했다.
 Relay/Worker 재시작, 처리 중 합류와 작업 완료 후 이탈에 따른 리밸런스도 검증했다.
-SIGTERM 정상 종료와 유예 초과 복구까지 검증했다. S6에서는 별도 HTTP Mock 서버를 추가했다. 다음은 HTTP 어댑터의 timeout/연결 풀 상한이다.
+SIGTERM 정상 종료와 유예 초과 복구까지 검증했다.
+S6에서는 별도 HTTP Mock과 HTTP 어댑터의 timeout/연결 풀 상한까지 추가했다. 다음은 Worker 동시성/유한 대기열이다.
 실제 검증 결과는 docs/PROGRESS.md에 기록한다.
 
 ### S5. 장애·배포 실험
@@ -127,7 +128,7 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 
 ### S6. HTTP Mock + 보호 장치
 - [x] Mock을 별도 HTTP 서버로 확장: 지연, timeout, 429, 5xx, 요청 한도
-- [ ] connect/response timeout 및 연결 풀 상한
+- [x] connect/response timeout 및 연결 풀 상한
 - [ ] Worker 동시성 제한 + 유한 대기열
 - [ ] Redis Lua 전역 Rate Limit (속도와 허용 버스트 정의)
 - [ ] 재시도/최초 발송에 동일 provider quota 적용
@@ -138,7 +139,9 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 
 첫 항목은 독립 실행 JAR/Gradle task의 loopback HTTP Mock과 실제 HTTP 테스트로 검증했다.
 고정 윈도우 요청 한도·동시 처리 슬롯·유한 응답 지연을 제공한다. [설정과 한계](docs/S6_HTTP_MOCK.md)를 참고한다.
-기존 Worker는 아직 내부 Mock을 사용하며 다음 항목에서 HTTP 어댑터와 timeout/연결 풀 상한을 연결한다.
+기본 내부 Mock을 유지하며 `app.provider.mode=HTTP`로 실제 HTTP 연동을 선택한다.
+[HTTP 어댑터](docs/S6_HTTP_CLIENT.md)는 연결 풀/대기/응답 timeout과 전체 deadline을 제한하고 DB 기반 재시도를 유지한다.
+실제 MySQL/Kafka/HTTP로 성공·500·429·영구 실패·timeout의 이력과 offset을 대조했다.
 S6 전체 완료가 아니며 Redis 전역 제한·pause/resume·Circuit Breaker는 남아 있다.
 
 완료 조건: 워커를 늘려도 제한 정책을 유지하고 공급자 장애가 메모리 폭증으로 이어지지 않는다.

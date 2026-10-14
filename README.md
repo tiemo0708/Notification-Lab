@@ -137,20 +137,26 @@ DLQ는 자동 소비/재발송하지 않는다. 선택한 PUBLISHED DLQ는 사�
 DB 풀은 최대 8개, Relay는 한 번에 한 publish/한 주기 최대 50건, Worker concurrency 1/poll 1건이다.
 단일 브로커 고가용성, 다중 인스턴스의 모든 장애 조합, 운영 성능을 입증한 구성이 아니다.
 
-## 별도 HTTP Mock (S6 첫 단계)
+## HTTP Mock과 Worker 연동 (S6)
 
 독립 HTTP Mock을 DB/Kafka 없이 `127.0.0.1:18081`에서 실행할 수 있다.
-현재 Worker는 기존 내부 Mock을 사용한다. HTTP 연동은 다음 timeout/연결 풀 단계에서 추가한다.
+기본 Worker는 기존 내부 Mock을 사용하며 `app.provider.mode=HTTP`로 실제 HTTP 호출을 선택한다.
+HTTP 모드도 알림 앱에는 기존 MySQL/Kafka와 DB 환경변수가 필요하다.
 
 ```bash
+# Mock 실행 예시 중 하나를 선택
 ./gradlew mockServer
 ./gradlew mockServer --args='--mock.http.mode=SERVER_ERROR'
 ./gradlew mockServer --args='--mock.http.response-delay-ms=2000'
+# 별도 터미널에서 알림 앱 실행
+./gradlew bootRun --args='--app.provider.mode=HTTP'
 ```
 
 `POST /pushes`로 수락/429/500/영구 실패와 클라이언트 timeout을 재현하고 `/mock/stats`에서 집계를 확인한다.
 요청 한도와 동시 처리 상한이 있으며, timeout 뒤에도 수락 기록이 남을 수 있다.
-[실행·요청 예시·설정·한계](docs/S6_HTTP_MOCK.md)를 참고한다.
+[Mock 서버 설정](docs/S6_HTTP_MOCK.md)과 [HTTP 연동·timeout·연결 풀](docs/S6_HTTP_CLIENT.md)을 참고한다.
+HTTP 클라이언트 기본값은 연결 2개/추가 호출 4개, 풀 대기 200ms/연결 500ms/응답 1000ms/전체 deadline 3000ms다.
+자동 HTTP 재시도는 끄며 기존 DB 재시도 최대 3회를 사용한다. timeout 후 중복 수락 가능성과 429 Retry-After 미반영 한계가 있다.
 
 ## 테스트와 빌드
 
@@ -210,6 +216,7 @@ Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 �
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S6_HTTP_CLIENT.md](docs/S6_HTTP_CLIENT.md): Worker HTTP 선택, timeout/연결 풀/전체 deadline과 실패 분류
 - [docs/S6_HTTP_MOCK.md](docs/S6_HTTP_MOCK.md): 별도 HTTP Mock, 지연/429/500/한도 및 timeout의 불확실성
 - [docs/S5_GRACEFUL_SHUTDOWN.md](docs/S5_GRACEFUL_SHUTDOWN.md): SIGTERM 종료 순서, 신규 접수 차단과 유예 초과 후 복구/중복 호출
 - [docs/S5_RESTART_REBALANCE.md](docs/S5_RESTART_REBALANCE.md): 처리 중 합류, Relay/Worker JVM 재시작과 파티션·호출·offset 대조
