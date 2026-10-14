@@ -64,6 +64,8 @@ app:
   delivery:
     # Counts all claims, including recovery after an uncertain provider outcome.
     max-attempts: 3
+    retry-base-delay-ms: 1000
+    retry-max-delay-ms: 60000
   async:
     topic: notification.requested.v1
     group: notification-worker-v1

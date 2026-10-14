@@ -112,7 +112,7 @@ class MySqlNotificationTest {
         HttpResponse<String> after = request("GET", location, null);
         assertThat(after.statusCode()).isEqualTo(200);
         assertThat(json(after)).isEqualTo(before);
-        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(4);
+        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(5);
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event", Integer.class)).isZero();
         assertThat(probe().attempts.get()).isZero();
     }
@@ -186,7 +186,7 @@ class MySqlNotificationTest {
                     + "completed_at = '2026-10-13 00:00:01.123456' WHERE notification_id = ?", completed);
             var before = db.queryForList("SELECT * FROM notification ORDER BY notification_id");
             var eventsBefore = db.queryForList("SELECT * FROM outbox_event ORDER BY event_id");
-            Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).load().migrate();
+            Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).target("4").load().migrate();
             assertThat(db.queryForList("SELECT * FROM notification ORDER BY notification_id")).isEqualTo(before);
             assertThat(db.queryForList("SELECT * FROM outbox_event ORDER BY event_id")).isEqualTo(eventsBefore);
             assertThat(db.queryForObject("SELECT COUNT(*) FROM delivery_task", Integer.class)).isEqualTo(3);
@@ -201,6 +201,17 @@ class MySqlNotificationTest {
             assertThat(db.queryForObject("SELECT attempt_count FROM delivery_task WHERE notification_id = ?",
                     Integer.class, active)).isEqualTo(1);
             assertThat(db.queryForList("SELECT max_attempts FROM delivery_task", Integer.class)).containsOnly(3);
+            // V5 must not silently reactivate an already terminal V4 transient failure.
+            db.update("UPDATE notification SET status = 'RETRYABLE_FAILURE', provider_message_id = NULL, "
+                    + "error_code = 'OLD_TRANSIENT' WHERE notification_id = ?", completed);
+            var beforeRetryMigration = db.queryForList("SELECT * FROM notification ORDER BY notification_id");
+            Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).load().migrate();
+            assertThat(db.queryForList("SELECT * FROM notification ORDER BY notification_id")).isEqualTo(beforeRetryMigration);
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM outbox_event", Integer.class)).isEqualTo(3);
+            assertThat(db.queryForList("SELECT retry_generation FROM outbox_event", Integer.class)).containsOnly(0);
+            assertThat(db.queryForList("SELECT retry_generation FROM delivery_task", Integer.class)).containsOnly(0);
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM delivery_task WHERE next_attempt_at IS NOT NULL", Integer.class)).isZero();
+
         } finally {
             executeAsRoot("DROP DATABASE " + schema);
         }

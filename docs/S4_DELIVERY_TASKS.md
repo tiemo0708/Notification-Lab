@@ -1,5 +1,7 @@
 # S4 발송 작업과 시도 이력
 
+후속 단계에서 추가한 WAITING_RETRY와 영속 지연 예약은 [재시도 정책](S4_RETRY_POLICY.md)을 참고한다.
+
 ## 범위
 
 현재 API의 수신자 하나를 가상 발송 대상 하나로 취급한다. 실제 디바이스 등록이나 여러 디바이스로의 fan-out은 아직 없다.
@@ -13,11 +15,12 @@
 ## 선점과 결과 저장
 
 1. Worker는 notification 행을 잠그고 이벤트/작업 ID를 검증한다. 완료된 작업은 공급자를 호출하지 않는다.
-2. 30초 lease가 유효하면 오류로 소비를 중단하고 offset을 넘기지 않는다.
+2. 후속 재시도로 인계한 이전 generation은 replay 처리한다. 현재 generation의 30초 lease가 유효하면 오류로 소비를 중단하고 offset을 넘기지 않는다.
 3. 만료된 lease의 이전 `STARTED` 시도는 `UNKNOWN / OUTCOME_UNKNOWN`으로 기록한다.
 4. 상한 안이면 선점 토큰, 시도 번호 증가, `STARTED` 이력을 같은 트랜잭션으로 커밋한다.
 5. DB 트랜잭션 밖에서 Mock을 호출한다.
 6. 동일 토큰 조건으로 알림 결과와 시도 결과를 함께 커밋한 뒤 Kafka RECORD offset을 처리한다.
+   일시 실패 재시도 시에는 다음 Outbox와 예약 시각도 이 트랜잭션에 포함한다.
 
 알림 결과 또는 시도 이력 저장이 실패하면 둘 다 롤백된다. 오래된 소유자는 새 토큰으로 바뀐 작업을 완료할 수 없다.
 이력의 `(task_id, attempt_no)` 기본 키와 `lease_token` 유니크 제약도 중복 기록을 막는다.
@@ -42,7 +45,8 @@
 
 현재 복구는 DB/이벤트 오류 해결 및 lease 만료 후 앱을 재시작하는 수동 절차다.
 만료 시각만으로 `UNKNOWN`이 기록되는 것은 아니며 다음 선점에서 갱신한다.
-일반 `RETRYABLE_FAILURE` 응답은 아직 최종 결과로 저장한다. 자동 공급자 재시도, backoff+jitter, Retry topic, DLQ는 다음 작업이다.
+일반 `RETRYABLE_FAILURE`는 예산이 남으면 자동 재시도한다. 최초/복구/재시도가 같은 전체 상한을 공유한다.
+backoff+jitter와 예약/offset 관계는 [재시도 정책](S4_RETRY_POLICY.md)에 정의한다. 별도 Retry topic/DLQ는 다음 작업이다.
 
 ## 조회 API
 
@@ -54,6 +58,7 @@
   "status": "PROVIDER_ACCEPTED",
   "attemptCount": 1,
   "maxAttempts": 3,
+  "nextAttemptAt": null,
   "attempts": [
     {
       "attemptNo": 1,
@@ -69,7 +74,7 @@
 상태와 이력을 하나의 읽기 트랜잭션으로 조회한다. 이력은 시도 번호 순서로 최대 10개다.
 대상, 본문, lease 토큰은 이 응답에 노출하지 않는다.
 작업이 없는 ID/S2 데이터 및 sync/memory 프로필은 404, 잘못된 UUID는 400이다.
-`notification_worker_exhausted_total`은 해당 프로세스에서 상한 소진을 최종 저장한 횟수다.
+`notification_worker_exhausted_total`은 해당 프로세스에서 lease 복구 상한 소진을 최종 저장한 횟수다.
 다른 카운터처럼 재시작 시 초기화되고 DB의 영속 이력을 대체하지 않는다.
 
 ## 이벤트와 기존 DB 업그레이드

@@ -99,9 +99,9 @@ class AsyncNotificationTest {
         admin = Admin.create(java.util.Map.of("bootstrap.servers", KAFKA.getBootstrapServers()));
     }
 
-    private void startApplication(boolean experiment) {
+    private void startApplication(boolean experiment, String... overrides) {
         app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(
-                NotificationLabApplication.class, ProbeConfiguration.class).run(
+                NotificationLabApplication.class, ProbeConfiguration.class).run(java.util.stream.Stream.concat(java.util.stream.Stream.of(
                 "--server.port=0", "--spring.profiles.active=async", "--app.mock.delay-ms=0",
                 "--spring.datasource.url=" + MYSQL.getJdbcUrl(),
                 "--spring.datasource.username=" + MYSQL.getUsername(),
@@ -109,8 +109,10 @@ class AsyncNotificationTest {
                 "--spring.kafka.bootstrap-servers=" + KAFKA.getBootstrapServers(),
                 "--app.async.topic=" + topic, "--app.async.group=" + group,
                 "--app.async.worker-enabled=" + experiment,
+                "--app.delivery.retry-base-delay-ms=" + (experiment ? "1000" : "60000"),
                 "--app.async.relay-initial-delay-ms=" + (experiment ? "0" : "86400000"),
-                "--logging.level.org.apache.kafka=WARN", "--logging.level.org.springframework.kafka=WARN");
+                "--logging.level.org.apache.kafka=WARN", "--logging.level.org.springframework.kafka=WARN"),
+                Arrays.stream(overrides)).toArray(String[]::new));
     }
 
     @AfterEach
@@ -286,13 +288,13 @@ class AsyncNotificationTest {
     }
 
     @Test
-    void providerFailureIsDurableTerminalResultBeforeOffsetCommit() throws Exception {
-        probe().behavior = request -> new PushResult(PushResult.Outcome.RETRYABLE_FAILURE, null, "MOCK_UNAVAILABLE");
+    void permanentProviderFailureIsDurableTerminalResultBeforeOffsetCommit() throws Exception {
+        probe().behavior = request -> new PushResult(PushResult.Outcome.PERMANENT_FAILURE, null, "MOCK_INVALID_TARGET");
         String id = json(post()).path("notificationId").asText();
         startWorker();
         app.getBean(OutboxRelay.class).relay();
         awaitCommitted(1);
-        assertThat(status(id)).isEqualTo("RETRYABLE_FAILURE");
+        assertThat(status(id)).isEqualTo("PERMANENT_FAILURE");
         assertThat(probe().attempts.get()).isEqualTo(1);
     }
 
@@ -644,6 +646,278 @@ class AsyncNotificationTest {
 
     private void expireWorker() {
         jdbc().update("UPDATE notification SET worker_lease_until = TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6))");
+    }
+
+    @Test
+    void transientFailurePersistsDueTimeAndResumesAfterApplicationRestart() throws Exception {
+        probe().behavior = request -> transientFailure();
+        String id = json(post(PAYLOAD, "retry-restart")).path("notificationId").asText();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        assertThat(status(id)).isEqualTo("WAITING_RETRY");
+        assertThat(jdbc().queryForObject("SELECT completed_at IS NULL FROM notification", Boolean.class)).isTrue();
+        assertThat(count("outbox_event")).isEqualTo(2);
+        var waiting = delivery(id);
+        assertThat(waiting.path("attemptCount").asInt()).isEqualTo(1);
+        assertThat(waiting.path("nextAttemptAt").isNull()).isFalse();
+        assertThat(waiting.path("attempts").get(0).path("outcome").asText()).isEqualTo("RETRYABLE_FAILURE");
+        assertThat(jdbc().queryForObject("""
+                SELECT TIMESTAMPDIFF(MICROSECOND, created_at, available_at) FROM outbox_event
+                WHERE event_type = 'NOTIFICATION_RETRY'
+                """, Long.class)).isBetween(29000000L, 60000000L);
+        assertThat(jdbc().queryForObject("""
+                SELECT e.available_at = t.next_attempt_at FROM outbox_event e
+                JOIN delivery_task t USING (notification_id) WHERE e.event_type = 'NOTIFICATION_RETRY'
+                """, Boolean.class)).isTrue();
+        assertThat(registry().find("notification.completed").counters()).isEmpty();
+        assertThat(json(post(PAYLOAD, "retry-restart")).path("status").asText()).isEqualTo("WAITING_RETRY");
+        app.close();
+        startApplication(false);
+        assertThat(delivery(id)).isEqualTo(waiting);
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        assertThat(probe().attempts.get()).isZero();
+        assertThat(committedTotal()).isEqualTo(1);
+        makeRetryDue();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(2);
+        assertThat(status(id)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(delivery(id).path("attemptCount").asInt()).isEqualTo(2);
+        assertThat(delivery(id).path("nextAttemptAt").isNull()).isTrue();
+        assertThat(probe().attempts.get()).isEqualTo(1);
+    }
+
+    @Test
+    void repeatedTransientFailuresStopAtTotalAttemptLimitAndReplayCannotReopenThem() throws Exception {
+        probe().behavior = request -> transientFailure();
+        String id = json(post()).path("notificationId").asText();
+        String original = jdbc().queryForObject("SELECT payload FROM outbox_event", String.class);
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        for (int next = 2; next <= 3; next++) {
+            makeRetryDue();
+            app.getBean(OutboxRelay.class).relay();
+            awaitCommitted(next);
+        }
+        assertThat(status(id)).isEqualTo("RETRYABLE_FAILURE");
+        assertThat(count("outbox_event")).isEqualTo(3);
+        assertThat(count("delivery_attempt")).isEqualTo(3);
+        assertThat(probe().attempts.get()).isEqualTo(3);
+        assertThat(registry().get("notification.retry.scheduled").counter().count()).isEqualTo(2);
+        assertThat(registry().get("notification.completed").tag("status", "RETRYABLE_FAILURE").counter().count()).isEqualTo(1);
+        assertThat(jdbc().queryForObject("SELECT completed_at IS NOT NULL FROM notification", Boolean.class)).isTrue();
+        String last = retryPayload();
+        kafka().send(topic, id, original).get(10, TimeUnit.SECONDS);
+        kafka().send(topic, id, last).get(10, TimeUnit.SECONDS);
+        awaitCommitted(5);
+        assertThat(probe().attempts.get()).isEqualTo(3);
+        assertThat(count("outbox_event")).isEqualTo(3);
+        assertThatThrownBy(() -> jdbc().update("""
+                INSERT INTO outbox_event (event_id, notification_id, event_type, payload, retry_generation, created_at, available_at)
+                SELECT ?, notification_id, event_type, payload, retry_generation, created_at, available_at
+                FROM outbox_event WHERE retry_generation = 2
+                """, UUID.randomUUID().toString())).isInstanceOf(org.springframework.dao.DuplicateKeyException.class);
+    }
+
+    @Test
+    void obsoleteEventCannotAdvanceWaitingOrStealActiveRetry() throws Exception {
+        probe().behavior = request -> transientFailure();
+        String id = json(post()).path("notificationId").asText();
+        String original = jdbc().queryForObject("SELECT payload FROM outbox_event", String.class);
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        makeRetryDue();
+        kafka().send(topic, id, original).get(10, TimeUnit.SECONDS);
+        awaitCommitted(2);
+        assertThat(status(id)).isEqualTo("WAITING_RETRY");
+        UUID retryEvent = UUID.fromString(jdbc().queryForObject(
+                "SELECT event_id FROM outbox_event WHERE retry_generation = 1", String.class));
+        var store = app.getBean(WorkerStore.class);
+        var claim = store.claim(UUID.fromString(id), retryEvent, "active-retry").orElseThrow();
+        kafka().send(topic, id, original).get(10, TimeUnit.SECONDS);
+        awaitCommitted(3);
+        assertThat(container().isRunning()).isTrue();
+        assertThat(status(id)).isEqualTo("PROCESSING");
+        assertThat(probe().attempts.get()).isEqualTo(1);
+        assertThat(count("delivery_attempt")).isEqualTo(2);
+        store.complete(claim.notification().completed(NotificationStatus.PROVIDER_ACCEPTED, "test-result", null,
+                java.time.Instant.now()), "active-retry");
+    }
+
+    @Test
+    void retryOutboxFailureRollsBackAttemptAndStateWithoutSkippingOriginalOffset() throws Exception {
+        probe().behavior = request -> transientFailure();
+        String id = json(post()).path("notificationId").asText();
+        root("CREATE TRIGGER reject_retry BEFORE INSERT ON outbox_event FOR EACH ROW "
+                + "BEGIN IF NEW.event_type = 'NOTIFICATION_RETRY' THEN SIGNAL SQLSTATE '45000' "
+                + "SET MESSAGE_TEXT = 'test fault'; END IF; END");
+        try {
+            startWorker();
+            app.getBean(OutboxRelay.class).relay();
+            await().atMost(Duration.ofSeconds(20)).until(() -> !container().isRunning());
+            assertThat(committedTotal()).isZero();
+            assertThat(status(id)).isEqualTo("PROCESSING");
+            assertThat(count("outbox_event")).isEqualTo(1);
+            assertThat(jdbc().queryForObject("SELECT retry_generation FROM delivery_task", Integer.class)).isZero();
+            assertThat(delivery(id).path("nextAttemptAt").isNull()).isTrue();
+            assertThat(delivery(id).path("attempts").get(0).path("outcome").asText()).isEqualTo("STARTED");
+        } finally {
+            root("DROP TRIGGER reject_retry");
+        }
+        probe().behavior = AsyncNotificationTest::accepted;
+        expireWorker();
+        startWorker();
+        awaitCommitted(1);
+        assertThat(status(id)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(delivery(id).path("attempts").get(0).path("outcome").asText()).isEqualTo("UNKNOWN");
+        assertThat(probe().attempts.get()).isEqualTo(2);
+    }
+
+    @Test
+    void earlyRetryEventStopsWithoutCallingProviderAndRecoversOnlyWhenDue() throws Exception {
+        probe().behavior = request -> transientFailure();
+        String id = json(post()).path("notificationId").asText();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        kafka().send(topic, id, retryPayload()).get(10, TimeUnit.SECONDS);
+        await().atMost(Duration.ofSeconds(20)).until(() -> !container().isRunning());
+        assertThat(committedTotal()).isEqualTo(1);
+        assertThat(count("delivery_attempt")).isEqualTo(1);
+        assertThat(probe().attempts.get()).isEqualTo(1);
+        makeRetryDue();
+        probe().behavior = AsyncNotificationTest::accepted;
+        startWorker();
+        awaitCommitted(2);
+        app.getBean(OutboxRelay.class).relay(); // Delayed outbox copy is now a harmless replay.
+        awaitCommitted(3);
+        assertThat(status(id)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(probe().attempts.get()).isEqualTo(2);
+    }
+
+    @Test
+    void failedRetryPublishKeepsDurableScheduleUntilBrokerAcknowledges() throws Exception {
+        probe().behavior = request -> transientFailure();
+        String id = json(post()).path("notificationId").asText();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        makeRetryDue();
+        var fake = new KafkaTemplate<String, String>(kafka().getProducerFactory()) {
+            @Override
+            public CompletableFuture<SendResult<String, String>> send(String topic, String key, String data) {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                return CompletableFuture.failedFuture(new IllegalStateException("test broker outage"));
+            }
+        };
+        relay(fake).relay();
+        assertThat(jdbc().queryForObject("SELECT status FROM outbox_event WHERE retry_generation = 1", String.class))
+                .isEqualTo("PENDING");
+        assertThat(status(id)).isEqualTo("WAITING_RETRY");
+        assertThat(committedTotal()).isEqualTo(1); // Original offset is backed by a committed outbox, not a Kafka ACK.
+        assertThat(probe().attempts.get()).isEqualTo(1);
+        makeRetryDue();
+        probe().behavior = AsyncNotificationTest::accepted;
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(2);
+        assertThat(status(id)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(probe().attempts.get()).isEqualTo(2);
+    }
+
+    @Test
+    void unexpectedProviderExceptionDoesNotCreateAutomaticRetry() throws Exception {
+        probe().behavior = request -> { throw new IllegalStateException("test fault"); };
+        String id = json(post()).path("notificationId").asText();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        assertThat(status(id)).isEqualTo("INTERNAL_FAILURE");
+        assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(probe().attempts.get()).isEqualTo(1);
+    }
+
+    @Test
+    void persistedOneAttemptBudgetSurvivesConfigurationChange() throws Exception {
+        app.close();
+        startApplication(false, "--app.delivery.max-attempts=1");
+        String id = json(post()).path("notificationId").asText();
+        app.close();
+        startApplication(false, "--app.delivery.max-attempts=3");
+        probe().behavior = request -> transientFailure();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        assertThat(status(id)).isEqualTo("RETRYABLE_FAILURE");
+        assertThat(delivery(id).path("maxAttempts").asInt()).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(probe().attempts.get()).isEqualTo(1);
+    }
+
+    @Test
+    void uncertainRecoveryAndTransientRetryShareOneTotalBudget() throws Exception {
+        UUID id = UUID.fromString(json(post()).path("notificationId").asText());
+        app.getBean(WorkerStore.class).claim(id, eventId(), "uncertain-first").orElseThrow();
+        expireWorker();
+        probe().behavior = request -> transientFailure();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        assertThat(status(id.toString())).isEqualTo("WAITING_RETRY");
+        makeRetryDue();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(2);
+        assertThat(status(id.toString())).isEqualTo("RETRYABLE_FAILURE");
+        assertThat(delivery(id.toString()).path("attemptCount").asInt()).isEqualTo(3);
+        assertThat(delivery(id.toString()).path("attempts").get(0).path("outcome").asText()).isEqualTo("UNKNOWN");
+        assertThat(count("outbox_event")).isEqualTo(2);
+        assertThat(probe().attempts.get()).isEqualTo(2);
+    }
+
+    @Test
+    void concurrentCompletionCreatesOnlyOneRetrySuccessor() throws Exception {
+        UUID id = UUID.fromString(json(post()).path("notificationId").asText());
+        var store = app.getBean(WorkerStore.class);
+        var claim = store.claim(id, eventId(), "one-owner").orElseThrow();
+        var result = claim.notification().completed(NotificationStatus.RETRYABLE_FAILURE, null, "MOCK_UNAVAILABLE",
+                java.time.Instant.now());
+        CountDownLatch ready = new CountDownLatch(2);
+        Callable<Boolean> complete = () -> {
+            ready.countDown();
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            try {
+                return store.complete(result, "one-owner");
+            } catch (IllegalStateException stale) {
+                assertThat(stale).hasMessage("Worker ownership was lost");
+                return false;
+            }
+        };
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var results = executor.invokeAll(List.of(complete, complete));
+            assertThat(List.of(results.get(0).get(), results.get(1).get())).containsExactlyInAnyOrder(true, false);
+        }
+        assertThat(count("outbox_event")).isEqualTo(2);
+        assertThat(count("delivery_attempt")).isEqualTo(1);
+        assertThat(status(id.toString())).isEqualTo("WAITING_RETRY");
+    }
+
+    private static PushResult transientFailure() {
+        return new PushResult(PushResult.Outcome.RETRYABLE_FAILURE, null, "MOCK_UNAVAILABLE");
+    }
+
+    private String retryPayload() {
+        return jdbc().queryForObject("SELECT payload FROM outbox_event WHERE event_type = 'NOTIFICATION_RETRY' "
+                + "ORDER BY retry_generation DESC LIMIT 1", String.class);
+    }
+
+    private void makeRetryDue() {
+        // Advance the persisted due time instead of sleeping for production backoff in integration tests.
+        jdbc().update("UPDATE delivery_task SET next_attempt_at = TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6)) "
+                + "WHERE next_attempt_at IS NOT NULL");
+        jdbc().update("UPDATE outbox_event SET available_at = TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6)) "
+                + "WHERE event_type = 'NOTIFICATION_RETRY' AND status = 'PENDING'");
     }
 
     @Test

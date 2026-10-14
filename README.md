@@ -2,7 +2,7 @@
 
 Kafka 기반 알림 시스템을 단계별로 만드는 Java/Spring 학습 프로젝트.
 현재 v0.3(S3)는 **요청과 Outbox를 MySQL에 함께 저장하고 Kafka Worker가 Mock을 호출하는 비동기 API**이다.
-S4에서 선택적 `Idempotency-Key` 접수 중복 방지와 발송 작업/시도 이력을 추가했다. 실제 푸시나 단말 도착을 의미하지 않는다.
+S4에서 선택적 `Idempotency-Key` 접수 중복 방지, 발송 작업/시도 이력, 일시 실패의 유한 지연 재시도를 추가했다. 실제 푸시나 단말 도착을 의미하지 않는다.
 
 ## 실행
 
@@ -10,7 +10,7 @@ Java 21, Docker(Compose 포함), 인터넷 연결이 필요하다. Gradle은 Wra
 AWS/FCM 키는 필요하지 않다. 비밀번호는 로컬 실험용 값을 쓴다.
 
 ```bash
-cp .env.example .env
+test -f .env || cp .env.example .env
 # .env의 MYSQL_PASSWORD / MYSQL_ROOT_PASSWORD를 각각 채운 뒤 실행
 docker compose up -d --wait
 set -a
@@ -53,8 +53,9 @@ POST의 `202 Accepted`와 `Location`은 요청/발송 작업/Outbox가 DB에 커
 | --- | --- |
 | `QUEUED` | 접수 완료, Worker 처리 대기 |
 | `PROCESSING` | Worker가 선점하고 처리 중 |
+| `WAITING_RETRY` | 일시 실패 후 다음 시도 예약. completedAt은 null |
 | `PROVIDER_ACCEPTED` | Mock 공급자 수락. 단말 도착 아님 |
-| `RETRYABLE_FAILURE` | 재시도 가능한 공급자 실패로 분류. S3는 자동 재발송하지 않음 |
+| `RETRYABLE_FAILURE` | 일시 실패로 종료. 새 비동기 작업은 전체 시도 상한 소진, 과거 결과/비교 프로필은 한 번의 결과 |
 | `PERMANENT_FAILURE` | 영구 공급자 실패 |
 | `INTERNAL_FAILURE` | 예상 밖 공급자 오류 또는 복구 시도 상한 소진 |
 | `400` / `404` | 잘못된 요청 또는 UUID / 알림 없음 |
@@ -81,11 +82,11 @@ curl -i http://127.0.0.1:8080/notifications \
 
 1. API: notification(`QUEUED`), delivery_task, Outbox(`PENDING`)를 한 DB 트랜잭션으로 저장한다.
 2. Relay: 짧은 트랜잭션으로 한 이벤트를 선점하고 커밋한다. DB 트랜잭션 밖에서 Kafka publish future 성공을 기다린 뒤 `PUBLISHED`를 저장한다.
-3. Worker: 레코드를 하나씩 처리한다. 짧은 DB 선점 후 트랜잭션 밖에서 Mock을 호출하고, 결과 커밋 후 offset을 커밋한다.
+3. Worker: 레코드를 하나씩 처리한다. 짧은 DB 선점 후 트랜잭션 밖에서 Mock을 호출하고, 최종 결과 또는 이력/재시도 예약/Outbox를 함께 커밋한 후 offset을 커밋한다.
 
 Relay는 30초 lease/token으로 오래된 소유자의 상태 덮어쓰기를 막는다. 실패하면 1~60초 지수 backoff,
 최대 10회 시도 후 `FAILED`로 보관한다. `FAILED`는 자동 재발행하지 않으며 Outbox 지표/DB로 조사한다.
-이때 알림은 `QUEUED`일 수 있다. `GET`은 알림 결과이고 Relay의 상세 상태는 아니다.
+이때 알림은 `QUEUED` 또는 `WAITING_RETRY`일 수 있다. `GET`은 알림 결과이고 Relay의 상세 상태는 아니다.
 
 Worker DB/이벤트 오류는 컨슈머를 멈춘다. 오류를 해결하고 진행 중 lease(30초)가 만료된 후 앱을 재시작한다.
 그 전에는 미완료 offset을 넘기지 않는다. 완료된 DB 결과를 다시 읽으면 공급자를 호출하지 않고 offset만 처리한다.
@@ -93,9 +94,12 @@ Worker DB/이벤트 오류는 컨슈머를 멈춘다. 오류를 해결하고 진
 
 발송 작업은 요청당 가상 대상 하나이며 taskId와 시도 이력을 `/notifications/{id}/delivery`로 조회한다.
 만료된 시도는 다음 복구에서 `UNKNOWN`으로 기록한다. 선점은 최초 포함 기본 3회(설정 범위 1~10)이며,
-소진 후에는 추가 호출 없이 `INTERNAL_FAILURE / ATTEMPTS_EXHAUSTED`로 보관한다. 공급자 실패 확정을 뜻하지 않는다.
-일반 일시 실패의 자동 재시도는 아직 없다. [작업/복구 정책과 업그레이드 절차](docs/S4_DELIVERY_TASKS.md)를 참고한다.
-기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V4 DB와 schemaVersion 2 이벤트는 이전 앱과 혼합 실행하지 않는다.
+마지막 선점의 lease까지 만료되면 추가 호출 없이 `INTERNAL_FAILURE / ATTEMPTS_EXHAUSTED`로 보관한다. 공급자 실패 확정을 뜻하지 않는다.
+일반 일시 실패도 같은 횟수 상한 안에서 자동 재시도한다. 기본 대기는 500~1000ms, 1000~2000ms이며
+지수 backoff와 equal jitter를 적용한다. 예약 시각은 DB에 저장하고 delivery 조회의 nextAttemptAt으로 확인한다.
+기존 Outbox/같은 Kafka 토픽을 사용하며 별도 Retry topic/DLQ는 후속 단계다.
+[작업/복구 정책](docs/S4_DELIVERY_TASKS.md)과 [재시도 정책](docs/S4_RETRY_POLICY.md)을 참고한다.
+기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V5 DB와 재시도 상태/이벤트는 이전 앱과 혼합 실행하지 않는다.
 
 기본 Mock 지연은 100ms(허용 0~5000ms), SUCCESS다. 앱 재시작으로 설정한다.
 
@@ -144,7 +148,8 @@ S2 시절 이미 남은 `PROCESSING` 레코드는 Outbox가 없으므로 S3에�
 
 ## 지표
 
-- `notification_provider_attempts_total`, `notification_completed_total{status=...}`: 시도/저장된 결과.
+- `notification_provider_attempts_total`, `notification_completed_total{status=...}`: 시도/저장된 최종 결과. 중간 재시도 예약은 완료에 포함하지 않음.
+- `notification_retry_scheduled_total`: 성공적으로 저장한 일시 실패의 후속 예약 수.
 - `notification_processing_seconds_*`: 공급자 처리와 결과 저장 시간. 큐 대기 제외.
 - `http_server_requests_seconds_*`: HTTP 처리 시간.
 - `outbox_unpublished`, `outbox_failed`, `outbox_oldest_age_seconds`: 미발행 수(FAILED 포함), 실패 수, 가장 오래된 미발행 시간.
@@ -160,11 +165,12 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-공급자 재시도/DLQ, Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+별도 Retry topic/DLQ, Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S4_RETRY_POLICY.md](docs/S4_RETRY_POLICY.md): 오류 분류, 횟수 상한, backoff+jitter, 영속 예약
 - [docs/S4_DELIVERY_TASKS.md](docs/S4_DELIVERY_TASKS.md): 작업 ID, 이력, 유한 복구와 버전 전환
 - [docs/S3_ASYNC.md](docs/S3_ASYNC.md): 트랜잭션, 장애 상태와 실험
 - [docs/S2_PERSISTENCE.md](docs/S2_PERSISTENCE.md): 동기 MySQL 기준선

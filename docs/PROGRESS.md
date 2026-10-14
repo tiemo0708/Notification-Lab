@@ -315,3 +315,46 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 새 schemaVersion 2를 내보내므로 이전 앱/Worker를 모두 종료한 후 업그레이드해야 한다. 혼합 버전/자동 다운그레이드 미지원.
 - UNKNOWN과 상한 소진은 외부 전달 실패 확정이 아니다. 공급자 exactly-once나 실제 호출 횟수 복원을 보장하지 않음.
 - 일반 RETRYABLE_FAILURE는 아직 최종 결과. 다음은 공급자 자동 재시도 정책(backoff+jitter)과 Retry topic/DLQ 연결이다.
+
+## 2026-10-14: S4 세 번째 단계 — 일시 실패 지연 재시도 로컬 완료
+
+### 범위와 변경
+
+- PLAN의 오류 분류/최대 횟수/backoff+jitter 항목 구현. 별도 Retry topic/DLQ는 다음 단계로 유지.
+- 명시적인 RETRYABLE_FAILURE만 예산 안에서 자동 재시도. 영구 실패와 예상 밖 공급자 예외는 최종 결과로 저장.
+- 최초 선점/불확실한 lease 복구/일시 실패 재시도가 같은 전체 예산(기본 3, 허용 1~10)을 사용하며 접수 시 고정.
+- 기본 1000ms base/60000ms cap의 지수 backoff + equal jitter. 최초 대기 500~1000ms, 다음 1000~2000ms.
+- 결과/시도 이력/WAITING_RETRY/DB 예약 시각/후속 Outbox를 한 트랜잭션으로 저장한 뒤 원본 offset 처리.
+- 같은 Kafka 토픽과 기존 Relay의 due 조회를 사용. publish future ACK 후 PUBLISHED 저장 원칙 유지.
+- task의 next_attempt_at을 별도 보존해 Relay lease/발행 backoff와 분리하고, delivery 조회에 nextAttemptAt 추가.
+- retry_generation으로 이전 이벤트를 판별해 이미 예약된 다음 작업을 앞당기거나 진행 중 lease를 빼앗지 못하게 함.
+- 중간 예약은 완료 카운터에서 제외. notification_retry_scheduled_total 추가.
+- V1~V4 SQL 보존, V5 추가. 과거 최종 일시 실패를 다시 열지 않으며 새 상태/이벤트 때문에 혼합 버전 실행 미지원.
+- [재시도 정책](S4_RETRY_POLICY.md), README, PLAN 및 기존 단계 문서 연결 갱신.
+
+### 실제 검증
+
+- `./gradlew --no-daemon --console=plain build`: **75개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (58초), 실행 JAR 생성 성공.
+- 기존 62개 회귀 + 신규 13개(실제 MySQL/Kafka 통합 10개, 정책/설정 단위 3개).
+- 일시 실패 후 WAITING_RETRY, completedAt null, 예약/Outbox 동시 저장, 키 재사용 시 현재 상태 반환 확인.
+- 앱 종료/재기동 후 예약/이력 보존. due 전에는 발행/호출 없음, due 후 두 번째 시도 성공 및 nextAttemptAt null 확인.
+- 연속 일시 실패 3회 후 최종 RETRYABLE_FAILURE, 이력/Outbox 각 3행, 예약 카운터 2/완료 카운터 1.
+  이전/최신 이벤트를 재전달해도 추가 호출/예약 없음. 동일 generation 중복 INSERT는 DB가 거절.
+- 오래된 이벤트는 대기 중 및 새 시도 처리 중에도 무해한 replay. 강제로 조기 전송한 현재 이벤트는 offset/호출 없이 중단.
+- 후속 Outbox INSERT 실패 주입: 상태/시도 결과/예약 전체 롤백, 원본 offset 0. 오류 제거/lease 만료 후 복구 성공.
+- 재시도 publish 실패 주입: PENDING/WAITING_RETRY 유지. 저장된 예약으로 원본 offset은 처리됐으며, 발행 복구 후 최종 성공.
+- 접수 시 상한 1을 이후 설정 3으로 바꿔도 기존 작업은 추가 호출하지 않음. UNKNOWN 복구와 일시 실패가 하나의 예산을 공유.
+- 두 완료 트랜잭션 경합: 하나만 성공하며 후속 Outbox/예약이 중복되지 않음.
+- V3 → V4 기존 데이터 검증을 유지하고 V4 → V5 업그레이드를 추가 검증. 과거 최종 RETRYABLE_FAILURE/알림 행 보존.
+- 단위 테스트에서 equal jitter 하한/상한/60초 cap, 재시도 분류, 잘못된 횟수/지연 설정 거절 확인.
+- Git 작성자 JinHyeon / tiemo0708@naver.com 및 GitHub tiemo0708 인증 확인.
+  원격 기본 브랜치 main, HEAD c95a444 유지. 인증 조회는 샌드박스 안에서 실패했지만 keyring 접근 가능한 환경에서 정상 확인.
+
+### 한계와 다음 단계
+
+- 통합 테스트는 저장된 due 시각을 앞당겨 검증한다. 실제 60초 대기/부하 성능을 측정한 결과가 아니다.
+- 브로커 실제 중단 대신 publish 실패를 주입했다. 프로세스 강제 종료, rebalance, 다중 인스턴스 복구는 미검증.
+- 1만 건 실험/Compose 재생성 smoke는 이번 변경에서 재실행하지 않음. 사용자 로컬 MySQL에는 테스트 migration을 적용하지 않음.
+- FAILED 재시도 Outbox는 WAITING_RETRY를 남길 수 있어 수동 조사 대상. DLQ/선택 재발행은 아직 없음.
+- 다음 작업은 별도 Retry topic/DLQ와 재발행/원본 offset 관계 검증. S4 전체 완료가 아님.
+- 로컬 main에 논리적 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다. 새 원격 CI 실행 없음.

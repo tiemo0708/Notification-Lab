@@ -1,7 +1,8 @@
 # S4 첫 단계: API 요청 멱등성
 
 이 문서는 S4의 Idempotency-Key 접수 정책을 설명한다. 이후 추가한 Worker 작업 모델은
-[발송 작업과 시도 이력](S4_DELIVERY_TASKS.md)을 참고한다. 공급자 자동 재시도와 Retry topic/DLQ는 후속 작업이다.
+[발송 작업과 시도 이력](S4_DELIVERY_TASKS.md), 자동 재시도는 [지연 재시도 정책](S4_RETRY_POLICY.md)을 참고한다.
+별도 Retry topic/DLQ는 후속 작업이다.
 
 ## API 계약
 
@@ -62,7 +63,8 @@ DB 잠금 오류에 무한 재시도를 추가하지 않는다. 커밋 결과가
 - 키는 알림 행과 함께 보관하며 TTL/자동 삭제/키 재사용 기간은 없다.
   DB 초기화나 수동 행 삭제 후에는 이전 키의 보장도 사라진다.
 - 이는 요청 접수 중복 방지이다. 공급자 호출과 결과 기록 사이 중단으로 생기는 외부 발송 중복까지 제거하지 않는다.
-- 기존 S3의 Outbox/Worker lease, offset 정책은 유지한다. 공급자 재시도/DLQ는 아직 구현하지 않는다.
+- Outbox/Worker lease와 실패 시 offset을 건너뛰지 않는 정책을 유지한다.
+  공급자 일시 실패의 재시도 예약을 추가했으며 별도 Retry topic/DLQ는 아직 구현하지 않았다.
 
 ## 검증
 

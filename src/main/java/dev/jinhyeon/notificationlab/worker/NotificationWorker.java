@@ -45,8 +45,13 @@ public class NotificationWorker {
                 var claim = claimed.get();
                 if (claim.send()) {
                     var completed = service.attempt(claim.notification()); // Outside all DB transactions.
-                    store.complete(completed, token); // Result and attempt must both commit before return.
-                    service.recordCompletion(completed, sample);
+                    if (store.complete(completed, token)) { // History and retry outbox commit before the original offset.
+                        registry.counter("notification.retry.scheduled").increment();
+                        sample.stop(Timer.builder("notification.processing").tag("status", "WAITING_RETRY")
+                                .publishPercentileHistogram().register(registry));
+                    } else {
+                        service.recordCompletion(completed, sample);
+                    }
                 } else {
                     registry.counter("notification.worker.exhausted").increment();
                     service.recordCompletion(claim.notification(), sample);
