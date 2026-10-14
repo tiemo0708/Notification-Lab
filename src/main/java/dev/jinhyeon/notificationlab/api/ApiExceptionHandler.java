@@ -1,6 +1,8 @@
 package dev.jinhyeon.notificationlab.api;
 
 import dev.jinhyeon.notificationlab.notification.NotificationNotFoundException;
+import dev.jinhyeon.notificationlab.notification.InvalidIdempotencyKeyException;
+import dev.jinhyeon.notificationlab.notification.IdempotencyConflictException;
 import dev.jinhyeon.notificationlab.notification.StoreCapacityExceededException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.TransactionException;
@@ -27,6 +29,16 @@ public class ApiExceptionHandler {
     public ProblemDetail invalidInput(Exception exception) {
         // Avoid echoing rejected recipient IDs/payloads or relying on default warning logs.
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid notification request or ID");
+    }
+
+    @ExceptionHandler(InvalidIdempotencyKeyException.class)
+    public ProblemDetail invalidIdempotencyKey(InvalidIdempotencyKeyException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    public ProblemDetail idempotencyConflict(IdempotencyConflictException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
     }
 
     @ExceptionHandler(NotificationNotFoundException.class)

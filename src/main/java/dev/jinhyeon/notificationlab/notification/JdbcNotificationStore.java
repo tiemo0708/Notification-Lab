@@ -1,6 +1,7 @@
 package dev.jinhyeon.notificationlab.notification;
 
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -33,16 +34,21 @@ public class JdbcNotificationStore implements NotificationStore {
     @Override
     @Transactional
     public void create(Notification notification) {
+        create(notification, null);
+    }
+
+    @Transactional
+    public void create(Notification notification, String idempotencyKey) {
         if (notification.status() != NotificationStatus.PROCESSING && notification.status() != NotificationStatus.QUEUED) {
             throw new IllegalArgumentException("New notification must be QUEUED or PROCESSING");
         }
         jdbc.update("""
                 INSERT INTO notification
-                    (notification_id, recipient_id, title, body, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (notification_id, recipient_id, title, body, status, created_at, idempotency_key)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, notification.notificationId().toString(), notification.recipientId(),
                 notification.title(), notification.body(), notification.status().name(),
-                utc(notification.createdAt()));
+                utc(notification.createdAt()), keyBytes(idempotencyKey));
     }
 
     @Override
@@ -66,6 +72,15 @@ public class JdbcNotificationStore implements NotificationStore {
     public Optional<Notification> find(UUID notificationId) {
         return jdbc.query("SELECT * FROM notification WHERE notification_id = ?",
                 ROW_MAPPER, notificationId.toString()).stream().findFirst();
+    }
+
+    public Optional<Notification> findByIdempotencyKey(String key) {
+        return jdbc.query("SELECT * FROM notification WHERE idempotency_key = ?",
+                ROW_MAPPER, keyBytes(key)).stream().findFirst();
+    }
+
+    private static byte[] keyBytes(String key) {
+        return key == null ? null : key.getBytes(StandardCharsets.UTF_8);
     }
 
     private static LocalDateTime utc(Instant instant) {

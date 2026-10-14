@@ -1,5 +1,7 @@
 # S3: Outbox와 Kafka 비동기 흐름
 
+이 문서는 S3 기준선이다. 이후 추가된 요청 접수 중복 방지는 [S4 API 멱등성](S4_IDEMPOTENCY.md)을 참고한다.
+
 ## 계약과 비교 실행
 
 기본 POST는 `QUEUED` 알림과 `NOTIFICATION_REQUESTED` Outbox를 한 트랜잭션으로 커밋한 후

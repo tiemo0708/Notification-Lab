@@ -2,7 +2,7 @@
 
 Kafka 기반 알림 시스템을 단계별로 만드는 Java/Spring 학습 프로젝트.
 현재 v0.3(S3)는 **요청과 Outbox를 MySQL에 함께 저장하고 Kafka Worker가 Mock을 호출하는 비동기 API**이다.
-실제 푸시나 단말 도착을 의미하지 않는다.
+S4의 첫 작업으로 선택적 `Idempotency-Key` 접수 중복 방지를 추가했다. 실제 푸시나 단말 도착을 의미하지 않는다.
 
 ## 실행
 
@@ -59,8 +59,22 @@ POST의 `202 Accepted`와 `Location`은 요청/Outbox가 DB에 커밋되었다�
 | `400` / `404` | 잘못된 요청 또는 UUID / 알림 없음 |
 | `503` | DB 접근 또는 트랜잭션 오류 (`memory`에서는 용량 초과 포함) |
 
-HTTP 응답 유실/DB 커밋 결과 불확실성은 여전히 존재하며 요청 멱등성은 S4 범위이다.
-같은 POST를 반복하면 새로운 ID가 생성된다.
+응답 유실이나 DB 오류 후 같은 알림의 중복 접수를 막으려면 `Idempotency-Key`를 보낸다.
+처음 접수는 202, 같은 키·같은 필드 재요청은 기존 알림의 현재 상태와 같은 Location을 200으로 반환한다.
+같은 키에 recipientId/title/body 중 하나라도 다르면 409이다. 200은 처리 성공을 뜻하지 않는다.
+키가 없으면 기존처럼 요청마다 새로운 ID가 생긴다.
+
+```bash
+curl -i http://127.0.0.1:8080/notifications \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: example-request-001' \
+  -d '{"recipientId":"user-100","title":"테스트 알림","body":"알림 처리 확인"}'
+```
+
+키는 대소문자 구분 `[A-Za-z0-9._:-]` 1~128자이며 복수 헤더/잘못된 값은 400이다.
+키는 알림 행과 함께 보관하고 만료하지 않는다. 현재 범위는 이 DB의 알림 접수 API 전체다.
+`sync`/`memory` 비교 프로필은 이 헤더를 지원하지 않아 전달 시 400을 반환한다.
+상세 계약과 트랜잭션은 [S4 멱등성 문서](docs/S4_IDEMPOTENCY.md)를 참고한다.
 
 ## 처리 흐름과 복구
 
@@ -138,7 +152,7 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-API 멱등성, 공급자 재시도/DLQ, Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+공급자 재시도/DLQ, Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건

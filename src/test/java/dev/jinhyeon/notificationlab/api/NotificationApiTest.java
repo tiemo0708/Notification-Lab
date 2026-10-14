@@ -38,6 +38,16 @@ class NotificationApiTest {
     }
 
     @Test
+    void memoryProfileRejectsIdempotencyHeaderInsteadOfSilentlyIgnoringIt() throws Exception {
+        mvc.perform(post("/notifications").contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "comparison-key")
+                        .content("""
+                                {"recipientId":"user-100","title":"title","body":"body"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void emptyRecipientIsRejected() throws Exception {
         mvc.perform(post("/notifications").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"recipientId\":\" \",\"title\":\"t\",\"body\":\"b\"}"))

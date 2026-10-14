@@ -23,6 +23,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import dev.jinhyeon.notificationlab.notification.NotificationRequest;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -86,6 +90,14 @@ class AsyncNotificationTest {
         topic = "notification-test-" + UUID.randomUUID();
         group = "worker-test-" + UUID.randomUUID();
         boolean experiment = info.getTags().contains("reconciliation");
+        startApplication(experiment);
+        jdbc().update("DELETE FROM outbox_event");
+        jdbc().update("DELETE FROM notification");
+        http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        admin = Admin.create(java.util.Map.of("bootstrap.servers", KAFKA.getBootstrapServers()));
+    }
+
+    private void startApplication(boolean experiment) {
         app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(
                 NotificationLabApplication.class, ProbeConfiguration.class).run(
                 "--server.port=0", "--spring.profiles.active=async", "--app.mock.delay-ms=0",
@@ -97,10 +109,6 @@ class AsyncNotificationTest {
                 "--app.async.worker-enabled=" + experiment,
                 "--app.async.relay-initial-delay-ms=" + (experiment ? "0" : "86400000"),
                 "--logging.level.org.apache.kafka=WARN", "--logging.level.org.springframework.kafka=WARN");
-        jdbc().update("DELETE FROM outbox_event");
-        jdbc().update("DELETE FROM notification");
-        http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-        admin = Admin.create(java.util.Map.of("bootstrap.servers", KAFKA.getBootstrapServers()));
     }
 
     @AfterEach
@@ -294,6 +302,165 @@ class AsyncNotificationTest {
     }
 
     @Test
+    void sameKeyReusesDecodedPayloadDespiteJsonFormattingDifferences() throws Exception {
+        var first = post(PAYLOAD, "request-1");
+        var again = post("""
+                {"body":"가상 데이터","title":"비동기 테스트","recipientId":"synthetic-user"}
+                """, "request-1");
+        assertThat(first.statusCode()).isEqualTo(202);
+        assertThat(again.statusCode()).isEqualTo(200);
+        assertThat(json(again)).isEqualTo(json(first));
+        assertThat(again.headers().firstValue("Location")).isEqualTo(first.headers().firstValue("Location"));
+        assertThat(count("notification")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(probe().attempts.get()).isZero();
+    }
+
+    @Test
+    void sameKeyRejectsAnyChangedFieldWithoutLeakingPayloadOrKey() throws Exception {
+        post(PAYLOAD, "private-key");
+        for (String different : List.of(PAYLOAD.replace("synthetic-user", "Synthetic-user"),
+                PAYLOAD.replace("비동기 테스트", "비동기 테스트 "), PAYLOAD.replace("가상 데이터", "다른 내용"))) {
+            var conflict = post(different, "private-key");
+            assertThat(conflict.statusCode()).isEqualTo(409);
+            assertThat(conflict.body()).doesNotContain("private-key", "synthetic-user", "다른 내용", "가상 데이터");
+        }
+        assertThat(count("notification")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentSameKeyCreatesExactlyOneNotificationAndOutbox() throws Exception {
+        CountDownLatch ready = new CountDownLatch(8);
+        Callable<HttpResponse<String>> send = () -> {
+            ready.countDown();
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            return post(PAYLOAD, "concurrent-key");
+        };
+        try (var executor = Executors.newFixedThreadPool(8)) {
+            var pending = executor.invokeAll(java.util.Collections.nCopies(8, send));
+            var responses = new java.util.ArrayList<HttpResponse<String>>();
+            for (var future : pending) responses.add(future.get());
+            assertThat(responses.stream().map(HttpResponse::statusCode).toList())
+                    .containsOnly(200, 202).filteredOn(code -> code == 202).hasSize(1);
+            var ids = new java.util.HashSet<String>();
+            for (var response : responses) ids.add(json(response).path("notificationId").asText());
+            assertThat(ids).hasSize(1);
+        }
+        assertThat(count("notification")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentDifferentPayloadsChooseOneWinnerAndReturnConflicts() throws Exception {
+        CountDownLatch ready = new CountDownLatch(8);
+        var tasks = new java.util.ArrayList<Callable<HttpResponse<String>>>();
+        for (int i = 0; i < 8; i++) {
+            String payload = i % 2 == 0 ? PAYLOAD : PAYLOAD.replace("가상 데이터", "다른 내용");
+            tasks.add(() -> {
+                ready.countDown();
+                assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+                return post(payload, "mixed-key");
+            });
+        }
+        try (var executor = Executors.newFixedThreadPool(8)) {
+            var responses = executor.invokeAll(tasks);
+            var codes = new java.util.ArrayList<Integer>();
+            for (var response : responses) codes.add(response.get().statusCode());
+            assertThat(codes).containsExactlyInAnyOrder(202, 200, 200, 200, 409, 409, 409, 409);
+        }
+        assertThat(count("notification")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(1);
+    }
+
+    @Test
+    void unrelatedDuplicateFailureRollsBackKeyAndAllowsSafeRetry() throws Exception {
+        root("CREATE TRIGGER reject_keyed_outbox BEFORE INSERT ON outbox_event FOR EACH ROW "
+                + "SIGNAL SQLSTATE '23000' SET MYSQL_ERRNO = 1062, MESSAGE_TEXT = 'sensitive-outbox-error'");
+        try {
+            var failed = post(PAYLOAD, "rollback-key");
+            assertThat(failed.statusCode()).isEqualTo(503);
+            assertThat(failed.body()).doesNotContain("sensitive-outbox-error", "rollback-key");
+            assertThat(count("notification")).isZero();
+            assertThat(count("outbox_event")).isZero();
+        } finally {
+            root("DROP TRIGGER reject_keyed_outbox");
+        }
+        assertThat(post(PAYLOAD, "rollback-key").statusCode()).isEqualTo(202);
+        assertThat(post(PAYLOAD, "rollback-key").statusCode()).isEqualTo(200);
+        assertThat(count("notification")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(1);
+    }
+
+    @Test
+    void replayAfterCompletionAndApplicationRestartReturnsCurrentResultWithoutResending() throws Exception {
+        var first = post(PAYLOAD, "persistent-key");
+        String id = json(first).path("notificationId").asText();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        assertThat(status(id)).isEqualTo("PROVIDER_ACCEPTED");
+        app.close();
+        startApplication(false);
+        var replay = post(PAYLOAD, "persistent-key");
+        assertThat(replay.statusCode()).isEqualTo(200);
+        assertThat(json(replay).path("notificationId").asText()).isEqualTo(id);
+        assertThat(json(replay).path("status").asText()).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(probe().attempts.get()).isZero();
+        assertThat(count("notification")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(committedTotal()).isEqualTo(1);
+    }
+
+    @Test
+    void keylessRequestsStayIndependentAndKeysAreCaseSensitiveWithLengthBoundary() throws Exception {
+        assertThat(post().statusCode()).isEqualTo(202);
+        assertThat(post().statusCode()).isEqualTo(202);
+        assertThat(post(PAYLOAD, "Key").statusCode()).isEqualTo(202);
+        assertThat(post(PAYLOAD, "key").statusCode()).isEqualTo(202);
+        assertThat(post(PAYLOAD, "x".repeat(128)).statusCode()).isEqualTo(202);
+        assertThat(post(PAYLOAD, "x".repeat(128)).statusCode()).isEqualTo(200);
+        assertThat(count("notification")).isEqualTo(5);
+        assertThat(count("outbox_event")).isEqualTo(5);
+    }
+
+    @Test
+    void invalidAndRepeatedKeyHeadersDoNotCreateRows() throws Exception {
+        for (String key : List.of("", "has space", "has,comma", "x".repeat(129), "quoted\"key")) {
+            assertThat(post(PAYLOAD, key).statusCode()).isEqualTo(400);
+        }
+        assertThat(post(PAYLOAD, "same", "same").statusCode()).isEqualTo(400);
+        assertThat(post(PAYLOAD, "first", "second").statusCode()).isEqualTo(400);
+        assertThat(count("notification")).isZero();
+        assertThat(count("outbox_event")).isZero();
+    }
+
+    @Test
+    void invalidPayloadDoesNotReserveKey() throws Exception {
+        assertThat(post(PAYLOAD.replace("synthetic-user", ""), "validation-key").statusCode()).isEqualTo(400);
+        assertThat(post(PAYLOAD, "validation-key").statusCode()).isEqualTo(202);
+        assertThat(count("notification")).isEqualTo(1);
+    }
+
+    @Test
+    void replayReadsCommittedWinnerOutsideCallersOldSnapshot() {
+        var tx = new TransactionTemplate(app.getBean(PlatformTransactionManager.class));
+        tx.executeWithoutResult(status -> {
+            assertThat(count("notification")).isZero(); // Establish an older repeatable-read snapshot.
+            var submissions = app.getBean(IdempotentSubmissionService.class);
+            var request = new NotificationRequest("synthetic", "title", "body");
+            var first = submissions.submit(request, "transaction-key");
+            var replay = submissions.submit(request, "transaction-key");
+            assertThat(first.replayed()).isFalse();
+            assertThat(replay.replayed()).isTrue();
+            assertThat(replay.notification()).isEqualTo(first.notification());
+            status.setRollbackOnly();
+        });
+        assertThat(count("notification")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(1);
+    }
+
+    @Test
     @Tag("reconciliation")
     void reconcilesTenThousandHttpRequestsThroughRealKafka() throws Exception {
         long started = System.nanoTime();
@@ -328,9 +495,15 @@ class AsyncNotificationTest {
     }
 
     private HttpResponse<String> post() throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(base() + "/notifications"))
-                .timeout(Duration.ofSeconds(20)).header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(PAYLOAD)).build(), HttpResponse.BodyHandlers.ofString());
+        return post(PAYLOAD);
+    }
+
+    private HttpResponse<String> post(String payload, String... keys) throws Exception {
+        var request = HttpRequest.newBuilder(URI.create(base() + "/notifications"))
+                .timeout(Duration.ofSeconds(20)).header("Content-Type", "application/json");
+        for (String key : keys) request.header("Idempotency-Key", key);
+        return http.send(request.POST(HttpRequest.BodyPublishers.ofString(payload)).build(),
+                HttpResponse.BodyHandlers.ofString());
     }
 
     private JsonNode json(HttpResponse<String> response) throws Exception {

@@ -3,7 +3,7 @@ package dev.jinhyeon.notificationlab.outbox;
 import dev.jinhyeon.notificationlab.notification.Notification;
 import dev.jinhyeon.notificationlab.notification.NotificationRequest;
 import dev.jinhyeon.notificationlab.notification.NotificationStatus;
-import dev.jinhyeon.notificationlab.notification.NotificationStore;
+import dev.jinhyeon.notificationlab.notification.JdbcNotificationStore;
 import java.time.Clock;
 import java.util.UUID;
 import org.springframework.context.annotation.Profile;
@@ -14,11 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Profile("!memory & !sync")
 public class SubmissionService {
-    private final NotificationStore notifications;
+    private final JdbcNotificationStore notifications;
     private final JdbcTemplate jdbc;
     private final Clock clock;
 
-    public SubmissionService(NotificationStore notifications, JdbcTemplate jdbc, Clock clock) {
+    public SubmissionService(JdbcNotificationStore notifications, JdbcTemplate jdbc, Clock clock) {
         this.notifications = notifications;
         this.jdbc = jdbc;
         this.clock = clock;
@@ -26,10 +26,10 @@ public class SubmissionService {
 
     // The proxy commits both rows before the controller can return HTTP 202.
     @Transactional
-    public Notification accept(NotificationRequest request) {
+    public Notification accept(NotificationRequest request, String idempotencyKey) {
         var notification = new Notification(UUID.randomUUID(), request.recipientId(), request.title(),
                 request.body(), NotificationStatus.QUEUED, null, null, clock.instant(), null);
-        notifications.create(notification);
+        notifications.create(notification, idempotencyKey);
         String eventId = UUID.randomUUID().toString();
         jdbc.update("""
                 INSERT INTO outbox_event (event_id, notification_id, event_type, payload, created_at, available_at)
