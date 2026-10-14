@@ -39,7 +39,7 @@ public class OutboxRelay {
                 var claim = next.get();
                 try {
                     // No surrounding DB transaction. Only confirmed ACKs can become PUBLISHED.
-                    kafka.send(properties.topic(), claim.notificationId(), claim.payload()).get(12, TimeUnit.SECONDS);
+                    kafka.send(properties.destination(claim.eventType()), claim.notificationId(), claim.payload()).get(12, TimeUnit.SECONDS);
                 } catch (Exception failure) {
                     store.failed(claim, properties.maxPublishAttempts());
                     registry.counter("outbox.publish.failures").increment();

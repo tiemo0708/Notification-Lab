@@ -2,7 +2,7 @@
 
 Kafka 기반 알림 시스템을 단계별로 만드는 Java/Spring 학습 프로젝트.
 현재 v0.3(S3)는 **요청과 Outbox를 MySQL에 함께 저장하고 Kafka Worker가 Mock을 호출하는 비동기 API**이다.
-S4에서 선택적 `Idempotency-Key` 접수 중복 방지, 발송 작업/시도 이력, 일시 실패의 유한 지연 재시도를 추가했다. 실제 푸시나 단말 도착을 의미하지 않는다.
+S4에서 선택적 `Idempotency-Key` 접수 중복 방지, 발송 작업/시도 이력, 일시 실패의 유한 지연 재시도와 Retry 토픽/DLQ를 추가했다. 실제 푸시나 단말 도착을 의미하지 않는다.
 
 ## 실행
 
@@ -20,7 +20,8 @@ set +a
 ```
 
 Compose는 MySQL 8.4.8(`127.0.0.1:13316`), Kafka 4.0.2(`127.0.0.1:19092`)를 시작한다.
-Kafka는 KRaft 단일 브로커이며 토픽 `notification.requested.v1`은 앱이 파티션 3개, 복제본 1개로 생성한다.
+Kafka는 KRaft 단일 브로커다. 앱이 `notification.requested.v1`, `notification.requested.v1.retry`,
+`notification.requested.v1.dlq`를 각각 파티션 3개, 복제본 1개로 생성한다.
 앱은 `127.0.0.1:8080`에서 실행한다. 인증과 TLS가 없는 로컬 실험이므로 외부에 공개하지 않는다.
 
 Compose는 `.env`를 자동으로 읽지만 Spring Boot는 읽지 않으므로 위 환경변수 로딩이 필요하다.
@@ -97,9 +98,11 @@ Worker DB/이벤트 오류는 컨슈머를 멈춘다. 오류를 해결하고 진
 마지막 선점의 lease까지 만료되면 추가 호출 없이 `INTERNAL_FAILURE / ATTEMPTS_EXHAUSTED`로 보관한다. 공급자 실패 확정을 뜻하지 않는다.
 일반 일시 실패도 같은 횟수 상한 안에서 자동 재시도한다. 기본 대기는 500~1000ms, 1000~2000ms이며
 지수 backoff와 equal jitter를 적용한다. 예약 시각은 DB에 저장하고 delivery 조회의 nextAttemptAt으로 확인한다.
-기존 Outbox/같은 Kafka 토픽을 사용하며 별도 Retry topic/DLQ는 후속 단계다.
+재시도는 due 이후 별도 Retry 토픽으로 보내고, 최종 실패는 결과와 함께 DLQ Outbox를 저장한다.
+원본 offset은 이 영속 인계 후 처리하며, Relay는 Kafka ACK를 확인한 후 PUBLISHED로 바꾼다.
+DLQ는 자동 소비/재발송하지 않는다. [토픽·DLQ 정책](docs/S4_RETRY_TOPICS_DLQ.md)을 참고한다.
 [작업/복구 정책](docs/S4_DELIVERY_TASKS.md)과 [재시도 정책](docs/S4_RETRY_POLICY.md)을 참고한다.
-기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V5 DB와 재시도 상태/이벤트는 이전 앱과 혼합 실행하지 않는다.
+기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V5 DB와 재시도/DLQ 이벤트는 이전 앱·Relay와 혼합 실행하지 않는다.
 
 기본 Mock 지연은 100ms(허용 0~5000ms), SUCCESS다. 앱 재시작으로 설정한다.
 
@@ -153,7 +156,7 @@ S2 시절 이미 남은 `PROCESSING` 레코드는 Outbox가 없으므로 S3에�
 - `notification_processing_seconds_*`: 공급자 처리와 결과 저장 시간. 큐 대기 제외.
 - `http_server_requests_seconds_*`: HTTP 처리 시간.
 - `outbox_unpublished`, `outbox_failed`, `outbox_oldest_age_seconds`: 미발행 수(FAILED 포함), 실패 수, 가장 오래된 미발행 시간.
-- `notification_consumer_lag`: 현재 토픽 end offset에서 그룹 committed offset을 뺀 파티션별 합계.
+- `notification_consumer_lag`: 요청/Retry 두 토픽의 end offset에서 Worker 그룹 committed offset을 뺀 파티션별 합계. DLQ 제외.
 - `outbox_sample_age_seconds`, `notification_consumer_sample_age_seconds`: 마지막 지표 수집 성공 후 경과 시간.
 - `notification_worker_running`: 소비 중 1, 정지 0.
 - `notification_worker_exhausted_total`: 복구 선점 상한을 소진해 최종 저장한 작업 수.
@@ -165,11 +168,12 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-별도 Retry topic/DLQ, Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+DLQ 선택 재발행, Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S4_RETRY_TOPICS_DLQ.md](docs/S4_RETRY_TOPICS_DLQ.md): 토픽 분리, DLQ 계약, ACK/offset 관계
 - [docs/S4_RETRY_POLICY.md](docs/S4_RETRY_POLICY.md): 오류 분류, 횟수 상한, backoff+jitter, 영속 예약
 - [docs/S4_DELIVERY_TASKS.md](docs/S4_DELIVERY_TASKS.md): 작업 ID, 이력, 유한 복구와 버전 전환
 - [docs/S3_ASYNC.md](docs/S3_ASYNC.md): 트랜잭션, 장애 상태와 실험

@@ -20,7 +20,7 @@ public class OutboxStore {
         this.jdbc = jdbc;
     }
 
-    public record Claim(String eventId, String notificationId, String payload, String token, int attempt) { }
+    public record Claim(String eventId, String notificationId, String payload, String token, int attempt, String eventType) { }
 
     @Transactional
     public Optional<Claim> claim(int maxAttempts) {
@@ -49,11 +49,11 @@ public class OutboxStore {
 
     private List<Candidate> candidate(String status) {
         return jdbc.query("""
-                SELECT event_id, notification_id, payload, attempt_count, available_at FROM outbox_event
+                SELECT event_id, notification_id, payload, attempt_count, available_at, event_type FROM outbox_event
                 WHERE status = ? AND available_at <= UTC_TIMESTAMP(6)
                 ORDER BY available_at, event_id LIMIT 1 FOR UPDATE SKIP LOCKED
                 """, (rs, n) -> new Candidate(new Claim(rs.getString(1), rs.getString(2), rs.getString(3),
-                UUID.randomUUID().toString(), rs.getInt(4) + 1), rs.getObject(5, LocalDateTime.class)), status);
+                UUID.randomUUID().toString(), rs.getInt(4) + 1, rs.getString(6)), rs.getObject(5, LocalDateTime.class)), status);
     }
 
     @Transactional

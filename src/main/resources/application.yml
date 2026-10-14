@@ -68,6 +68,8 @@ app:
     retry-max-delay-ms: 60000
   async:
     topic: notification.requested.v1
+    retry-topic: ${app.async.topic}.retry
+    dead-letter-topic: ${app.async.topic}.dlq
     group: notification-worker-v1
     max-publish-attempts: 10
     relay-enabled: true

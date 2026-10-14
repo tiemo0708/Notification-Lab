@@ -26,7 +26,7 @@ public class NotificationWorker {
         this.registry = registry;
     }
 
-    @KafkaListener(id = "notification-worker", topics = "${app.async.topic}",
+    @KafkaListener(id = "notification-worker", topics = {"${app.async.topic}", "${app.async.retry-topic}"},
             groupId = "${app.async.group}", concurrency = "1",
             autoStartup = "${app.async.worker-enabled:true}")
     public void receive(ConsumerRecord<String, String> record) {

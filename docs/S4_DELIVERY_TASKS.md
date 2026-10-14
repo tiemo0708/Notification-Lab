@@ -46,7 +46,7 @@
 현재 복구는 DB/이벤트 오류 해결 및 lease 만료 후 앱을 재시작하는 수동 절차다.
 만료 시각만으로 `UNKNOWN`이 기록되는 것은 아니며 다음 선점에서 갱신한다.
 일반 `RETRYABLE_FAILURE`는 예산이 남으면 자동 재시도한다. 최초/복구/재시도가 같은 전체 상한을 공유한다.
-backoff+jitter와 예약/offset 관계는 [재시도 정책](S4_RETRY_POLICY.md)에 정의한다. 별도 Retry topic/DLQ는 다음 작업이다.
+backoff+jitter와 예약/offset 관계는 [재시도 정책](S4_RETRY_POLICY.md)에 정의한다. 토픽 분리와 최종 실패 인계는 [Retry 토픽/DLQ](S4_RETRY_TOPICS_DLQ.md)에 정의한다.
 
 ## 조회 API
 
@@ -79,7 +79,7 @@ backoff+jitter와 예약/offset 관계는 [재시도 정책](S4_RETRY_POLICY.md)
 
 ## 이벤트와 기존 DB 업그레이드
 
-새 Outbox 이벤트는 schemaVersion 2이며 `eventId`, `notificationId`, `taskId`를 포함한다.
+요청/재시도 Outbox 이벤트는 schemaVersion 2이며 `eventId`, `notificationId`, `taskId`를 포함한다.
 Worker는 taskId가 DB와 같은지 확인한다. 기존 schemaVersion 1 이벤트는 notificationId로 이미 저장된 작업을 찾는다.
 토픽 이름 `notification.requested.v1`은 유지하며 토픽 이름과 payload의 schemaVersion은 별개다.
 

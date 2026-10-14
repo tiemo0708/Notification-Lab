@@ -1,8 +1,9 @@
 # S4 일시 실패의 지연 재시도
 
 기본 비동기 프로필에 자동 재시도 분류, 유한 횟수, 지수 backoff와 equal jitter를 추가했다.
-이번 단계는 기존 Outbox와 `notification.requested.v1` 토픽을 사용한다.
-별도 Retry topic/DLQ와 DLQ 선택 재발행은 아직 구현하지 않았다. sync/memory 비교 프로필은 한 번만 호출한다.
+최초 구현은 기존 Outbox와 `notification.requested.v1` 토픽을 사용했다.
+이후 [Retry 토픽/DLQ 단계](S4_RETRY_TOPICS_DLQ.md)에서 재시도 목적지를 분리하고 최종 실패의 DLQ 인계를 추가했다.
+DLQ 선택 재발행은 아직 구현하지 않았다. sync/memory 비교 프로필은 한 번만 호출한다.
 
 ## 상태와 횟수
 
@@ -63,7 +64,8 @@ Relay는 available_at을 발행 재시도/lease에도 사용하므로, Worker의
 커밋된 Outbox가 재발행 책임을 보관한다. DB와 Kafka의 원자적 동시 커밋을 주장하지 않는다.
 publish 실패 시 기존 1~60초 backoff/최대 10회 정책을 사용한다.
 최종 FAILED Outbox는 자동 복구하지 않으므로 알림이 WAITING_RETRY에 남을 수 있다.
-`outbox_failed`와 DB 이력을 보고 수동 조사해야 한다. DLQ로 옮기는 기능은 후속 단계다.
+`outbox_failed`와 DB 이력을 보고 수동 조사해야 한다. 후속 단계의 DLQ는 공급자 최종 실패 대상이며,
+발행 한도를 소진한 Outbox를 다시 DLQ로 순환시키지는 않는다.
 
 ## 중복과 버전
 
@@ -93,7 +95,7 @@ MySQL DDL은 전체 migration의 원자적 롤백을 보장하지 않는다.
 `notification_processing_seconds_*{status="WAITING_RETRY"}`에는 해당 시도 처리/저장 시간을 기록한다.
 카운터는 재시작 시 초기화되므로 영속 대조는 작업/이력/Outbox/offset을 사용한다.
 
-`./gradlew --no-daemon --console=plain build`: 75개 통과, 실패/오류/스킵 0.
+재시도 정책 최초 구현 시 `./gradlew --no-daemon --console=plain build`: 75개 통과, 실패/오류/스킵 0.
 실제 MySQL/Kafka에서 재시작 후 예약 복구, 상한 소진, 오래된 이벤트 replay,
 동시 완료, 조기 이벤트 차단, Outbox INSERT 실패 전체 롤백, 발행 실패 후 복구,
 고정 예산과 불확실한 복구의 예산 공유를 검증했다. V4 → V5에서 기존 최종 결과도 보존했다.

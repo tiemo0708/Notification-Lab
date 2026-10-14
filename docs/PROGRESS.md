@@ -358,3 +358,48 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - FAILED 재시도 Outbox는 WAITING_RETRY를 남길 수 있어 수동 조사 대상. DLQ/선택 재발행은 아직 없음.
 - 다음 작업은 별도 Retry topic/DLQ와 재발행/원본 offset 관계 검증. S4 전체 완료가 아님.
 - 로컬 main에 논리적 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다. 새 원격 CI 실행 없음.
+
+## 2026-10-14: S4 네 번째 단계 — Retry 토픽과 DLQ 로컬 완료
+
+### 범위와 변경
+
+- 요청/Retry/DLQ 토픽 분리. 기본 이름은 notification.requested.v1과 그 이름의 .retry/.dlq이며 각각 파티션 3개/복제본 1개.
+- 이벤트 타입별 Relay 목적지 지정. 토픽 이름 충돌은 기동 설정 검증에서 거절하며 알 수 없는 타입은 발행하지 않음.
+- 기존 Worker 하나가 요청/Retry 두 토픽을 구독. concurrency 1/poll 1건, DLQ 자동 소비/재발송 없음.
+- DB due 시각 이후에만 Retry 토픽으로 발행. 예약된 재시도를 기다리느라 새 요청 처리를 멈추지 않음.
+- 영구 실패, 재시도 상한 소진, 내부 오류, 마지막 lease 복구 소진에 DLQ Outbox 생성.
+  최종 결과/시도 이력/DLQ 인계를 같은 트랜잭션으로 저장한 뒤 원본 offset 처리.
+- DLQ에는 이벤트/작업/원본 이벤트 ID, generation, 오류 분류/코드, 시도 수/상한만 포함. 수신자/본문/토큰/예외 원문 제외.
+- 유니크 제약과 기존 행 잠금/토큰으로 중복 완료 시 새 DLQ 생성 방지. ACK 후 DB 실패 재발행은 같은 eventId 유지.
+- DB/해석 불가 이벤트 오류는 기존처럼 소비 중단. 검증되지 않은 원문을 DLQ로 넘기고 offset을 건너뛰지 않음.
+- lag는 요청/Retry 두 토픽 합계로 수정, DLQ 제외. Outbox 지표는 세 종류 모두 포함.
+- 스키마 변경 없이 기존 V5 사용. 새 정책은 이후 처리하는 실패에 적용하며 과거 최종 실패를 backfill하지 않음.
+- [토픽/DLQ 정책](S4_RETRY_TOPICS_DLQ.md), README, PLAN, 기존 S4 정책 문서 갱신.
+
+### 실제 검증
+
+- 첫 전체 빌드 81개 통과(1분 17초). 이후 lease 복구 DLQ 롤백 검증 및 Kafka 미발행 확인을 보강.
+- 최종 `./gradlew --no-daemon --console=plain build`: **82개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (1분 12초).
+  테스트는 재실행됐고 변경 없는 실행 JAR 생성 등 4개 작업은 up-to-date였다.
+- 기존 75개 회귀 + 신규 7개(실제 MySQL/Kafka 통합 6개, 설정 검증 1개).
+- due 전 Retry 토픽 end offset 0, 그동안 새 요청 성공. due 이후 Retry 토픽의 별도 offset 증가/처리 성공.
+- Retry 레코드만 미처리 상태로 남겨 lag 1 확인. replay 처리 후 추가 공급자 호출 없음.
+- 영구 실패의 실제 DLQ 메시지/키/원인/원본 ID/시도 수 확인, 수신자/본문/토큰 비포함.
+  앱 재시작 후 원본 이벤트 replay에서도 공급자 재호출 0, DLQ 행/이벤트 ID 유지, Worker DLQ offset 없음.
+- 최종 일시 실패/내부 예외/lease 소진의 DLQ 분류와 원본 generation 확인도 기존 테스트에서 보강.
+- DLQ INSERT 실패 주입: 일반 완료와 마지막 lease 복구 모두 상태/이력 전체 롤백, 원본 offset 0.
+  오류 제거 후 복구하여 최종 결과/DLQ 영속 인계 성공.
+- DLQ publish ACK 대기 중 PROCESSING/published_at null, 원본 offset은 이미 영속 Outbox를 근거로 1.
+  future 실패 후 PENDING, 앱 재시작/발행 복구 후 같은 payload를 실제 DLQ에서 조회.
+- ACK 후 Outbox PUBLISHED UPDATE 실패 주입: PROCESSING 유지. lease 만료 후 같은 이벤트 2개를 실제 DLQ에서 확인.
+  공급자 호출은 1회, DLQ 자동 소비 없음. at-least-once 중복을 숨기지 않음.
+- Git 작성자 JinHyeon / tiemo0708@naver.com 및 GitHub tiemo0708 인증 확인.
+  원격 기본 브랜치 main/HEAD c95a444 유지. 사용자 로컬 MySQL/IDE 설정과 .env는 변경하지 않음.
+
+### 한계와 다음 단계
+
+- 실제 브로커 중단 대신 publish future 실패를 주입. 프로세스 강제 종료/다중 인스턴스/rebalance는 미검증.
+- 1만 건 실험과 Compose 재생성 smoke는 재실행하지 않음. 새 원격 CI 실행 없음.
+- DLQ 발행도 최대 10회 한도를 사용하며 FAILED Outbox는 수동 조사. Outbox 발행 실패를 다른 DLQ로 순환시키지 않음.
+- 새 Relay 토픽 분류 때문에 기존 앱/Relay/Worker를 모두 종료한 후 업그레이드해야 함. 혼합 버전 실행 미지원.
+- 다음 단계는 DLQ 선택 재발행과 원인/시도 이력 기록. S4 전체 완료가 아니며 이번 변경은 로컬 main에 커밋하고 푸시는 보류.

@@ -20,6 +20,16 @@ public class AsyncConfiguration {
     }
 
     @Bean
+    NewTopic notificationRetryTopic(AsyncProperties properties) {
+        return TopicBuilder.name(properties.retryTopic()).partitions(3).replicas(1).build();
+    }
+
+    @Bean
+    NewTopic notificationDeadLetterTopic(AsyncProperties properties) {
+        return TopicBuilder.name(properties.deadLetterTopic()).partitions(3).replicas(1).build();
+    }
+
+    @Bean
     CommonContainerStoppingErrorHandler stoppingErrorHandler() {
         // Never skip or commit a failed record. Fix the cause, then explicitly restart the worker.
         return new CommonContainerStoppingErrorHandler();

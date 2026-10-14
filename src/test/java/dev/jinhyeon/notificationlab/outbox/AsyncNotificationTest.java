@@ -550,6 +550,7 @@ class AsyncNotificationTest {
         assertThat(jdbc().queryForObject("SELECT error_code FROM notification", String.class)).isEqualTo("ATTEMPTS_EXHAUSTED");
         assertThat(probe().attempts.get()).isZero();
         assertThat(registry().get("notification.worker.exhausted").counter().count()).isEqualTo(1);
+        assertThat(new ObjectMapper().readTree(deadLetterPayload()).path("errorCode").asText()).isEqualTo("ATTEMPTS_EXHAUSTED");
         var history = delivery(id.toString());
         assertThat(history.path("attemptCount").asInt()).isEqualTo(3);
         assertThat(history.path("attempts")).hasSize(3);
@@ -557,7 +558,7 @@ class AsyncNotificationTest {
             assertThat(attempt.path("outcome").asText()).isEqualTo("UNKNOWN");
             assertThat(attempt.path("errorCode").asText()).isEqualTo("OUTCOME_UNKNOWN");
         }
-        kafka().send(topic, id.toString(), jdbc().queryForObject("SELECT payload FROM outbox_event", String.class))
+        kafka().send(topic, id.toString(), jdbc().queryForObject("SELECT payload FROM outbox_event WHERE event_type = 'NOTIFICATION_REQUESTED'", String.class))
                 .get(10, TimeUnit.SECONDS);
         awaitCommitted(2);
         assertThat(delivery(id.toString())).isEqualTo(history);
@@ -702,18 +703,23 @@ class AsyncNotificationTest {
             awaitCommitted(next);
         }
         assertThat(status(id)).isEqualTo("RETRYABLE_FAILURE");
-        assertThat(count("outbox_event")).isEqualTo(3);
+        assertThat(count("outbox_event")).isEqualTo(4);
         assertThat(count("delivery_attempt")).isEqualTo(3);
         assertThat(probe().attempts.get()).isEqualTo(3);
         assertThat(registry().get("notification.retry.scheduled").counter().count()).isEqualTo(2);
         assertThat(registry().get("notification.completed").tag("status", "RETRYABLE_FAILURE").counter().count()).isEqualTo(1);
         assertThat(jdbc().queryForObject("SELECT completed_at IS NOT NULL FROM notification", Boolean.class)).isTrue();
+        var deadLetter = new ObjectMapper().readTree(deadLetterPayload());
+        assertThat(deadLetter.path("status").asText()).isEqualTo("RETRYABLE_FAILURE");
+        assertThat(deadLetter.path("retryGeneration").asInt()).isEqualTo(2);
+        assertThat(deadLetter.path("sourceEventId").asText()).isEqualTo(
+                new ObjectMapper().readTree(retryPayload()).path("eventId").asText());
         String last = retryPayload();
         kafka().send(topic, id, original).get(10, TimeUnit.SECONDS);
         kafka().send(topic, id, last).get(10, TimeUnit.SECONDS);
         awaitCommitted(5);
         assertThat(probe().attempts.get()).isEqualTo(3);
-        assertThat(count("outbox_event")).isEqualTo(3);
+        assertThat(count("outbox_event")).isEqualTo(4);
         assertThatThrownBy(() -> jdbc().update("""
                 INSERT INTO outbox_event (event_id, notification_id, event_type, payload, retry_generation, created_at, available_at)
                 SELECT ?, notification_id, event_type, payload, retry_generation, created_at, available_at
@@ -835,8 +841,9 @@ class AsyncNotificationTest {
         app.getBean(OutboxRelay.class).relay();
         awaitCommitted(1);
         assertThat(status(id)).isEqualTo("INTERNAL_FAILURE");
-        assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(2);
         assertThat(probe().attempts.get()).isEqualTo(1);
+        assertThat(new ObjectMapper().readTree(deadLetterPayload()).path("status").asText()).isEqualTo("INTERNAL_FAILURE");
     }
 
     @Test
@@ -852,7 +859,7 @@ class AsyncNotificationTest {
         awaitCommitted(1);
         assertThat(status(id)).isEqualTo("RETRYABLE_FAILURE");
         assertThat(delivery(id).path("maxAttempts").asInt()).isEqualTo(1);
-        assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("outbox_event")).isEqualTo(2);
         assertThat(probe().attempts.get()).isEqualTo(1);
     }
 
@@ -872,7 +879,7 @@ class AsyncNotificationTest {
         assertThat(status(id.toString())).isEqualTo("RETRYABLE_FAILURE");
         assertThat(delivery(id.toString()).path("attemptCount").asInt()).isEqualTo(3);
         assertThat(delivery(id.toString()).path("attempts").get(0).path("outcome").asText()).isEqualTo("UNKNOWN");
-        assertThat(count("outbox_event")).isEqualTo(2);
+        assertThat(count("outbox_event")).isEqualTo(3);
         assertThat(probe().attempts.get()).isEqualTo(2);
     }
 
@@ -918,6 +925,249 @@ class AsyncNotificationTest {
                 + "WHERE next_attempt_at IS NOT NULL");
         jdbc().update("UPDATE outbox_event SET available_at = TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6)) "
                 + "WHERE event_type = 'NOTIFICATION_RETRY' AND status = 'PENDING'");
+    }
+
+    @Test
+    void dueRetryUsesSeparateTopicWhileFreshRequestsContinueAndLagIncludesRetry() throws Exception {
+        probe().behavior = request -> transientFailure();
+        String first = json(post()).path("notificationId").asText();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        assertThat(committedOn(topic)).isEqualTo(1);
+        assertThat(committedOn(topic + ".retry")).isZero();
+        probe().behavior = AsyncNotificationTest::accepted;
+        String second = json(post()).path("notificationId").asText();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(2);
+        assertThat(status(first)).isEqualTo("WAITING_RETRY");
+        assertThat(status(second)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(topicSize(topic + ".retry")).isZero();
+        makeRetryDue();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(3);
+        assertThat(committedOn(topic)).isEqualTo(2);
+        assertThat(committedOn(topic + ".retry")).isEqualTo(1);
+        assertThat(status(first)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(probe().attempts.get()).isEqualTo(3);
+        container().stop();
+        kafka().send(topic + ".retry", first, retryPayload()).get(10, TimeUnit.SECONDS);
+        app.getBean(PipelineMetrics.class).refresh();
+        assertThat(registry().get("notification.consumer.lag").gauge().value()).isEqualTo(1);
+        startWorker();
+        awaitCommitted(4);
+        assertThat(probe().attempts.get()).isEqualTo(3);
+    }
+
+    @Test
+    void permanentFailureReachesDlqWithStableIdentityAndNoPayloadOrAutomaticReplay() throws Exception {
+        probe().behavior = request -> new PushResult(PushResult.Outcome.PERMANENT_FAILURE, null, "MOCK_INVALID_TARGET");
+        String id = json(post()).path("notificationId").asText();
+        UUID source = eventId();
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        app.getBean(OutboxRelay.class).relay();
+        var messages = recordsOn(topic + ".dlq", 1);
+        assertThat(messages).hasSize(1);
+        assertThat(messages.getFirst().key()).isEqualTo(id);
+        var event = new ObjectMapper().readTree(messages.getFirst().value());
+        assertThat(event.path("eventType").asText()).isEqualTo("NOTIFICATION_DEAD_LETTER");
+        assertThat(event.path("notificationId").asText()).isEqualTo(id);
+        assertThat(event.path("taskId")).isEqualTo(delivery(id).path("taskId"));
+        assertThat(event.path("sourceEventId").asText()).isEqualTo(source.toString());
+        assertThat(event.path("status").asText()).isEqualTo("PERMANENT_FAILURE");
+        assertThat(event.path("errorCode").asText()).isEqualTo("MOCK_INVALID_TARGET");
+        assertThat(event.path("attemptCount").asInt()).isEqualTo(1);
+        assertThat(event.path("maxAttempts").asInt()).isEqualTo(3);
+        assertThat(event.path("retryGeneration").asInt()).isZero();
+        assertThat(messages.getFirst().value()).doesNotContain("synthetic-user", "비동기 테스트", "가상 데이터", "lease", "token");
+        assertThat(deadLetterStatus()).isEqualTo("PUBLISHED");
+        assertThat(committedOn(topic + ".dlq")).isZero();
+        String original = jdbc().queryForObject("SELECT payload FROM outbox_event WHERE event_type = 'NOTIFICATION_REQUESTED'", String.class);
+        app.close();
+        startApplication(false);
+        startWorker();
+        kafka().send(topic, id, original).get(10, TimeUnit.SECONDS);
+        awaitCommitted(2);
+        assertThat(probe().attempts.get()).isZero();
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE event_type = 'NOTIFICATION_DEAD_LETTER'", Integer.class)).isEqualTo(1);
+        assertThat(new ObjectMapper().readTree(deadLetterPayload()).path("eventId")).isEqualTo(event.path("eventId"));
+    }
+
+    @Test
+    void deadLetterInsertFailureRollsBackTerminalResultAndKeepsOriginalOffset() throws Exception {
+        probe().behavior = request -> new PushResult(PushResult.Outcome.PERMANENT_FAILURE, null, "MOCK_INVALID_TARGET");
+        String id = json(post()).path("notificationId").asText();
+        root("CREATE TRIGGER reject_dead_letter BEFORE INSERT ON outbox_event FOR EACH ROW "
+                + "BEGIN IF NEW.event_type = 'NOTIFICATION_DEAD_LETTER' THEN SIGNAL SQLSTATE '45000' "
+                + "SET MESSAGE_TEXT = 'test fault'; END IF; END");
+        try {
+            startWorker();
+            app.getBean(OutboxRelay.class).relay();
+            await().atMost(Duration.ofSeconds(20)).until(() -> !container().isRunning());
+            assertThat(committedTotal()).isZero();
+            assertThat(status(id)).isEqualTo("PROCESSING");
+            assertThat(count("outbox_event")).isEqualTo(1);
+            assertThat(delivery(id).path("attempts").get(0).path("outcome").asText()).isEqualTo("STARTED");
+        } finally {
+            root("DROP TRIGGER reject_dead_letter");
+        }
+        expireWorker();
+        startWorker();
+        awaitCommitted(1);
+        assertThat(status(id)).isEqualTo("PERMANENT_FAILURE");
+        assertThat(delivery(id).path("attempts").get(0).path("outcome").asText()).isEqualTo("UNKNOWN");
+        assertThat(new ObjectMapper().readTree(deadLetterPayload()).path("attemptCount").asInt()).isEqualTo(2);
+        app.getBean(OutboxRelay.class).relay();
+        assertThat(recordsOn(topic + ".dlq", 1)).hasSize(1);
+    }
+
+    @Test
+    void deadLetterPublishRequiresAckAndSurvivesFailureAfterOriginalOffset() throws Exception {
+        probe().behavior = request -> new PushResult(PushResult.Outcome.PERMANENT_FAILURE, null, "MOCK_INVALID_TARGET");
+        String id = json(post()).path("notificationId").asText();
+        startWorker();
+        // Publish just the initial event so the next relay call targets only the DLQ.
+        var store = app.getBean(OutboxStore.class);
+        var initial = store.claim(10).orElseThrow();
+        kafka().send(topic, id, initial.payload()).get(10, TimeUnit.SECONDS);
+        store.published(initial);
+        awaitCommitted(1);
+        String durable = deadLetterPayload();
+        CompletableFuture<SendResult<String, String>> ack = new CompletableFuture<>();
+        CountDownLatch publishing = new CountDownLatch(1);
+        var fake = new KafkaTemplate<String, String>(kafka().getProducerFactory()) {
+            @Override
+            public CompletableFuture<SendResult<String, String>> send(String destination, String key, String data) {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                assertThat(destination).isEqualTo(topic + ".dlq");
+                publishing.countDown();
+                return ack;
+            }
+        };
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(() -> relay(fake).relay());
+            assertThat(publishing.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(deadLetterStatus()).isEqualTo("PROCESSING");
+            assertThat(jdbc().queryForObject("SELECT published_at IS NULL FROM outbox_event WHERE event_type = 'NOTIFICATION_DEAD_LETTER'", Boolean.class)).isTrue();
+            assertThat(committedOn(topic)).isEqualTo(1); // Backed by the durable DB handoff, not this pending ACK.
+            ack.completeExceptionally(new IllegalStateException("test broker outage"));
+            running.get(5, TimeUnit.SECONDS);
+        }
+        assertThat(deadLetterStatus()).isEqualTo("PENDING");
+        app.close();
+        startApplication(false);
+        assertThat(deadLetterPayload()).isEqualTo(durable);
+        expireOutbox();
+        app.getBean(OutboxRelay.class).relay();
+        assertThat(deadLetterStatus()).isEqualTo("PUBLISHED");
+        assertThat(recordsOn(topic + ".dlq", 1).getFirst().value()).isEqualTo(durable);
+        assertThat(probe().attempts.get()).isZero();
+    }
+
+    @Test
+    void deadLetterAckThenDatabaseFailureReplaysSameEventWithoutCallingProvider() throws Exception {
+        probe().behavior = request -> new PushResult(PushResult.Outcome.PERMANENT_FAILURE, null, "MOCK_INVALID_TARGET");
+        String id = json(post()).path("notificationId").asText();
+        startWorker();
+        var store = app.getBean(OutboxStore.class);
+        var initial = store.claim(10).orElseThrow();
+        kafka().send(topic, id, initial.payload()).get(10, TimeUnit.SECONDS);
+        store.published(initial);
+        awaitCommitted(1);
+        root("CREATE TRIGGER reject_dead_letter_ack BEFORE UPDATE ON outbox_event FOR EACH ROW "
+                + "BEGIN IF NEW.event_type = 'NOTIFICATION_DEAD_LETTER' AND NEW.status = 'PUBLISHED' THEN "
+                + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test fault'; END IF; END");
+        try {
+            app.getBean(OutboxRelay.class).relay();
+            assertThat(deadLetterStatus()).isEqualTo("PROCESSING");
+            assertThat(recordsOn(topic + ".dlq", 1)).hasSize(1);
+            assertThat(committedTotal()).isEqualTo(1);
+        } finally {
+            root("DROP TRIGGER reject_dead_letter_ack");
+        }
+        expireOutbox();
+        app.getBean(OutboxRelay.class).relay();
+        var copies = recordsOn(topic + ".dlq", 2);
+        assertThat(copies).hasSize(2);
+        assertThat(copies.getFirst().value()).isEqualTo(copies.getLast().value());
+        assertThat(deadLetterStatus()).isEqualTo("PUBLISHED");
+        assertThat(probe().attempts.get()).isEqualTo(1);
+        assertThat(committedOn(topic + ".dlq")).isZero();
+    }
+
+    @Test
+    void exhaustedLeaseCannotCommitWithoutItsDeadLetterHandoff() throws Exception {
+        UUID id = UUID.fromString(json(post()).path("notificationId").asText());
+        UUID source = eventId();
+        var store = app.getBean(WorkerStore.class);
+        for (int attempt = 0; attempt < 3; attempt++) {
+            store.claim(id, source, UUID.randomUUID().toString()).orElseThrow();
+            expireWorker();
+        }
+        root("CREATE TRIGGER reject_exhausted_dlq BEFORE INSERT ON outbox_event FOR EACH ROW "
+                + "BEGIN IF NEW.event_type = 'NOTIFICATION_DEAD_LETTER' THEN SIGNAL SQLSTATE '45000' "
+                + "SET MESSAGE_TEXT = 'test fault'; END IF; END");
+        try {
+            startWorker();
+            app.getBean(OutboxRelay.class).relay();
+            await().atMost(Duration.ofSeconds(20)).until(() -> !container().isRunning());
+            assertThat(committedTotal()).isZero();
+            assertThat(status(id.toString())).isEqualTo("PROCESSING");
+            assertThat(delivery(id.toString()).path("attempts").get(2).path("outcome").asText()).isEqualTo("STARTED");
+            assertThat(count("outbox_event")).isEqualTo(1);
+        } finally {
+            root("DROP TRIGGER reject_exhausted_dlq");
+        }
+        startWorker();
+        awaitCommitted(1);
+        assertThat(status(id.toString())).isEqualTo("INTERNAL_FAILURE");
+        assertThat(delivery(id.toString()).path("attempts").get(2).path("outcome").asText()).isEqualTo("UNKNOWN");
+        assertThat(probe().attempts.get()).isZero();
+        assertThat(new ObjectMapper().readTree(deadLetterPayload()).path("errorCode").asText()).isEqualTo("ATTEMPTS_EXHAUSTED");
+    }
+
+    private long topicSize(String destination) throws Exception {
+        var description = admin.describeTopics(List.of(destination)).allTopicNames().get(5, TimeUnit.SECONDS).get(destination);
+        var latest = new java.util.HashMap<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.admin.OffsetSpec>();
+        description.partitions().forEach(p -> latest.put(new org.apache.kafka.common.TopicPartition(destination, p.partition()),
+                org.apache.kafka.clients.admin.OffsetSpec.latest()));
+        return admin.listOffsets(latest).all().get(5, TimeUnit.SECONDS).values().stream().mapToLong(o -> o.offset()).sum();
+    }
+
+    private String deadLetterPayload() {
+        return jdbc().queryForObject("SELECT payload FROM outbox_event WHERE event_type = 'NOTIFICATION_DEAD_LETTER'", String.class);
+    }
+
+    private String deadLetterStatus() {
+        return jdbc().queryForObject("SELECT status FROM outbox_event WHERE event_type = 'NOTIFICATION_DEAD_LETTER'", String.class);
+    }
+
+    private long committedOn(String destination) throws Exception {
+        return admin.listConsumerGroupOffsets(group).partitionsToOffsetAndMetadata().get(5, TimeUnit.SECONDS)
+                .entrySet().stream().filter(e -> e.getKey().topic().equals(destination)).mapToLong(e -> e.getValue().offset()).sum();
+    }
+
+    private List<org.apache.kafka.clients.consumer.ConsumerRecord<String, String>> recordsOn(String destination, int expected) {
+        var properties = java.util.Map.<String, Object>of(
+                "bootstrap.servers", KAFKA.getBootstrapServers(), "group.id", "audit-" + UUID.randomUUID(),
+                "enable.auto.commit", false, "auto.offset.reset", "earliest",
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        try (var consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<String, String>(properties)) {
+            // Explicit assignment avoids group startup latency and never affects the worker's offsets.
+            var partitions = consumer.partitionsFor(destination).stream().map(p ->
+                    new org.apache.kafka.common.TopicPartition(destination, p.partition())).toList();
+            consumer.assign(partitions);
+            consumer.seekToBeginning(partitions);
+            var messages = new java.util.ArrayList<org.apache.kafka.clients.consumer.ConsumerRecord<String, String>>();
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+                consumer.poll(Duration.ofMillis(100)).forEach(messages::add);
+                assertThat(messages).hasSize(expected);
+            });
+            return messages;
+        }
     }
 
     @Test
@@ -989,11 +1239,11 @@ class AsyncNotificationTest {
     private void startWorker() {
         container().start();
         await().atMost(Duration.ofSeconds(20)).until(() -> container().getAssignedPartitions() != null
-                && container().getAssignedPartitions().size() == 3);
+                && container().getAssignedPartitions().size() == 6);
     }
     private long committedTotal() throws Exception {
         return admin.listConsumerGroupOffsets(group).partitionsToOffsetAndMetadata().get(5, TimeUnit.SECONDS)
-                .entrySet().stream().filter(e -> e.getKey().topic().equals(topic)).mapToLong(e -> e.getValue().offset()).sum();
+                .entrySet().stream().filter(e -> e.getKey().topic().equals(topic) || e.getKey().topic().equals(topic + ".retry")).mapToLong(e -> e.getValue().offset()).sum();
     }
     private void awaitCommitted(long expected) {
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> assertThat(committedTotal()).isEqualTo(expected));

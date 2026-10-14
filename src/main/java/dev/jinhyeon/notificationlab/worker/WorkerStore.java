@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkerStore {
     private final JdbcTemplate jdbc;
     private final NotificationStore notifications;
-
     private final RetryPolicy retries;
 
     public WorkerStore(JdbcTemplate jdbc, NotificationStore notifications, RetryPolicy retries) {
@@ -78,7 +77,9 @@ public class WorkerStore {
                     WHERE notification_id = ?
                     """, id.toString());
             jdbc.update("UPDATE delivery_task SET next_attempt_at = NULL WHERE task_id = ?", task.id());
-            return Optional.of(new Claim(notifications.find(id).orElseThrow(), false));
+            Notification exhausted = notifications.find(id).orElseThrow();
+            deadLetter(exhausted, task);
+            return Optional.of(new Claim(exhausted, false));
         }
         jdbc.update("""
                 UPDATE notification SET status = 'PROCESSING', worker_token = ?, error_code = NULL,
@@ -137,7 +138,27 @@ public class WorkerStore {
                         JSON_OBJECT('schemaVersion', 2, 'eventId', ?, 'notificationId', notification_id, 'taskId', task_id),
                         retry_generation, UTC_TIMESTAMP(6), next_attempt_at FROM delivery_task WHERE task_id = ?
                     """, eventId, eventId, task.id());
+        } else if (result.status() != NotificationStatus.PROVIDER_ACCEPTED) {
+            deadLetter(result, task);
         }
         return retry;
+    }
+
+    // Called only inside the claim/completion transaction, before acknowledging the source record.
+    private void deadLetter(Notification result, Task task) {
+        String eventId = UUID.randomUUID().toString();
+        int inserted = jdbc.update("""
+                INSERT INTO outbox_event (event_id, notification_id, event_type, payload, created_at, available_at)
+                SELECT ?, notification_id, 'NOTIFICATION_DEAD_LETTER',
+                    JSON_OBJECT('schemaVersion', 1, 'eventType', 'NOTIFICATION_DEAD_LETTER',
+                        'eventId', ?, 'notificationId', notification_id, 'taskId', ?,
+                        'sourceEventId', event_id, 'retryGeneration', retry_generation,
+                        'status', ?, 'errorCode', ?, 'attemptCount', ?, 'maxAttempts', ?),
+                    UTC_TIMESTAMP(6), UTC_TIMESTAMP(6)
+                FROM outbox_event WHERE notification_id = ? AND retry_generation = ?
+                    AND event_type IN ('NOTIFICATION_REQUESTED', 'NOTIFICATION_RETRY')
+                """, eventId, eventId, task.id(), result.status().name(), result.errorCode(),
+                task.attempts(), task.limit(), result.notificationId().toString(), task.generation());
+        if (inserted != 1) throw new IllegalStateException("Dead-letter handoff was not recorded");
     }
 }

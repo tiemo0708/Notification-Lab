@@ -65,10 +65,11 @@ public class PipelineMetrics {
             unpublished = failed = oldestAge = Double.NaN;
         }
         try {
-            var topic = admin.describeTopics(List.of(properties.topic())).allTopicNames()
-                    .get(2, TimeUnit.SECONDS).get(properties.topic());
+            var topics = admin.describeTopics(List.of(properties.topic(), properties.retryTopic())).allTopicNames()
+                    .get(2, TimeUnit.SECONDS);
             Map<TopicPartition, OffsetSpec> latest = new HashMap<>();
-            topic.partitions().forEach(p -> latest.put(new TopicPartition(properties.topic(), p.partition()), OffsetSpec.latest()));
+            topics.forEach((name, topic) -> topic.partitions().forEach(p ->
+                    latest.put(new TopicPartition(name, p.partition()), OffsetSpec.latest())));
             var ends = admin.listOffsets(latest).all().get(2, TimeUnit.SECONDS);
             var committed = admin.listConsumerGroupOffsets(properties.group()).partitionsToOffsetAndMetadata()
                     .get(2, TimeUnit.SECONDS);
