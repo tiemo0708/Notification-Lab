@@ -97,6 +97,9 @@ Relay는 30초 lease/token으로 오래된 소유자의 상태 덮어쓰기를 �
 상태에서 Relay JVM을 강제 종료했다. 실제 lease 만료 후 같은 이벤트가 재발행되어 Kafka 레코드는 2개가 되었고,
 살아 있는 Worker는 이미 완료된 DB 결과를 확인해 공급자 호출을 1회로 유지했다.
 
+[DB 완료 후 Worker 종료 실험](docs/S5_WORKER_OFFSET_CRASH.md)에서는 offset 커밋 직전 Worker JVM을 강제 종료했다.
+같은 group의 새 Worker가 기존 Kafka 레코드 1개를 재소비했고, DB 완료 상태를 확인해 추가 공급자 호출 없이 offset을 커밋했다.
+
 Worker DB/이벤트 오류는 컨슈머를 멈춘다. 오류를 해결하고 진행 중 lease(30초)가 만료된 후 앱을 재시작한다.
 그 전에는 미완료 offset을 넘기지 않는다. 완료된 DB 결과를 다시 읽으면 공급자를 호출하지 않고 offset만 처리한다.
 공급자 성공 직후 DB 저장 전 종료되면 재호출이 가능하다. 외부 발송 exactly-once는 보장하지 않는다.
@@ -186,6 +189,7 @@ Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 �
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
 - [docs/S5_KAFKA_RECOVERY.md](docs/S5_KAFKA_RECOVERY.md): 실제 브로커 중단·복구, 접수/발행 대조와 상한 소진의 한계
+- [docs/S5_WORKER_OFFSET_CRASH.md](docs/S5_WORKER_OFFSET_CRASH.md): DB 완료 후 Worker JVM 종료, 미커밋 레코드 재소비와 공급자 재호출 방지
 - [docs/S5_OUTBOX_ACK_CRASH.md](docs/S5_OUTBOX_ACK_CRASH.md): ACK 후 Relay JVM 강제 종료, 동일 이벤트 재발행과 완료 작업의 중복 발송 차단
 - [docs/S4_UNCERTAIN_OUTCOMES.md](docs/S4_UNCERTAIN_OUTCOMES.md): 중단 지점별 증거, 중복 가능성, 확인·복구 절차
 - [docs/S4_DLQ_REDRIVE.md](docs/S4_DLQ_REDRIVE.md): 선택 재발행 API, 감사 이력, 계보·횟수 상한

@@ -571,3 +571,47 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 1만 건 실험과 새 원격 CI는 실행하지 않음. 로컬 DB/.env/IDE 설정 변경 및 푸시 없음.
 - 다음은 Worker DB 완료 후 offset 커밋 전 프로세스 종료와 재소비 검증.
 - 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.
+
+## 2026-10-14: S5 세 번째 단계 — DB 완료 후 Worker 종료와 offset 재소비 검증
+
+### 범위와 구현
+
+- `WorkerProcessCrashTest`와 테스트 전용 `WorkerProcess` 진입점을 추가. 프로덕션 코드·스키마·설정 변경 없음.
+- 전용 MySQL/Kafka에서 부모 앱은 API/Relay, 자식 JVM은 Worker를 실행.
+  실제 `WorkerStore.complete()` 커밋 후 `NotificationService.recordCompletion()`에서만 첫 자식을 대기시켰다.
+  활성 DB 트랜잭션이 없음을 검사하고 실제 리스너 반환 전 경계를 사용했다.
+- 부모의 별도 DB 조회와 Kafka Admin offset 조회로 완료 결과가 영속화됐지만 offset은 미커밋임을 확인한 뒤 강제 종료.
+- 중단 장치 없는 새 PID의 Worker를 동일 group으로 시작. offset reset/seek/DB 시각 변경이나 재발행 없이 정상 재할당을 기다렸다.
+- 두 JVM의 공급자 시도 카운터를 각각 읽고 새 Worker replay, DB 전체 행, 토픽 레코드 수, offset/lag를 대조했다.
+- README·PLAN 갱신과 [학습/재현 문서](S5_WORKER_OFFSET_CRASH.md) 추가. S5 세 번째 항목만 완료 표시.
+
+### 실제 검증
+
+- 최초 집중 테스트는 마지막 작업 행 비교에서 실패. DB VARBINARY `target_id`의 `byte[]`를 Map.equals로 비교해
+  동일 내용에도 다른 객체로 판단한 테스트 문제였다. 재귀적인 내용 비교로 수정했다.
+- 수정 후 `./gradlew --no-daemon --console=plain test --tests '*WorkerProcessCrashTest'`:
+  **1개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL (1분 3초), 테스트 본체 50.373초.
+  이후 시도 이력의 수락 상태/완료 시각 assertion을 보강해 전체 빌드에서 검증했다.
+- `./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **94개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (4분 26초), 6개 작업 모두 실행.
+  JUnit XML 12개 suite와 종료 코드 0 확인. 새 장애 테스트 본체 48.428초.
+- Kafka 레코드 1개 유지, 기존 Worker 공급자 호출 1, 새 Worker 호출 0/replay 1.
+  종료 직전 DB PROVIDER_ACCEPTED·시도 이력 완료, offset 없음 또는 0, lag 1.
+  재시작 후 committed offset 합 1·lag 0. 알림/작업/시도/Outbox 전체 행 유지,
+  발행·작업 시도 각각 1, Retry/DLQ 레코드 0, 미발행 0 확인.
+- 실행 JAR 생성/ZIP 검사: 프로덕션 NotificationWorker 포함, 테스트 진입점/중단 장치 미포함.
+- 문서 내부 링크·코드 블록 및 diff 공백 검사 통과.
+- 종료 후 테스트 자식 JVM 및 컨테이너 잔존 없음. 기존 로컬 MySQL healthy 유지.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증,
+  원격 기본 main/HEAD c95a444 확인. 푸시하지 않음.
+
+### 한계와 다음 단계
+
+- 완료 결과가 이미 커밋된 최종 성공 1건의 경계 검증이다. 공급자 수락 후 DB 저장 전 중단은
+  여전히 결과 불확실/재호출 가능 구간이며, 외부 발송 exactly-once나 단말 도착을 보장하지 않는다.
+- API/Relay·DB·브로커는 유지했다. 새 consumer의 정상 재할당을 이용했지만 다중 Worker의
+  동시 처리 중 명시적 리밸런스, 동시 장애, Graceful Shutdown까지 검증한 것은 아니다.
+- 테스트용 classpath 진입점으로 실행했으며 배포 JAR 별도 기동, 1만 건 실험, 새 원격 CI는 실행하지 않았다.
+- 프로덕션 코드·설정·DB migration·로컬 DB/.env/IDE 설정 변경 없음.
+- 다음은 S5의 Relay/Worker 재시작 및 명시적 리밸런스 검증. S6는 아직 시작하지 않았다.
+- 로컬 main에 커밋으로 보관하며 사용자 검토 전에는 푸시하지 않는다.
