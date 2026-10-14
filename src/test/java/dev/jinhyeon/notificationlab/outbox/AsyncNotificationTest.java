@@ -91,6 +91,8 @@ class AsyncNotificationTest {
         group = "worker-test-" + UUID.randomUUID();
         boolean experiment = info.getTags().contains("reconciliation");
         startApplication(experiment);
+        jdbc().update("DELETE FROM delivery_attempt");
+        jdbc().update("DELETE FROM delivery_task");
         jdbc().update("DELETE FROM outbox_event");
         jdbc().update("DELETE FROM notification");
         http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
@@ -119,12 +121,13 @@ class AsyncNotificationTest {
     }
 
     @Test
-    void acceptanceCommitsBothRowsBefore202WithoutCallingProvider() throws Exception {
+    void acceptanceCommitsAllRowsBefore202WithoutCallingProvider() throws Exception {
         var response = post();
         assertThat(response.statusCode()).isEqualTo(202);
         assertThat(json(response).path("status").asText()).isEqualTo("QUEUED");
         assertThat(count("notification")).isEqualTo(1);
         assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("delivery_task")).isEqualTo(1);
         assertThat(probe().attempts.get()).isZero();
         assertThat(jdbc().queryForObject("SELECT payload FROM outbox_event", String.class))
                 .contains("schemaVersion", "notificationId", "eventId")
@@ -144,6 +147,7 @@ class AsyncNotificationTest {
             assertThat(response.body()).doesNotContain("sensitive-test-data", "synthetic-user");
             assertThat(count("notification")).isZero();
             assertThat(count("outbox_event")).isZero();
+            assertThat(count("delivery_task")).isZero();
             assertThat(probe().attempts.get()).isZero();
         } finally {
             root("DROP TRIGGER reject_outbox");
@@ -274,9 +278,9 @@ class AsyncNotificationTest {
         assertThatThrownBy(() -> store.claim(id, eventId, "concurrent-worker")).isInstanceOf(IllegalStateException.class);
         jdbc().update("UPDATE notification SET worker_lease_until = TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6))");
         var second = store.claim(id, eventId, "new-worker").orElseThrow();
-        var result = first.completed(NotificationStatus.PROVIDER_ACCEPTED, "mock-result", null, java.time.Instant.now());
+        var result = first.notification().completed(NotificationStatus.PROVIDER_ACCEPTED, "mock-result", null, java.time.Instant.now());
         assertThatThrownBy(() -> store.complete(result, "old-worker")).isInstanceOf(IllegalStateException.class);
-        store.complete(second.completed(NotificationStatus.PROVIDER_ACCEPTED, "new-result", null,
+        store.complete(second.notification().completed(NotificationStatus.PROVIDER_ACCEPTED, "new-result", null,
                 java.time.Instant.now()), "new-worker");
         assertThat(store.claim(id, eventId, "replay")).isEmpty();
     }
@@ -313,6 +317,7 @@ class AsyncNotificationTest {
         assertThat(again.headers().firstValue("Location")).isEqualTo(first.headers().firstValue("Location"));
         assertThat(count("notification")).isEqualTo(1);
         assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("delivery_task")).isEqualTo(1);
         assertThat(probe().attempts.get()).isZero();
     }
 
@@ -327,6 +332,7 @@ class AsyncNotificationTest {
         }
         assertThat(count("notification")).isEqualTo(1);
         assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("delivery_task")).isEqualTo(1);
     }
 
     @Test
@@ -349,6 +355,7 @@ class AsyncNotificationTest {
         }
         assertThat(count("notification")).isEqualTo(1);
         assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("delivery_task")).isEqualTo(1);
     }
 
     @Test
@@ -371,6 +378,7 @@ class AsyncNotificationTest {
         }
         assertThat(count("notification")).isEqualTo(1);
         assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("delivery_task")).isEqualTo(1);
     }
 
     @Test
@@ -383,6 +391,7 @@ class AsyncNotificationTest {
             assertThat(failed.body()).doesNotContain("sensitive-outbox-error", "rollback-key");
             assertThat(count("notification")).isZero();
             assertThat(count("outbox_event")).isZero();
+            assertThat(count("delivery_task")).isZero();
         } finally {
             root("DROP TRIGGER reject_keyed_outbox");
         }
@@ -390,6 +399,7 @@ class AsyncNotificationTest {
         assertThat(post(PAYLOAD, "rollback-key").statusCode()).isEqualTo(200);
         assertThat(count("notification")).isEqualTo(1);
         assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("delivery_task")).isEqualTo(1);
     }
 
     @Test
@@ -409,6 +419,7 @@ class AsyncNotificationTest {
         assertThat(probe().attempts.get()).isZero();
         assertThat(count("notification")).isEqualTo(1);
         assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("delivery_task")).isEqualTo(1);
         assertThat(committedTotal()).isEqualTo(1);
     }
 
@@ -433,6 +444,7 @@ class AsyncNotificationTest {
         assertThat(post(PAYLOAD, "first", "second").statusCode()).isEqualTo(400);
         assertThat(count("notification")).isZero();
         assertThat(count("outbox_event")).isZero();
+        assertThat(count("delivery_task")).isZero();
     }
 
     @Test
@@ -458,6 +470,180 @@ class AsyncNotificationTest {
         });
         assertThat(count("notification")).isEqualTo(1);
         assertThat(count("outbox_event")).isEqualTo(1);
+        assertThat(count("delivery_task")).isEqualTo(1);
+    }
+
+    @Test
+    void taskIdentityIsUniqueStableAndHistorySurvivesCompletedReplay() throws Exception {
+        String id = json(post(PAYLOAD, "task-key")).path("notificationId").asText();
+        JsonNode initial = delivery(id);
+        assertThat(initial.path("attemptCount").asInt()).isZero();
+        assertThat(initial.path("maxAttempts").asInt()).isEqualTo(3);
+        String taskId = initial.path("taskId").asText();
+        String payload = jdbc().queryForObject("SELECT payload FROM outbox_event", String.class);
+        var event = app.getBean(ObjectMapper.class).readTree(payload);
+        assertThat(event.path("schemaVersion").asInt()).isEqualTo(2);
+        assertThat(event.path("taskId").asText()).isEqualTo(taskId);
+        assertThat(post(PAYLOAD, "task-key").statusCode()).isEqualTo(200);
+        assertThat(delivery(id)).isEqualTo(initial);
+        assertThat(count("delivery_task")).isEqualTo(1);
+        assertThatThrownBy(() -> jdbc().update("""
+                INSERT INTO delivery_task (task_id, notification_id, target_id, max_attempts, created_at)
+                SELECT ?, notification_id, target_id, max_attempts, created_at FROM delivery_task
+                """, UUID.randomUUID().toString())).isInstanceOf(org.springframework.dao.DuplicateKeyException.class);
+        assertThatThrownBy(() -> jdbc().update("UPDATE delivery_task SET max_attempts = 0"))
+                .isInstanceOf(org.springframework.dao.DataAccessException.class);
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        JsonNode completed = delivery(id);
+        assertThat(completed.path("status").asText()).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(completed.path("attemptCount").asInt()).isEqualTo(1);
+        assertThat(completed.path("attempts").get(0).path("outcome").asText()).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(completed.toString()).doesNotContain("leaseToken", "targetId", "synthetic-user", "가상 데이터");
+        kafka().send(topic, id, payload).get(10, TimeUnit.SECONDS);
+        awaitCommitted(2);
+        assertThat(delivery(id)).isEqualTo(completed);
+        assertThat(probe().attempts.get()).isEqualTo(1);
+        assertThat(http.send(HttpRequest.newBuilder(URI.create(base() + "/notifications/" + UUID.randomUUID()
+                + "/delivery")).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(404);
+    }
+
+    @Test
+    void simultaneousWorkerClaimsCreateOnlyOneAttempt() throws Exception {
+        UUID id = UUID.fromString(json(post()).path("notificationId").asText());
+        UUID eventId = eventId();
+        CountDownLatch ready = new CountDownLatch(2);
+        Callable<Boolean> claim = () -> {
+            ready.countDown();
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            try {
+                return app.getBean(WorkerStore.class).claim(id, eventId, UUID.randomUUID().toString()).orElseThrow().send();
+            } catch (IllegalStateException activeLease) {
+                assertThat(activeLease).hasMessage("Worker lease is active or absent");
+                return false;
+            }
+        };
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var results = executor.invokeAll(List.of(claim, claim));
+            assertThat(List.of(results.get(0).get(), results.get(1).get())).containsExactlyInAnyOrder(true, false);
+        }
+        assertThat(count("delivery_attempt")).isEqualTo(1);
+        assertThat(delivery(id.toString()).path("attemptCount").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void expiredRecoveryStopsAtPersistedAttemptCapBeforeCallingProvider() throws Exception {
+        UUID id = UUID.fromString(json(post()).path("notificationId").asText());
+        var store = app.getBean(WorkerStore.class);
+        UUID eventId = eventId();
+        for (int attempt = 0; attempt < 3; attempt++) {
+            assertThat(store.claim(id, eventId, UUID.randomUUID().toString()).orElseThrow().send()).isTrue();
+            expireWorker();
+        }
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        assertThat(status(id.toString())).isEqualTo("INTERNAL_FAILURE");
+        assertThat(jdbc().queryForObject("SELECT error_code FROM notification", String.class)).isEqualTo("ATTEMPTS_EXHAUSTED");
+        assertThat(probe().attempts.get()).isZero();
+        assertThat(registry().get("notification.worker.exhausted").counter().count()).isEqualTo(1);
+        var history = delivery(id.toString());
+        assertThat(history.path("attemptCount").asInt()).isEqualTo(3);
+        assertThat(history.path("attempts")).hasSize(3);
+        for (var attempt : history.path("attempts")) {
+            assertThat(attempt.path("outcome").asText()).isEqualTo("UNKNOWN");
+            assertThat(attempt.path("errorCode").asText()).isEqualTo("OUTCOME_UNKNOWN");
+        }
+        kafka().send(topic, id.toString(), jdbc().queryForObject("SELECT payload FROM outbox_event", String.class))
+                .get(10, TimeUnit.SECONDS);
+        awaitCommitted(2);
+        assertThat(delivery(id.toString())).isEqualTo(history);
+        assertThat(probe().attempts.get()).isZero();
+    }
+
+    @Test
+    void attemptInsertFailureRollsBackClaimAndCounter() throws Exception {
+        UUID id = UUID.fromString(json(post()).path("notificationId").asText());
+        UUID eventId = eventId();
+        root("CREATE TRIGGER reject_attempt BEFORE INSERT ON delivery_attempt FOR EACH ROW "
+                + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test fault'");
+        try {
+            assertThatThrownBy(() -> app.getBean(WorkerStore.class).claim(id, eventId, UUID.randomUUID().toString()))
+                    .isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThat(status(id.toString())).isEqualTo("QUEUED");
+            assertThat(delivery(id.toString()).path("attemptCount").asInt()).isZero();
+            assertThat(count("delivery_attempt")).isZero();
+        } finally {
+            root("DROP TRIGGER reject_attempt");
+        }
+        assertThat(app.getBean(WorkerStore.class).claim(id, eventId, UUID.randomUUID().toString()).orElseThrow().send()).isTrue();
+    }
+
+    @Test
+    void historyCompletionFailureRollsBackResultAndPreservesOffsetUntilRecovery() throws Exception {
+        String id = json(post()).path("notificationId").asText();
+        root("CREATE TRIGGER reject_history BEFORE UPDATE ON delivery_attempt FOR EACH ROW "
+                + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test fault'");
+        try {
+            startWorker();
+            app.getBean(OutboxRelay.class).relay();
+            await().atMost(Duration.ofSeconds(20)).until(() -> !container().isRunning());
+            assertThat(status(id)).isEqualTo("PROCESSING");
+            assertThat(delivery(id).path("attempts").get(0).path("outcome").asText()).isEqualTo("STARTED");
+            assertThat(committedTotal()).isZero();
+        } finally {
+            root("DROP TRIGGER reject_history");
+        }
+        expireWorker();
+        startWorker();
+        awaitCommitted(1);
+        assertThat(status(id)).isEqualTo("PROVIDER_ACCEPTED");
+        var attempts = delivery(id).path("attempts");
+        assertThat(attempts).hasSize(2);
+        assertThat(attempts.get(0).path("outcome").asText()).isEqualTo("UNKNOWN");
+        assertThat(attempts.get(1).path("outcome").asText()).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(probe().attempts.get()).isEqualTo(2);
+    }
+
+    @Test
+    void versionOneEventUsesPersistedTaskIdentity() throws Exception {
+        String id = json(post()).path("notificationId").asText();
+        jdbc().update("UPDATE outbox_event SET payload = JSON_REMOVE(JSON_SET(payload, '$.schemaVersion', 1), '$.taskId')");
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        awaitCommitted(1);
+        assertThat(status(id)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(count("delivery_attempt")).isEqualTo(1);
+        assertThat(probe().attempts.get()).isEqualTo(1);
+    }
+
+    @Test
+    void mismatchedTaskIdentityStopsBeforeClaimWithoutCommittingOffset() throws Exception {
+        String id = json(post()).path("notificationId").asText();
+        jdbc().update("UPDATE outbox_event SET payload = JSON_SET(payload, '$.taskId', ?)", UUID.randomUUID().toString());
+        startWorker();
+        app.getBean(OutboxRelay.class).relay();
+        await().atMost(Duration.ofSeconds(20)).until(() -> !container().isRunning());
+        assertThat(committedTotal()).isZero();
+        assertThat(status(id)).isEqualTo("QUEUED");
+        assertThat(count("delivery_attempt")).isZero();
+        assertThat(probe().attempts.get()).isZero();
+    }
+
+    private JsonNode delivery(String id) throws Exception {
+        var response = http.send(HttpRequest.newBuilder(URI.create(base() + "/notifications/" + id + "/delivery"))
+                .GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200);
+        return json(response);
+    }
+
+    private UUID eventId() {
+        return UUID.fromString(jdbc().queryForObject("SELECT event_id FROM outbox_event", String.class));
+    }
+
+    private void expireWorker() {
+        jdbc().update("UPDATE notification SET worker_lease_until = TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6))");
     }
 
     @Test

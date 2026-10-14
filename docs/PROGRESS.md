@@ -276,3 +276,42 @@ S3 로컬 완료. 다음은 S4의 API Idempotency-Key 정책/원자적 중복 �
 API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다.
 다음 구현은 S4 작업 식별자/원자적 상태 관리와 공급자 재시도 정책이다.
 이번 변경은 로컬 커밋으로 보관하며 기존 S3 커밋과 함께 사용자 검토 후 푸시한다.
+
+## 2026-10-14: S4 두 번째 단계 — 발송 작업/시도 이력 로컬 완료
+
+### 범위와 변경
+
+- 요청당 가상 대상 하나에 영속 taskId 부여. 실제 디바이스 등록/여러 대상 fan-out은 미구현.
+- notification/작업/Outbox를 원자적으로 접수. 같은 알림의 작업 중복은 DB 유니크 제약으로 거절.
+- Worker 선점과 시도 번호/STARTED 이력을 함께 저장하고, 공급자 호출은 트랜잭션 밖에서 수행.
+- 완료 결과와 이력을 같은 트랜잭션으로 저장. 이전 토큰의 결과 덮어쓰기 차단 및 완료 replay 시 재호출 방지 유지.
+- lease 만료 복구는 최초 선점 포함 기본 3회(설정 1~10, 접수 시 고정). 만료된 이전 시도는 UNKNOWN으로 기록.
+- 마지막 lease 만료 후 재소비하면 추가 호출 없이 INTERNAL_FAILURE / ATTEMPTS_EXHAUSTED로 보관하고 offset 처리.
+- GET /notifications/{id}/delivery로 taskId/현재 상태/시도 수/상한/이력 조회. 대상·본문·토큰 비노출.
+- 새 이벤트 schemaVersion 2에 taskId 추가. Worker는 기존 version 1도 DB 작업 조회로 처리.
+- V4에서 기존 비동기 알림에 작업 backfill. 활성 lease의 소유권 보존, 알 수 없는 과거 시작 시각은 NULL,
+  완료된 과거 시도는 임의로 복원하지 않음. S2의 Outbox 없는 행에는 작업을 만들지 않음.
+- [정책과 업그레이드 절차](S4_DELIVERY_TASKS.md), README, PLAN, 기존 단계 문서 연결 갱신.
+
+### 실제 검증
+
+- 최종 `./gradlew --no-daemon --console=plain build`: **62개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (40초).
+- 기존 54개 회귀 + 새 8개 테스트. 실제 MySQL/Kafka/Testcontainers 사용, 실행 JAR 생성 성공.
+- 작업 ID의 멱등 키 재사용, DB 유니크/상한 제약, 완료 이벤트 replay 후 동일 이력/Mock 1회 확인.
+- 동시 Worker 선점 두 건 중 하나만 성공하며 STARTED 이력/시도 수는 1.
+- 세 번의 만료된 선점 이후 복구: UNKNOWN 이력 3개, 상한 소진 상태 저장, 추가 공급자 호출 0, offset 처리.
+- 시도 INSERT 실패: 선점/카운터/이력 전체 롤백. 이력 UPDATE 실패: 알림 결과도 롤백, offset 0으로 중지.
+- 오류 제거 및 lease 만료 후 재소비: UNKNOWN → 새 시도 PROVIDER_ACCEPTED, 공급자 호출 총 2회로 불확실한 중복 재현.
+- schemaVersion 1 처리 성공. version 2의 불일치 taskId는 선점/공급자 호출/offset 커밋 없이 중단.
+- 실제 V3 DB에 대기/진행/완료 비동기 행과 S2 행을 넣고 V4 적용: 알림/Outbox 원본 행 완전 보존,
+  비동기 작업 3개 및 활성 시도 1개만 생성. 기존 V1 결과의 후속 migration 회귀 검증도 통과.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증 확인.
+  원격 기본 브랜치는 main이며 HEAD는 계속 c95a444. 기존 원격 이력은 변경하지 않음.
+
+### 한계와 다음 단계
+
+- 이번에는 1만 건 실험/Compose 재생성 smoke를 재실행하지 않음. 이전 S3 측정 결과를 새 버전의 성능으로 해석하지 않음.
+- 새 원격 CI 실행 없음. 로컬 main 커밋으로 쌓고 사용자 검토 후 함께 푸시한다.
+- 새 schemaVersion 2를 내보내므로 이전 앱/Worker를 모두 종료한 후 업그레이드해야 한다. 혼합 버전/자동 다운그레이드 미지원.
+- UNKNOWN과 상한 소진은 외부 전달 실패 확정이 아니다. 공급자 exactly-once나 실제 호출 횟수 복원을 보장하지 않음.
+- 일반 RETRYABLE_FAILURE는 아직 최종 결과. 다음은 공급자 자동 재시도 정책(backoff+jitter)과 Retry topic/DLQ 연결이다.

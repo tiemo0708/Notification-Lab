@@ -61,6 +61,9 @@ spring:
     clean-disabled: true
 
 app:
+  delivery:
+    # Counts all claims, including recovery after an uncertain provider outcome.
+    max-attempts: 3
   async:
     topic: notification.requested.v1
     group: notification-worker-v1

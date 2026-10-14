@@ -89,6 +89,8 @@ class MySqlNotificationTest {
 
     @BeforeEach
     void clearRecords() {
+        jdbc().update("DELETE FROM delivery_attempt");
+        jdbc().update("DELETE FROM delivery_task");
         jdbc().update("DELETE FROM outbox_event");
         jdbc().update("DELETE FROM notification");
         probe().reset();
@@ -110,13 +112,13 @@ class MySqlNotificationTest {
         HttpResponse<String> after = request("GET", location, null);
         assertThat(after.statusCode()).isEqualTo(200);
         assertThat(json(after)).isEqualTo(before);
-        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(3);
+        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(4);
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event", Integer.class)).isZero();
         assertThat(probe().attempts.get()).isZero();
     }
 
     @Test
-    void versionTwoMigrationPreservesExistingVersionOneResults() throws Exception {
+    void laterMigrationsPreserveExistingVersionOneResults() throws Exception {
         String schema = "notification_upgrade_test";
         executeAsRoot("CREATE DATABASE " + schema);
         String upgradeUrl = MYSQL.getJdbcUrl().replace("/notification_lab", "/" + schema);
@@ -147,6 +149,58 @@ class MySqlNotificationTest {
                 assertThat(rows.getString("worker_token")).isNull();
                 assertThat(rows.next()).isFalse();
             }
+        } finally {
+            executeAsRoot("DROP DATABASE " + schema);
+        }
+    }
+
+    @Test
+    void deliveryMigrationPreservesOldLeasesAndDoesNotInventHistoricalAttempts() throws Exception {
+        String schema = "delivery_upgrade_test";
+        executeAsRoot("CREATE DATABASE " + schema);
+        String url = MYSQL.getJdbcUrl().replace("/notification_lab", "/" + schema);
+        try {
+            Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).target("3").load().migrate();
+            var db = new JdbcTemplate(new org.springframework.jdbc.datasource.DriverManagerDataSource(
+                    url, "root", MYSQL.getPassword()));
+            String queued = UUID.randomUUID().toString();
+            String active = UUID.randomUUID().toString();
+            String completed = UUID.randomUUID().toString();
+            String legacy = UUID.randomUUID().toString();
+            String token = UUID.randomUUID().toString();
+            for (String id : List.of(queued, active, completed, legacy)) {
+                db.update("""
+                        INSERT INTO notification (notification_id, recipient_id, title, body, status, created_at)
+                        VALUES (?, 'synthetic', 'title', 'body', 'QUEUED', '2026-10-13 00:00:00.123456')
+                        """, id);
+                if (!id.equals(legacy)) db.update("""
+                        INSERT INTO outbox_event (event_id, notification_id, event_type, payload, created_at, available_at)
+                        VALUES (?, ?, 'NOTIFICATION_REQUESTED', JSON_OBJECT('schemaVersion', 1),
+                            UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))
+                        """, UUID.randomUUID().toString(), id);
+            }
+            db.update("UPDATE notification SET status = 'PROCESSING', worker_token = ?, "
+                    + "worker_lease_until = '2026-10-14 00:00:30.123456' WHERE notification_id = ?", token, active);
+            db.update("UPDATE notification SET status = 'PROCESSING' WHERE notification_id = ?", legacy);
+            db.update("UPDATE notification SET status = 'PROVIDER_ACCEPTED', provider_message_id = 'old-result', "
+                    + "completed_at = '2026-10-13 00:00:01.123456' WHERE notification_id = ?", completed);
+            var before = db.queryForList("SELECT * FROM notification ORDER BY notification_id");
+            var eventsBefore = db.queryForList("SELECT * FROM outbox_event ORDER BY event_id");
+            Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).load().migrate();
+            assertThat(db.queryForList("SELECT * FROM notification ORDER BY notification_id")).isEqualTo(before);
+            assertThat(db.queryForList("SELECT * FROM outbox_event ORDER BY event_id")).isEqualTo(eventsBefore);
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM delivery_task", Integer.class)).isEqualTo(3);
+            assertThat(db.queryForList("SELECT notification_id FROM delivery_task", String.class))
+                    .containsExactlyInAnyOrder(queued, active, completed);
+            assertThat(db.queryForObject("SELECT attempt_count FROM delivery_task WHERE notification_id = ?",
+                    Integer.class, completed)).isZero();
+            var attempts = db.queryForList("SELECT * FROM delivery_attempt");
+            assertThat(attempts).hasSize(1);
+            assertThat(attempts.getFirst()).containsEntry("lease_token", token).containsEntry("outcome", "STARTED")
+                    .containsEntry("started_at", null).containsEntry("completed_at", null);
+            assertThat(db.queryForObject("SELECT attempt_count FROM delivery_task WHERE notification_id = ?",
+                    Integer.class, active)).isEqualTo(1);
+            assertThat(db.queryForList("SELECT max_attempts FROM delivery_task", Integer.class)).containsOnly(3);
         } finally {
             executeAsRoot("DROP DATABASE " + schema);
         }

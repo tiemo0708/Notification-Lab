@@ -4,6 +4,8 @@ import dev.jinhyeon.notificationlab.notification.Notification;
 import dev.jinhyeon.notificationlab.notification.NotificationRequest;
 import dev.jinhyeon.notificationlab.notification.NotificationService;
 import jakarta.validation.Valid;
+import dev.jinhyeon.notificationlab.worker.DeliveryTaskStore;
+import java.util.Optional;
 import dev.jinhyeon.notificationlab.outbox.IdempotentSubmissionService;
 import dev.jinhyeon.notificationlab.notification.InvalidIdempotencyKeyException;
 import org.springframework.http.HttpHeaders;
@@ -23,11 +25,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/notifications")
 public class NotificationController {
     private final NotificationService service;
+    private final ObjectProvider<DeliveryTaskStore> tasks;
 
     private final ObjectProvider<IdempotentSubmissionService> submissions;
 
-    public NotificationController(NotificationService service, ObjectProvider<IdempotentSubmissionService> submissions) {
+    public NotificationController(NotificationService service, ObjectProvider<IdempotentSubmissionService> submissions,
+                                  ObjectProvider<DeliveryTaskStore> tasks) {
         this.service = service;
+        this.tasks = tasks;
         this.submissions = submissions;
     }
 
@@ -48,6 +53,12 @@ public class NotificationController {
         Notification result = service.send(request);
         // Synchronous baseline: 201 means a result resource exists, not that a device received it.
         return ResponseEntity.created(URI.create("/notifications/" + result.notificationId())).body(result);
+    }
+
+    @GetMapping("/{id}/delivery")
+    public ResponseEntity<DeliveryTaskStore.Delivery> delivery(@PathVariable UUID id) {
+        var store = tasks.getIfAvailable();
+        return ResponseEntity.of(store == null ? Optional.empty() : store.find(id));
     }
 
     @GetMapping("/{id}")

@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @Profile("!memory & !sync")
 @EnableScheduling
-@EnableConfigurationProperties(AsyncProperties.class)
+@EnableConfigurationProperties({AsyncProperties.class, DeliveryProperties.class})
 public class AsyncConfiguration {
     @Bean
     NewTopic notificationTopic(AsyncProperties properties) {

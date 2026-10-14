@@ -1,6 +1,7 @@
 # S3: Outbox와 Kafka 비동기 흐름
 
-이 문서는 S3 기준선이다. 이후 추가된 요청 접수 중복 방지는 [S4 API 멱등성](S4_IDEMPOTENCY.md)을 참고한다.
+이 문서는 S3 기준선이다. 이후 추가된 요청 접수 중복 방지는 [S4 API 멱등성](S4_IDEMPOTENCY.md),
+현재 이벤트 스키마와 유한 복구 정책은 [S4 발송 작업/시도 이력](S4_DELIVERY_TASKS.md)을 참고한다.
 
 ## 계약과 비교 실행
 

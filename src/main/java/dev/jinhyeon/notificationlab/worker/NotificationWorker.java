@@ -32,17 +32,25 @@ public class NotificationWorker {
     public void receive(ConsumerRecord<String, String> record) {
         try {
             var event = mapper.readTree(record.value());
-            if (event.path("schemaVersion").asInt() != 1) throw new IllegalArgumentException();
+            int version = event.path("schemaVersion").asInt();
+            if (version != 1 && version != 2) throw new IllegalArgumentException();
+            UUID taskId = version == 2 ? UUID.fromString(event.path("taskId").asText()) : null;
             UUID id = UUID.fromString(event.path("notificationId").asText());
             UUID eventId = UUID.fromString(event.path("eventId").asText());
             if (!id.toString().equals(record.key())) throw new IllegalArgumentException();
             String token = UUID.randomUUID().toString();
-            var claimed = store.claim(id, eventId, token);
+            var claimed = store.claim(id, eventId, token, taskId);
             if (claimed.isPresent()) {
                 Timer.Sample sample = Timer.start(registry);
-                var completed = service.attempt(claimed.get()); // Outside all database transactions.
-                store.complete(completed, token); // Must commit before returning to the container.
-                service.recordCompletion(completed, sample);
+                var claim = claimed.get();
+                if (claim.send()) {
+                    var completed = service.attempt(claim.notification()); // Outside all DB transactions.
+                    store.complete(completed, token); // Result and attempt must both commit before return.
+                    service.recordCompletion(completed, sample);
+                } else {
+                    registry.counter("notification.worker.exhausted").increment();
+                    service.recordCompletion(claim.notification(), sample);
+                }
             } else {
                 registry.counter("notification.worker.replays").increment();
             }

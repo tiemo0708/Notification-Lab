@@ -1,6 +1,7 @@
 # S4 첫 단계: API 요청 멱등성
 
-S4 전체 중 Idempotency-Key 접수 정책을 구현한다. Worker 작업 모델, 공급자 재시도, Retry topic/DLQ는 후속 작업이다.
+이 문서는 S4의 Idempotency-Key 접수 정책을 설명한다. 이후 추가한 Worker 작업 모델은
+[발송 작업과 시도 이력](S4_DELIVERY_TASKS.md)을 참고한다. 공급자 자동 재시도와 Retry topic/DLQ는 후속 작업이다.
 
 ## API 계약
 
@@ -45,7 +46,7 @@ V1/V2는 보존하고 V3에서 `notification.idempotency_key VARBINARY(128)`와 
 키가 있는 두 요청이 동시에 들어오면 유니크 제약이 하나만 허용한다.
 
 1. `IdempotentSubmissionService`는 호출자 트랜잭션을 중단(`NOT_SUPPORTED`)한다.
-2. 별도 `SubmissionService` 프록시가 알림 INSERT(키 포함) + Outbox INSERT를 한 트랜잭션으로 커밋한다.
+2. 별도 `SubmissionService` 프록시가 알림 INSERT(키 포함) + 발송 작업 INSERT + Outbox INSERT를 한 트랜잭션으로 커밋한다.
 3. DuplicateKeyException이면 위 트랜잭션의 롤백이 끝난 뒤 키로 기존 알림을 조회한다.
 4. 세 필드가 같으면 기존 리소스를 반환하고, 다르면 409를 반환한다.
 5. 해당 키가 없다면 다른 제약에서 발생한 중복 오류이므로 성공 재사용으로 처리하지 않고 503을 반환한다.
