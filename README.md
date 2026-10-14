@@ -92,6 +92,7 @@ Relay는 30초 lease/token으로 오래된 소유자의 상태 덮어쓰기를 �
 Worker DB/이벤트 오류는 컨슈머를 멈춘다. 오류를 해결하고 진행 중 lease(30초)가 만료된 후 앱을 재시작한다.
 그 전에는 미완료 offset을 넘기지 않는다. 완료된 DB 결과를 다시 읽으면 공급자를 호출하지 않고 offset만 처리한다.
 공급자 성공 직후 DB 저장 전 종료되면 재호출이 가능하다. 외부 발송 exactly-once는 보장하지 않는다.
+UNKNOWN/상한 소진은 미발송 확정이 아니다. [불확실한 결과의 확인·복구 정책](docs/S4_UNCERTAIN_OUTCOMES.md)을 따른다.
 
 발송 작업은 요청당 가상 대상 하나이며 taskId와 시도 이력을 `/notifications/{id}/delivery`로 조회한다.
 만료된 시도는 다음 복구에서 `UNKNOWN`으로 기록한다. 선점은 최초 포함 기본 3회(설정 범위 1~10)이며,
@@ -176,6 +177,7 @@ Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 �
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S4_UNCERTAIN_OUTCOMES.md](docs/S4_UNCERTAIN_OUTCOMES.md): 중단 지점별 증거, 중복 가능성, 확인·복구 절차
 - [docs/S4_DLQ_REDRIVE.md](docs/S4_DLQ_REDRIVE.md): 선택 재발행 API, 감사 이력, 계보·횟수 상한
 - [docs/S4_RETRY_TOPICS_DLQ.md](docs/S4_RETRY_TOPICS_DLQ.md): 토픽 분리, DLQ 계약, ACK/offset 관계
 - [docs/S4_RETRY_POLICY.md](docs/S4_RETRY_POLICY.md): 오류 분류, 횟수 상한, backoff+jitter, 영속 예약

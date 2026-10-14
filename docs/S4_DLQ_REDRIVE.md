@@ -109,5 +109,5 @@ V5 → V6의 기존 데이터 보존과 memory 프로필의 API 미노출도 확
 `./gradlew --no-daemon --console=plain build`: **90개 통과, 실패/오류/스킵 0**.
 상세 실행 결과는 [PROGRESS.md](PROGRESS.md)에 기록한다.
 
-다음 계획 항목은 공급자 수락 후 DB 기록 전 종료의 불확실성 정책을 종합 정리하는 것이다.
+공급자 수락 후 DB 기록 전 종료에 대한 [불확실한 결과 정책](S4_UNCERTAIN_OUTCOMES.md)을 함께 확인한다.
 실제 브로커/프로세스 중단 실험은 S5에서 별도로 진행한다.
