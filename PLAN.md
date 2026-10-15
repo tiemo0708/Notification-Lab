@@ -94,7 +94,7 @@ S5에서 Kafka 중단·복구와 ACK 후 Outbox 기록 전 Relay 프로세스 �
 Worker DB 완료 후 offset 커밋 전 종료와 재소비도 검증했다.
 Relay/Worker 재시작, 처리 중 합류와 작업 완료 후 이탈에 따른 리밸런스도 검증했다.
 SIGTERM 정상 종료와 유예 초과 복구까지 검증했다.
-S6에서는 별도 HTTP Mock과 HTTP 어댑터의 timeout/연결 풀 상한까지 추가했다. 다음은 Worker 동시성/유한 대기열이다.
+S6에서는 별도 HTTP Mock과 HTTP 어댑터의 timeout/연결 풀 상한까지 추가했다. Worker 동시성/유한 FIFO 대기열까지 추가했다. 다음은 Redis 전역 Rate Limit이다.
 실제 검증 결과는 docs/PROGRESS.md에 기록한다.
 
 ### S5. 장애·배포 실험
@@ -129,7 +129,7 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 ### S6. HTTP Mock + 보호 장치
 - [x] Mock을 별도 HTTP 서버로 확장: 지연, timeout, 429, 5xx, 요청 한도
 - [x] connect/response timeout 및 연결 풀 상한
-- [ ] Worker 동시성 제한 + 유한 대기열
+- [x] Worker 동시성 제한 + 유한 대기열
 - [ ] Redis Lua 전역 Rate Limit (속도와 허용 버스트 정의)
 - [ ] 재시도/최초 발송에 동일 provider quota 적용
 - [ ] 소비 pause/resume, poll/heartbeat 유지 검증
@@ -142,6 +142,8 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 기본 내부 Mock을 유지하며 `app.provider.mode=HTTP`로 실제 HTTP 연동을 선택한다.
 [HTTP 어댑터](docs/S6_HTTP_CLIENT.md)는 연결 풀/대기/응답 timeout과 전체 deadline을 제한하고 DB 기반 재시도를 유지한다.
 실제 MySQL/Kafka/HTTP로 성공·500·429·영구 실패·timeout의 이력과 offset을 대조했다.
+[Worker 진입 제어](docs/S6_WORKER_CONCURRENCY.md)는 소비 스레드/처리 수/대기 수를 제한하며 DB 선점 전에 기다린다.
+포화·timeout은 미커밋 상태로 소비를 멈춘다. 실제 파티션별 offset·DB 이력·종료/재시작을 검증했다.
 S6 전체 완료가 아니며 Redis 전역 제한·pause/resume·Circuit Breaker는 남아 있다.
 
 완료 조건: 워커를 늘려도 제한 정책을 유지하고 공급자 장애가 메모리 폭증으로 이어지지 않는다.

@@ -825,3 +825,70 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   다음은 Worker 동시성 제한과 유한 대기열이며 Redis 전역 제한/pause/resume/Circuit Breaker도 남아 있다.
 - 1만 건 실험과 원격 CI는 이번에 실행하지 않았다. 테스트 수치를 운영 성능으로 제시하지 않는다.
 - DB migration·기존 로컬 MySQL/.env/IDE 설정은 변경하지 않았다. 사용자 검토 전 원격에 푸시하지 않는다.
+
+## 2026-10-15: S6 세 번째 단계 — Worker 동시성 제한과 유한 FIFO 대기열
+
+### 문제·대안·선택
+
+- 느린 공급자 호출에서 소비 스레드만 늘리면 DB/HTTP 처리 수도 증가한다. 별도 비동기 executor는
+  미완료 offset/파티션 회수/종료 관리를 추가로 요구하므로 이번에는 소비 스레드의 동기 처리를 유지했다.
+- `WorkerAdmission`의 프로세스 공통 처리 자리와 유한 FIFO를 DB 선점 앞에 배치했다.
+  대기 작업은 lease/시도 횟수를 만들지 않고, 처리/결과 저장 후 리스너가 반환해야 RECORD offset을 커밋한다.
+- `app.worker` 기본값: 소비 스레드 1/처리 1/대기 2/대기 시간 1000ms.
+  범위는 소비 1~3, 처리 1~소비 수, 대기 0~3, 대기 시간 1~5000ms.
+- 포화/timeout/interrupt는 예외로 소비를 중지하고 해당 offset을 보존한다. 자동 반복 재시작이나 DLQ 처리로 바꾸지 않았다.
+  처리/대기 gauge 및 고정 reason label의 진입 거절 counter를 추가했다.
+- 앱 종료는 신규 진입 차단/대기자 깨우기 후 이미 진입한 작업을 기존 종료 유예 안에서 마친다.
+  종료 중 오류 처리기가 별도의 비정상 stop을 시작하지 않게 보완해 lifecycle 종료 대기가 진행 중 리스너를 기다리도록 했다.
+- [문제·대안·선택 이유·설정·검증·한계](S6_WORKER_CONCURRENCY.md)를 추가하고 README/PLAN/HTTP 문서를 갱신했다.
+  S6의 Worker 동시성/유한 대기열 항목까지 완료 표시한다. Redis와 pause/resume 등은 남겨 둔다.
+
+### 실제 검증과 실패 수정
+
+- `compileJava` 성공. `WorkerAdmissionTest` 최초 집중 실행 **6개 통과**, BUILD SUCCESSFUL (6초).
+- 첫 `WorkerConcurrencyTest`는 4개 중 3개 통과/1개 실패(36초).
+  timeout counter 생성 전에 `get`으로 조회한 테스트가 MeterNotFoundException으로 끝나서 `find`와 생성 대기로 수정했다.
+- 종료/새 앱 복구 시나리오를 추가한 두 번째 집중 실행은 11개 중 10개 통과/1개 실패(1분).
+  종료 중 대기자 거절과 오류 처리기의 별도 stop이 경합해 진행 중 알림이 PROCESSING에 남는 것을 재현했다.
+  종료 중에는 추가 stop 대신 예외 전파로 offset을 보존하고 기존 lifecycle이 종료를 담당하도록 보완했다.
+- `./gradlew --no-daemon --console=plain test --tests '*WorkerAdmissionTest' --tests '*WorkerConcurrencyTest'`:
+  수정 후 **11개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL (38초).
+- 동시 스레드 테스트: FIFO, 처리/대기 상한, 포화·timeout, interrupt 보존, 종료 시 대기 해제,
+  예외 후 자리 반환과 잘못된 설정 거절을 검증했다.
+- 실제 MySQL/Kafka/HTTP: 소비 3/처리 2/대기 1, HTTP 지연 1500ms에서 최고 HTTP 처리 2.
+  대기 및 같은 파티션 후속 알림은 시도 0, 처리 중 세 파티션 offset 0 확인 후 최종 완료/호출/offset 합 4, 파티션별 2/1/1.
+- 대기 timeout 100ms와 대기 용량 0 포화 각각에서 미선점/offset 0을 확인했다.
+  진행 중 작업 완료 후 명시적으로 재시작해 두 요청을 총 호출 2회로 완료했다.
+- DB 완료 실패는 해당 파티션 offset 0과 후속 알림 시도 0을 보존했다.
+  테스트 trigger 제거/SQL로 lease 만료 후 첫 요청 UNKNOWN 이력 1, 총 호출 4/고유 완료 3/offset 합 3으로 복구했다.
+- 대기 작업이 있는 앱 종료/새 context 재시작: 진행 중 작업 완료, 대기 작업 시도 0/offset 0,
+  재시작 후 두 요청의 최종 완료/호출/offset 합 2를 확인했다.
+- 통합 실험은 Relay를 끄고 API에 저장된 Outbox payload를 명시적 파티션으로 직접 발행한다.
+  Outbox를 임의로 PUBLISHED로 변경하지 않았다. 기존 전체 회귀가 Relay 경로를 별도로 검증한다.
+- 첫 전체 `build --rerun-tasks`는 **142개 중 141개 통과/1개 실패**(2시간 6분 2초).
+  기존 GracefulShutdownTest의 Relay 정상 종료 후 Outbox 시도 횟수가 기대 1과 달리 5였다.
+  실행 로그에 긴 시간 공백/clock leap 경고가 있었고 macOS 전원 로그에서 실행 시간대의 반복된 Sleep/DarkWake를 확인했다.
+  환경 중단 영향을 분리하기 위해 테스트 기대값을 변경하지 않고 `caffeinate -i`로 유휴 잠자기를 억제한 전체 재실행을 시작했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **142개 통과 / 실패 0 / 오류 0 / 스킵 0**, BUILD SUCCESSFUL (8분 50초), 9개 작업 모두 실행.
+  JUnit XML 20개 suite와 종료 코드 0 확인. 기존 131개와 신규 11개를 모두 재실행했다.
+  앞서 실패한 Relay 정상 종료 테스트도 코드/기대값 변경 없이 통과했다.
+- 실행 JAR에 WorkerAdmission/WorkerProperties 포함 및 테스트 진입점 미포함 확인.
+  이번 단계에서는 실행 JAR를 별도로 기동하지 않았고 테스트 classpath의 실제 앱/하위 JVM으로 검증했다.
+- 문서 링크/코드 블록/diff 공백 검사 통과. 테스트 JVM/컨테이너와 임시 caffeinate 프로세스 잔존 없음.
+  기존 notification-lab-mysql-1은 healthy 유지.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 기본 main/HEAD c95a444 확인.
+  원격 푸시는 하지 않았다.
+
+### 한계와 다음 단계
+
+- 클라이언트 timeout 뒤 공급자 서버의 작업은 계속될 수 있다. 로컬 Worker 상한을 공급자 측 실행 수 보장으로 해석하지 않는다.
+- 이 제한은 프로세스별 처리 수/FIFO 대기 수다. 여러 앱의 합산 처리 수나 초당 공급자 요청량은 제한하지 않는다.
+  다음은 Redis Lua 전역 Rate Limit과 속도/허용 버스트 정책이다.
+- 대기 중 소비 스레드는 poll하지 않는다. 대기 최대 5초/HTTP deadline 최대 10초와 별개로 DB 지연까지 더해지므로
+  모든 장애에서 max.poll.interval 60초를 보장하지 않는다. poll/heartbeat 유지와 pause/resume는 남은 항목이다.
+- 포화/timeout은 자동 pause/resume가 아니라 소비 중지와 명시적 복구 정책이다.
+  공급자 429 Retry-After 반영, Circuit Breaker, Redis 장애 정책은 구현하지 않았다.
+- 새 DB 실패 실험의 lease 만료는 테스트 SQL로 재현했다. 새 병렬 구성의 모든 다중 앱/장기 장애 조합을 검증한 것은 아니다.
+  1만 건 실험·처리량 벤치마크·원격 CI는 이번에 실행하지 않았다.
+- DB migration·기존 로컬 DB/.env/IDE 설정 변경 없음. 사용자 검토 전 원격에 푸시하지 않는다.

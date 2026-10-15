@@ -112,4 +112,4 @@ active는 지연을 포함한 현재 처리 수, maxActive는 기동 후 관찰�
 실제 HTTP의 202/429/500/400, 동시 한도, 처리 슬롯, timeout 후 수락 유지, 잘못된 입력/큰 본문,
 설정 상한과 monotonic 윈도우 리필을 검증한다. 상세 실행 결과는 [PROGRESS](PROGRESS.md)에 기록한다.
 Worker HTTP 연동과 timeout/연결 풀 상한까지 추가했다. Redis 제한·Circuit Breaker는 남아 있다.
-다음은 Worker 동시성 제한과 유한 대기열이다.
+[Worker 동시성 제한과 유한 대기열](S6_WORKER_CONCURRENCY.md)까지 추가했다. 다음은 Redis 전역 Rate Limit이다.

@@ -45,7 +45,8 @@ HTTP 교환 종료 후의 DB 저장 시간은 포함하지 않는다. Worker lea
 Apache HttpClient 5.5.2(Boot BOM)를 사용하며 STRICT 연결 풀의 전체/목적지별 상한을 동일하게 설정했다.
 호출 진입은 대기 없는 Semaphore로 `max-connections + max-pending`개까지만 허용한다.
 연결 풀 대기 또한 acquire timeout으로 끝난다. 별도 작업 executor에 요청을 무한히 쌓지 않는다.
-현재 Worker는 단건 순차 처리이므로 이 설정이 Worker 병렬 처리나 Kafka pause/resume를 구현한 것은 아니다.
+HTTP 풀과 별도로 [Worker 처리/대기 상한](S6_WORKER_CONCURRENCY.md)을 설정할 수 있다.
+기본 Worker는 단건 순차 처리이며 Kafka pause/resume는 아직 구현하지 않았다.
 
 응답 timeout만 있으면 조금씩 계속 도착하는 데이터 때문에 호출이 길어질 수 있다.
 단일 deadline 스레드가 제한 시간 후 요청을 취소하고 연결을 닫는다. 예약 작업 수는 진입한 호출 수 이내이며
@@ -106,7 +107,8 @@ connect timeout 설정은 적용했으나 패킷을 버리는 네트워크에서
 이번 연결 실패 검증은 loopback의 닫힌 포트에 대한 연결 거절이다. DNS/TLS/원격 네트워크 동작은 미검증이다.
 
 현재 429의 Retry-After는 재시도 시각에 반영하지 않는다. 기존 DB backoff를 사용한다.
-공급자 쿼터 준수, Worker 병렬 처리/유한 대기열, Redis 전역 Rate Limit, pause/resume, Circuit Breaker는 이후 항목이다.
+Worker 병렬 처리/유한 FIFO 대기열은 별도 단계에서 추가했다.
+공급자 쿼터 준수, Redis 전역 Rate Limit, pause/resume, Circuit Breaker는 이후 항목이다.
 연결 풀은 프로세스별이며 Worker를 늘리면 합산 연결 수도 증가한다. S6 전체 완료 또는 전역 보호 달성을 뜻하지 않는다.
 
 설정의 근거: Apache의 [RequestConfig 소스](https://github.com/apache/httpcomponents-client/blob/rel/v5.5.2/httpclient5/src/main/java/org/apache/hc/client5/http/config/RequestConfig.java)와

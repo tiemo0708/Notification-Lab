@@ -13,13 +13,15 @@ import org.springframework.stereotype.Component;
 @Component
 @Profile("!memory & !sync")
 public class NotificationWorker {
+    private final WorkerAdmission admission;
     private final WorkerStore store;
     private final NotificationService service;
     private final ObjectMapper mapper;
     private final MeterRegistry registry;
 
     public NotificationWorker(WorkerStore store, NotificationService service,
-                              ObjectMapper mapper, MeterRegistry registry) {
+                              ObjectMapper mapper, MeterRegistry registry, WorkerAdmission admission) {
+        this.admission = admission;
         this.store = store;
         this.service = service;
         this.mapper = mapper;
@@ -27,9 +29,19 @@ public class NotificationWorker {
     }
 
     @KafkaListener(id = "notification-worker", topics = {"${app.async.topic}", "${app.async.retry-topic}"},
-            groupId = "${app.async.group}", concurrency = "1",
+            groupId = "${app.async.group}", concurrency = "${app.worker.consumers:1}",
             autoStartup = "${app.async.worker-enabled:true}")
     public void receive(ConsumerRecord<String, String> record) {
+        try {
+            admission.execute(() -> process(record));
+        } catch (RuntimeException failure) {
+            registry.counter("notification.worker.failures").increment();
+            // Includes admission failure: never return successfully for an unprocessed record.
+            throw new IllegalStateException("Notification processing failed; offset must remain uncommitted");
+        }
+    }
+
+    private void process(ConsumerRecord<String, String> record) {
         try {
             var event = mapper.readTree(record.value());
             int version = event.path("schemaVersion").asInt();
@@ -60,7 +72,6 @@ public class NotificationWorker {
                 registry.counter("notification.worker.replays").increment();
             }
         } catch (Exception failure) {
-            registry.counter("notification.worker.failures").increment();
             // Do not attach SQL/JSON exceptions: they can contain recipient data or payloads.
             throw new IllegalStateException("Notification processing failed; offset must remain uncommitted");
         }

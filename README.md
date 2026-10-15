@@ -134,7 +134,7 @@ DLQ는 자동 소비/재발송하지 않는다. 선택한 PUBLISHED DLQ는 사�
 ./gradlew bootRun --args='--app.mock.delay-ms=1000'
 ```
 
-DB 풀은 최대 8개, Relay는 한 번에 한 publish/한 주기 최대 50건, Worker concurrency 1/poll 1건이다.
+DB 풀은 최대 8개, Relay는 한 번에 한 publish/한 주기 최대 50건, Worker 기본 소비 스레드 1/처리 1/poll 1건이다.
 단일 브로커 고가용성, 다중 인스턴스의 모든 장애 조합, 운영 성능을 입증한 구성이 아니다.
 
 ## HTTP Mock과 Worker 연동 (S6)
@@ -157,6 +157,19 @@ HTTP 모드도 알림 앱에는 기존 MySQL/Kafka와 DB 환경변수가 필요�
 [Mock 서버 설정](docs/S6_HTTP_MOCK.md)과 [HTTP 연동·timeout·연결 풀](docs/S6_HTTP_CLIENT.md)을 참고한다.
 HTTP 클라이언트 기본값은 연결 2개/추가 호출 4개, 풀 대기 200ms/연결 500ms/응답 1000ms/전체 deadline 3000ms다.
 자동 HTTP 재시도는 끄며 기존 DB 재시도 최대 3회를 사용한다. timeout 후 중복 수락 가능성과 429 Retry-After 미반영 한계가 있다.
+
+## Worker 처리/대기 상한 (S6)
+
+`app.worker.consumers`(기본 1, 최대 3)과 `max-active`(기본 1)로 소비 스레드와 실제 처리 수를 구분한다.
+처리 자리가 없으면 DB 선점 전 FIFO에서 기다린다. `queue-capacity` 기본 2(0~3), `queue-wait-ms` 기본 1000(최대 5000)이다.
+대기열 포화/timeout은 해당 offset을 넘기지 않고 소비를 멈추며 원인 해결 후 명시적으로 재시작한다.
+
+```bash
+./gradlew bootRun --args='--app.provider.mode=HTTP --app.worker.consumers=3 --app.worker.max-active=2 --app.worker.queue-capacity=1 --app.worker.queue-wait-ms=5000'
+```
+
+파티션별 순차 처리와 DB 완료 후 RECORD offset 커밋을 유지한다. 처리/대기 상한은 프로세스별이다.
+[문제·대안·선택 이유·종료 정책·검증 결과](docs/S6_WORKER_CONCURRENCY.md)를 참고한다.
 
 ## 테스트와 빌드
 
@@ -201,6 +214,7 @@ S2 시절 이미 남은 `PROCESSING` 레코드는 Outbox가 없으므로 S3에�
 - `outbox_unpublished`, `outbox_failed`, `outbox_oldest_age_seconds`: 미발행 수(FAILED 포함), 실패 수, 가장 오래된 미발행 시간.
 - `notification_consumer_lag`: 요청/Retry 두 토픽의 end offset에서 Worker 그룹 committed offset을 뺀 파티션별 합계. DLQ 제외.
 - `outbox_sample_age_seconds`, `notification_consumer_sample_age_seconds`: 마지막 지표 수집 성공 후 경과 시간.
+- `notification_worker_active`, `notification_worker_waiting`, `notification_worker_admission_rejected_total{reason=...}`: 처리/대기 수와 진입 거절 횟수.
 - `notification_worker_running`: 소비 중 1, 정지 0.
 - `notification_worker_exhausted_total`: 복구 선점 상한을 소진해 최종 저장한 작업 수.
 - `outbox_publish_failures_total`, `outbox_published_total`, `notification_worker_failures_total`, `notification_worker_replays_total`.
@@ -216,6 +230,7 @@ Redis rate limit, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 �
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S6_WORKER_CONCURRENCY.md](docs/S6_WORKER_CONCURRENCY.md): Worker 처리/대기 상한과 파티션별 offset·종료 검증
 - [docs/S6_HTTP_CLIENT.md](docs/S6_HTTP_CLIENT.md): Worker HTTP 선택, timeout/연결 풀/전체 deadline과 실패 분류
 - [docs/S6_HTTP_MOCK.md](docs/S6_HTTP_MOCK.md): 별도 HTTP Mock, 지연/429/500/한도 및 timeout의 불확실성
 - [docs/S5_GRACEFUL_SHUTDOWN.md](docs/S5_GRACEFUL_SHUTDOWN.md): SIGTERM 종료 순서, 신규 접수 차단과 유예 초과 후 복구/중복 호출

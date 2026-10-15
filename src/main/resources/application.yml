@@ -61,6 +61,11 @@ spring:
     clean-disabled: true
 
 app:
+  worker:
+    consumers: 1
+    max-active: 1
+    queue-capacity: 2
+    queue-wait-ms: 1000
   delivery:
     # Counts all claims, including recovery after an uncertain provider outcome.
     max-attempts: 3
