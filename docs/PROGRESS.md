@@ -892,3 +892,68 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 새 DB 실패 실험의 lease 만료는 테스트 SQL로 재현했다. 새 병렬 구성의 모든 다중 앱/장기 장애 조합을 검증한 것은 아니다.
   1만 건 실험·처리량 벤치마크·원격 CI는 이번에 실행하지 않았다.
 - DB migration·기존 로컬 DB/.env/IDE 설정 변경 없음. 사용자 검토 전 원격에 푸시하지 않는다.
+
+## 2026-10-16: S6 네 번째 단계 — Redis Lua 공유 토큰 버킷
+
+### 문제·대안·선택
+
+- 프로세스별 Worker/HTTP 상한만으로 여러 앱의 합산 초당 요청 수를 제한할 수 없다.
+  메모리 제한기, 고정 윈도우, sliding window 로그와 비교해 속도/버스트를 분리하고 고정 크기 상태를 쓰는 token bucket을 선택했다.
+- Redis TIME 기준 보충·확인·차감을 Lua 한 번으로 수행한다. 기본 r=10/초, B=10이며 각각 1~10000이다.
+  토큰당 credit 1000의 정수 계산으로 거절 재확인 사이의 부분 보충을 보존한다.
+- 공급자당 고정 키 하나를 모든 클라이언트가 공유한다. TTL을 두지 않아 만료로 예산/정책이 초기화되지 않는다.
+  시계 역행 시 추가 보충 없이 기존 last_ms를 유지하고, 긴 유휴 시간에도 B개까지만 보충한다.
+- 기존 rate/burst/version 충돌, 손상된 상태, Redis 오류/timeout/연결 풀 포화는 UNAVAILABLE로 반환한다.
+  timeout은 차감 여부가 불확실하므로 내부 재시도/환불 없이 반환한다. 제한 결과의 재확인 시간은 예약이 아니다.
+- Spring Boot BOM의 Jedis 6.0.0, 연결 풀 기본 2/최대 4, 추가 대기열 없음, 연결/읽기 timeout 각각 기본 250ms를 사용한다.
+  outcome counter와 사용 중 연결 gauge를 등록하며 로그/label에 요청 식별자나 payload를 넣지 않는다.
+- 선택적 Compose redis 프로필(7.4.11-alpine, loopback 16379, AOF/volume/noeviction)을 추가했다.
+  이번 검증은 격리된 Testcontainers에서 진행하며 기존 Compose Redis를 기동하지 않았다.
+- **이번 범위는 제한기 컴포넌트다. Worker는 아직 호출하지 않는다.** `client-enabled` 기본 false이며 true도 빈 생성만 활성화한다.
+  최초 발송/재시도에 quota 연결, quota 대기와 DB 시도/offset 보존은 바로 다음 PLAN 항목으로 남겼다.
+- [문제·알고리즘 비교·정책·실험·한계](S6_REDIS_RATE_LIMIT.md)를 추가하고 README/PLAN을 갱신했다.
+
+### 실제 검증
+
+- `compileJava`: 성공(11초). 처음 집중 실행 10개 통과(13초) 후 실제 시간 합산 상한과 연결 거절 사례를 추가했다.
+- `./gradlew --no-daemon --console=plain test --tests '*RateLimitConfigurationTest' --tests '*RedisRateLimiterTest'`:
+  **12개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(11초).
+- 실제 Redis에서 독립 연결 풀 4개/총 40회 동시 요청/B=7: 허용 7, 제한 33, 오류 0.
+  저장 시각을 미래로 지정해 보충이 없는 원자적 차감 경합을 검증했다. 운영 코드에 테스트 시계를 주입하지 않았다.
+- 별도 실제 TIME 실험: 4개 클라이언트/총 80회/r=10/B=3, 집중 실행에서 610ms/허용 8.
+  `B + floor(r × Δms / 1000)` 이내였고 초기 버스트를 초과해 보충되는 것도 확인했다. 처리량 벤치마크가 아니다.
+- 실제 보충(2/초, 최소 500ms), 반복 거절 시 부분 credit 보존, 긴 유휴 후 버스트 상한,
+  클라이언트 재생성/스크립트 캐시 삭제 시 예산 유지, 역행 분기, 설정 충돌/잘못된 상태 무변경을 검증했다.
+- CLIENT PAUSE 1500ms/읽기 timeout 250ms/연결 1개에서 사용 중 연결 1을 확인했다.
+  추가 호출은 대기 없이 UNAVAILABLE, 기존 호출은 timeout으로 UNAVAILABLE이며 해제 후 재사용했다.
+  닫힌 포트, context 종료, 기본 비활성, 잘못된 활성 설정도 검증했다.
+- 첫 `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`: **154개 통과 / 실패·오류·스킵 0**,
+  BUILD SUCCESSFUL(9분 36초), 22개 suite/9개 작업 모두 실행.
+- 추가 경계 테스트에서 첫 연결 생성이 멈췄을 때 풀 설정만으로는 추가 호출을 즉시 거절하지 못하는 것을 재현했다.
+  응답 없는 loopback TCP 연결/자리 1개 조건에서 200ms 이내 거절 기대가 실제 2046ms로 실패했다(단독 실행 1개 실패, 11초).
+  연결 풀의 생성 경합이 소진 검사보다 먼저 실행되므로, 풀 진입 전 같은 크기의 세마포어 tryAcquire로 연결 생성까지 상한에 포함했다.
+- 수정 후 `test --tests '*RateLimitConfigurationTest' --tests '*RedisRateLimiterTest'`: **13개 통과 / 실패·오류·스킵 0**(12초).
+  첫 연결 경합 테스트의 200ms 이내 거절과 기존 공유 quota/timeout/보충 테스트 모두 통과했다.
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`: **155개 통과 / 실패 0 / 오류 0 / 스킵 0**,
+  BUILD SUCCESSFUL(9분 24초), 22개 suite/9개 작업 모두 실행. 기존 142개 + 신규 13개를 최종 코드로 재실행했다.
+  최종 실제 TIME 실험도 603ms/허용 8로 공유 rate/burst 상한 이내였다.
+- 테스트 컨테이너/Java 21 검증 JVM/caffeinate 잔존 없음. 기존 notification-lab-mysql-1은 healthy 유지.
+- 실행 JAR에 제한기/설정/Jedis 6.0.0과 Lua 원문 일치 확인. 테스트 진입점/HTTP Mock 클래스 미포함.
+  이번 단계에서 JAR 별도 기동 smoke는 실행하지 않았다.
+- Compose 구문 검사, 문서 상대 링크/코드 블록과 diff 공백 검사 통과.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 기본 main/HEAD c95a444 확인.
+  원격 푸시는 하지 않았다.
+
+### 한계와 다음 단계
+
+- 아직 실제 공급자 발송을 제한하지 않는다. 다음은 최초 발송/재시도를 같은 quota에 연결하고
+  부족한 quota 때문에 발송 시도 횟수/lease를 소모하거나 미완료 offset을 넘기지 않는지 검증하는 단계다.
+- Redis 오류를 허용하지 않는 컴포넌트 계약까지 검증했다. 전체 파이프라인의 Redis 장기 장애/복구,
+  pause/resume와 poll/heartbeat, Circuit Breaker 및 우선순위 배분은 남은 항목이다.
+- 클라이언트 4개는 하나의 JVM에서 독립 연결 풀을 사용했다. 별도 앱 JVM 4개, failover/replication/Cluster,
+  Redis 프로세스 재시작/AOF 복원과 메모리 상한 도달은 이번에 실험하지 않았다.
+- 역행은 저장된 미래 시각으로 분기를 검증했으며 실제 OS 시계를 변경하지 않았다. 시계 전진/상태 손실은 버스트를 다시 허용할 수 있다.
+  AOF everysec/noeviction도 모든 장애에서 예산 보존을 보장하지 않는다.
+- 허가 시점과 실제 HTTP 호출 시점의 차이, 공급자의 별도 fixed-window 계약도 후속 통합에서 고려해야 한다.
+- 1만 건 정합성 실험·운영 처리량 벤치마크·원격 CI는 이번에 실행하지 않았다.
+- DB migration·기존 로컬 DB/.env/IDE 설정 변경 없음. 사용자 검토 전 원격에 푸시하지 않는다.

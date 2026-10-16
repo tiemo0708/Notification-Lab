@@ -61,6 +61,16 @@ spring:
     clean-disabled: true
 
 app:
+  rate-limit:
+    # Client component only; Worker integration is the next S6 step.
+    client-enabled: false
+    host: 127.0.0.1
+    port: ${REDIS_PORT:16379}
+    key: notification-lab:provider:mock:quota
+    rate-per-second: 10
+    burst: 10
+    max-connections: 2
+    timeout-ms: 250
   worker:
     consumers: 1
     max-active: 1
