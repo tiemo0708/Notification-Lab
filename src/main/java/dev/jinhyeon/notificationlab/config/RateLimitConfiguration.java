@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(name = "app.rate-limit.client-enabled", havingValue = "true")
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class RateLimitConfiguration {
-    // Creates the client only. Worker quota admission is the next S6 step.
+    // The async Worker uses this shared client for initial sends and retries when enabled.
     @Bean(destroyMethod = "close")
     RedisRateLimiter redisRateLimiter(RateLimitProperties settings, MeterRegistry registry) {
         return new RedisRateLimiter(settings, registry);

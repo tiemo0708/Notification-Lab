@@ -25,7 +25,11 @@ public class WorkerStore {
         this.retries = retries;
     }
 
-    public record Claim(Notification notification, boolean send) { }
+    public enum Disposition { SEND, EXHAUSTED, NEEDS_PERMIT }
+    public record Claim(Notification notification, Disposition disposition) {
+        public boolean send() { return disposition == Disposition.SEND; }
+        public boolean needsPermit() { return disposition == Disposition.NEEDS_PERMIT; }
+    }
     private record Task(String id, int attempts, int limit, int generation) { }
 
     @Transactional
@@ -35,6 +39,11 @@ public class WorkerStore {
 
     @Transactional
     public Optional<Claim> claim(UUID id, UUID eventId, String token, UUID expectedTaskId) {
+        return claim(id, eventId, token, expectedTaskId, true);
+    }
+
+    @Transactional
+    public Optional<Claim> claim(UUID id, UUID eventId, String token, UUID expectedTaskId, boolean sendPermitted) {
         // One lock order for every claim/completion; no provider I/O while this lock is held.
         if (jdbc.queryForList("SELECT notification_id FROM notification WHERE notification_id = ? FOR UPDATE",
                 String.class, id.toString()).isEmpty()) throw new IllegalStateException("Unknown notification");
@@ -65,6 +74,13 @@ public class WorkerStore {
                     SELECT worker_lease_until <= UTC_TIMESTAMP(6) FROM notification WHERE notification_id = ?
                     """, Boolean.class, id.toString());
             if (!Boolean.TRUE.equals(expired)) throw new IllegalStateException("Worker lease is active or absent");
+        }
+        // Return before any writes. Redis admission happens after this transaction releases its locks.
+        // The next claim revalidates identity/generation/status/lease under the same lock order.
+        if (task.attempts() < task.limit() && !sendPermitted) {
+            return Optional.of(new Claim(notification, Disposition.NEEDS_PERMIT));
+        }
+        if (notification.status() == NotificationStatus.PROCESSING) {
             jdbc.update("""
                     UPDATE delivery_attempt SET outcome = 'UNKNOWN', error_code = 'OUTCOME_UNKNOWN',
                         completed_at = UTC_TIMESTAMP(6) WHERE task_id = ? AND outcome = 'STARTED'
@@ -79,7 +95,7 @@ public class WorkerStore {
             jdbc.update("UPDATE delivery_task SET next_attempt_at = NULL WHERE task_id = ?", task.id());
             Notification exhausted = notifications.find(id).orElseThrow();
             deadLetter(exhausted, task);
-            return Optional.of(new Claim(exhausted, false));
+            return Optional.of(new Claim(exhausted, Disposition.EXHAUSTED));
         }
         jdbc.update("""
                 UPDATE notification SET status = 'PROCESSING', worker_token = ?, error_code = NULL,
@@ -90,7 +106,7 @@ public class WorkerStore {
                 INSERT INTO delivery_attempt (task_id, attempt_no, lease_token, outcome, started_at)
                 VALUES (?, ?, ?, 'STARTED', UTC_TIMESTAMP(6))
                 """, task.id(), task.attempts() + 1, token);
-        return Optional.of(new Claim(notifications.find(id).orElseThrow(), true));
+        return Optional.of(new Claim(notifications.find(id).orElseThrow(), Disposition.SEND));
     }
 
     private Task task(UUID id) {

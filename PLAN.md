@@ -94,7 +94,7 @@ S5에서 Kafka 중단·복구와 ACK 후 Outbox 기록 전 Relay 프로세스 �
 Worker DB 완료 후 offset 커밋 전 종료와 재소비도 검증했다.
 Relay/Worker 재시작, 처리 중 합류와 작업 완료 후 이탈에 따른 리밸런스도 검증했다.
 SIGTERM 정상 종료와 유예 초과 복구까지 검증했다.
-S6에서는 별도 HTTP Mock, HTTP 어댑터의 timeout/연결 풀 상한, Worker 동시성/유한 FIFO 대기열과 Redis 공유 제한기를 추가했다. 다음은 최초 발송/재시도의 quota 연결이다.
+S6에서는 별도 HTTP Mock, HTTP 어댑터의 timeout/연결 풀 상한, Worker 동시성/유한 FIFO 대기열과 Redis 공유 제한기를 추가했다. 최초 발송/재시도의 quota를 연결했으며 다음은 소비 pause/resume 검증이다.
 실제 검증 결과는 docs/PROGRESS.md에 기록한다.
 
 ### S5. 장애·배포 실험
@@ -130,8 +130,8 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 - [x] Mock을 별도 HTTP 서버로 확장: 지연, timeout, 429, 5xx, 요청 한도
 - [x] connect/response timeout 및 연결 풀 상한
 - [x] Worker 동시성 제한 + 유한 대기열
-- [x] Redis Lua 전역 Rate Limit (속도와 허용 버스트 정의; 제한기 단독 검증, Worker 연결은 다음 항목)
-- [ ] 재시도/최초 발송에 동일 provider quota 적용
+- [x] Redis Lua 전역 Rate Limit (속도와 허용 버스트 정의)
+- [x] 재시도/최초 발송에 동일 provider quota 적용
 - [ ] 소비 pause/resume, poll/heartbeat 유지 검증
 - [ ] Circuit Breaker 및 half-open 복구
 - [ ] Redis 장애 정책 결정 (대기/fail-closed 등)과 검증
@@ -146,7 +146,9 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 포화·timeout은 미커밋 상태로 소비를 멈춘다. 실제 파티션별 offset·DB 이력·종료/재시작을 검증했다.
 [Redis Lua 제한기](docs/S6_REDIS_RATE_LIMIT.md)는 같은 공급자 키의 속도/버스트를 공유한다.
 독립 클라이언트 4개의 동시 접근, 실제 Redis 시간 보충, 설정 충돌/timeout을 검증했다.
-아직 Worker는 호출하지 않는다. S6 전체 완료가 아니며 최초/재시도 quota 연결·pause/resume·Circuit Breaker는 남아 있다.
+[Worker quota 연동](docs/S6_WORKER_QUOTA.md)은 DB 선점 전 유한 대기와 최초/재시도의 공통 허가를 적용한다.
+완료 재소비/시도 상한 소진은 허가 없이 영속 처리하고, 대기 초과/Redis 오류는 미선점·미커밋 상태로 중지한다.
+S6 전체 완료가 아니며 pause/resume·Circuit Breaker·Redis 장기 장애/예산 유실 정책은 남아 있다.
 
 완료 조건: 워커를 늘려도 제한 정책을 유지하고 공급자 장애가 메모리 폭증으로 이어지지 않는다.
 실험용 공급자 한도는 실제 FCM/APNs의 보장/쿼터로 제시하지 않는다.

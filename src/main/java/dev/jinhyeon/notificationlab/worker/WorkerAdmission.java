@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /** Bounded FIFO admission on the calling consumer thread, before any DB claim. */
@@ -82,6 +83,7 @@ public class WorkerAdmission {
     public synchronized int waiting() { return queue.size(); }
 
     @EventListener(ContextClosedEvent.class)
+    @Order(0)
     public synchronized void stopAdmission() {
         stopping = true;
         notifyAll(); // Wake queued callers without consuming a DB attempt or acknowledging their records.

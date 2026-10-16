@@ -957,3 +957,69 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 허가 시점과 실제 HTTP 호출 시점의 차이, 공급자의 별도 fixed-window 계약도 후속 통합에서 고려해야 한다.
 - 1만 건 정합성 실험·운영 처리량 벤치마크·원격 CI는 이번에 실행하지 않았다.
 - DB migration·기존 로컬 DB/.env/IDE 설정 변경 없음. 사용자 검토 전 원격에 푸시하지 않는다.
+
+## 2026-10-16: S6 다섯 번째 단계 — 최초 발송/재시도 공통 quota
+
+### 문제·대안·선택
+
+- Redis 제한기를 Worker에 연결하되, DB 선점 후 기다리거나 quota 부족을 공급자 실패로 기록하면
+  실제 발송 전 시도 횟수/lease/재시도 예산을 소모한다. 모든 레코드 앞에 무조건 적용하면 완료 재소비도 Redis에 의존한다.
+- WorkerStore에 쓰기 없는 NEEDS_PERMIT 결과를 추가했다. 이벤트/세대/task/상태/due/lease 검증 후 발송 후보만 반환하고
+  트랜잭션 밖에서 quota를 기다린다. 허가 뒤 새 트랜잭션으로 다시 검증한 다음 시도/lease를 만든다.
+- 완료/이전 세대 재소비와 시도 상한 소진 처리는 허가를 요구하지 않는다.
+  상한 소진은 기존 UNKNOWN/최종 실패/DLQ 저장을 유지하며 HTTP를 호출하지 않는다.
+- `app.rate-limit.client-enabled=true`가 이제 비동기 Worker의 최초/재시도에 적용된다. 기본 false와 memory/sync 비교 프로필은 기준선이다.
+  같은 공급자 키/rate/burst를 공유한다. API 계약과 DB migration은 변경하지 않았다.
+- WorkerQuota는 처리 자리 안에서 기본 2000ms/최대 5000ms 동안 LIMITED를 재확인한다(최소 간격 25ms).
+  새 executor/무제한 큐 없이 소비 스레드에서 기다린다. timeout/UNAVAILABLE/interrupt/종료는 예외로 미완료 offset을 보존한다.
+  Redis 오류는 즉시 소비 중지, 원인 해결 후 명시적 재시작 정책이다. 자동 pause/resume는 다음 항목이다.
+- Redis 명령 전후로 대기 예산을 확인하며 늦은 허가는 사용/환불하지 않는다. 명령 자체를 강제 취소하는 전체 deadline은 아니다.
+  quota 중단/경합에서 소비한 허가와 실제 HTTP 호출 수는 다를 수 있다.
+- 종료 시 WorkerAdmission 정지 표시 후 WorkerQuota 대기자를 깨워 기존 lifecycle 종료 대기와 오류 처리기가 경합하지 않게 했다.
+- [문제·대안·선택·트랜잭션·복구·검증](S6_WORKER_QUOTA.md), README/PLAN과 관련 S6 문서를 갱신했다.
+
+### 실제 검증과 테스트 구성 수정
+
+- 첫 `test --tests '*WorkerQuotaTest'`: **6개 통과**(7초).
+- 최초 집중 실행은 12개 중 3개 실패(46초). 테스트가 서로 다른 작업에 같은 lease token을 사용해 UNIQUE 제약에 걸렸고,
+  CLIENT PAUSE 5000ms의 해제용 연결이 3000ms 읽기 timeout으로 실패했다. 같은 Redis를 쓰는 다음 Relay 사례도 대기 확인에 실패했다.
+  중단 시간을 1500ms로 줄이고 해제 후 PING 복구를 확인하며, 테스트 작업마다 다른 token을 사용하도록 수정했다.
+- 두 번째 집중 실행은 12개 중 1개 실패(36초). 수정한 테스트 token의 접두어+UUID가 실제 36자 컬럼 길이를 넘어 실패했다.
+  테스트 token을 36자 UUID로 맞췄다. 운영 코드의 제약이나 검증 기대값을 완화하지 않았다.
+- 늦게 도착한 ALLOWED 거절 단위 사례와 종료 직후 DB/offset 검증을 보강했다.
+- `./gradlew --no-daemon --console=plain test --tests '*WorkerQuotaTest' --tests '*WorkerQuotaIntegrationTest'`:
+  **13개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(37초). 단위 7개 + 통합 6개다.
+- 실제 MySQL/Kafka/Redis/HTTP, 자동 Relay, HTTP 500: 최초+재시도 허가/HTTP/이력/offset 각각 3, DLQ 1.
+  재시도 quota 대기 중 WAITING_RETRY/시도 1을 보존하고 다른 DB 연결에서 task UPDATE를 500ms 이내 완료했다.
+- 같은 group/Redis 키를 쓰는 앱 context 2개, r=1/B=1: 둘 다 quota 대기할 때 시도/HTTP/offset 0, worker_token 없음.
+  이후 각 앱 허가 1/합산 HTTP·시도·offset 2로 완료했다. 대기 중 task UPDATE로 잠금 해제를 확인했다.
+- quota wait 100ms: 같은 파티션의 2건 모두 시도/offset 0을 유지한 채 소비 중지.
+  테스트 예산 복원/명시적 재시작 후 각각 1회 처리했다. 이후 잘못된 Redis 상태에서도 완료 재소비는 추가 허가/HTTP 없이 offset만 3으로 처리했다.
+- Redis CLIENT PAUSE 1500ms/클라이언트 timeout 100ms: UNAVAILABLE로 미선점/미커밋 중지, 해제 후 재시작하여 시도/HTTP/offset 1.
+- quota 대기 중 context 종료: 종료 후 DB QUEUED/시도 0/offset 0/HTTP 0 확인. 새 context에서 시도/이력/HTTP/offset 1로 복구했다.
+- 만료 시도 probe: 기존 STARTED/시도/토큰 무변경. 상한 소진 작업은 허가/HTTP 0으로 UNKNOWN/최종 실패/DLQ를 저장한 후 offset 1.
+- 각 사례는 격리 MySQL 컨테이너의 별도 schema를 쓴다. 자동 Relay 사례 외에는 파티션/중단 경계를 통제해 직접 Kafka 발행했고,
+  원래 Outbox는 PENDING으로 유지했다. 테스트 Redis 미래 시각/예산 복원은 관찰·복구 준비용이며 운영 초기화 기능을 추가하지 않았다.
+- 첫 전체 `build --rerun-tasks`: 168개 중 167개 통과, 기존 OutboxProcessCrashTest 1개 실패(9분 15초).
+  해당 사례에서 KafkaAdmin listNodes timeout과 bootstrap broker 연결 끊김이 이어져 ACK 신호 파일이 생성되지 않았다.
+  새 quota 13개를 포함한 다른 테스트는 통과했다. 이 결과를 전체 통과로 간주하지 않는다.
+- 실패 사례만 `test --tests '*OutboxProcessCrashTest'`로 새 컨테이너에서 재실행: **1개 통과**, BUILD SUCCESSFUL(47초).
+  코드/기대값/timeout 변경 없이 재현되지 않았다. 원래 브로커 연결 실패의 근본 원인은 확정하지 않았다.
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **24개 클래스 / 168개 테스트 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(Gradle 출력 24분 7초), 종료 코드 0.
+  Outbox 강제 종료 사례와 새 quota 13개를 포함해 전체 XML 결과를 확인했다.
+- 실행 JAR에 WorkerQuota/Disposition, Redis Lua/Jedis가 포함되고 테스트/Mock 서버 클래스는 제외됨을 확인했다.
+  WorkerQuota의 JAR 바이트와 컴파일 산출물이 일치했다. 문서 상대 링크/코드 블록과 `git diff --check`를 확인했다.
+- 테스트 후 컨테이너와 Java/caffeinate 자식 프로세스가 남지 않았다. 기존 로컬 MySQL 컨테이너는 healthy다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 기본 main/HEAD c95a444 확인. 원격 푸시는 하지 않았다.
+
+### 한계와 다음 단계
+
+- 다음은 소비 pause/resume와 poll/heartbeat 유지 검증이다. 현재 quota 대기는 소비 스레드와 Worker 처리 자리를 사용한다.
+  FIFO 대기/Redis 명령/HTTP/DB 지연까지 합산하므로 모든 장애에서 poll 간격을 보장하지 않는다.
+- 짧은 Redis 응답 중단과 수동 재시작은 검증했다. 장기 장애, 상태 유실/예산 복원, Redis 재시작/AOF/failover는 별도 항목으로 남긴다.
+- 앱 2개는 하나의 테스트 JVM 안의 독립 context/소비자/연결 풀이다. 별도 호스트/JVM 조합과 처리량 벤치마크는 이번 범위가 아니다.
+- 앱 간 공정성/우선순위, Circuit Breaker, 429 Retry-After는 구현하지 않았다.
+  허가 후 실제 HTTP까지의 지연과 불확실한 공급자 수락/중복 가능성도 그대로다.
+- 1만 건 실험·실행 JAR 별도 기동 smoke·원격 CI는 이번에 실행하지 않았다.
+- 기존 로컬 DB/.env/IDE 설정은 변경하지 않았다. 사용자 검토 전 원격에 푸시하지 않는다.

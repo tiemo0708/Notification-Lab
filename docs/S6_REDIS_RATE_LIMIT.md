@@ -6,8 +6,8 @@ Worker 동시 처리 수와 HTTP 연결 수는 프로세스별 상한이다. 앱
 또한 같은 동시성이라도 공급자가 빨라지면 초당 요청량이 증가한다. 동시 처리 수와 시간당 요청 예산은 별도 제어가 필요하다.
 
 이번에는 여러 클라이언트가 **동일 Redis의 동일 공급자 키**를 사용해 한 예산을 공유하는 제한기를 구현했다.
-Worker 연결은 PLAN의 다음 항목이다. 현재 앱의 실제 발송이 이 quota로 제한된다고 해석하지 않는다.
-기존 API 응답, DB 선점/시도 이력, 재시도와 offset 처리 코드는 변경하지 않았다.
+이 문서는 제한기 컴포넌트 자체의 설계와 검증을 설명한다.
+후속 [Worker 연동](S6_WORKER_QUOTA.md)에서 DB 선점 전 대기와 최초/재시도 공통 quota를 추가했다.
 
 ## 대안과 선택 기준
 
@@ -69,8 +69,8 @@ Hash 필드는 `version`, `rate`, `burst`, `credit`, `last_ms`다. 기존 rate/b
 | `UNAVAILABLE` | Redis 오류, timeout, 풀 포화/종료, 정책 충돌/상태 오류 | 허가로 취급하지 않음; retryAfterMs=0도 즉시 호출 허가가 아님 |
 
 timeout이면 Redis에서 이미 토큰을 소비했을 수도 있다. 응답을 못 받았다고 자동 재시도하거나 환불하지 않는다.
-따라서 장애 중 예산을 덜 사용할 수 있다. Worker 대기/소비 중지/재개와 offset 보존 정책은 후속 단계에서 검증한다.
-현재 제한기의 오류 거절 테스트를 전체 알림 파이프라인의 Redis 장애 복구 검증으로 간주하지 않는다.
+따라서 장애 중 예산을 덜 사용할 수 있다. Worker의 유한 대기/소비 중지/명시적 재시작과 offset 보존은
+[연동 문서](S6_WORKER_QUOTA.md)에서 다룬다. 이 문서의 제한기 단독 테스트와 구분한다.
 
 Spring Boot BOM의 Jedis 6.0.0을 직접 사용한다. Spring Data Redis 자동 설정/health 의존성을 추가하지 않았다.
 연결 풀은 기본 2개(1~4), 추가 대기열 없음(`blockWhenExhausted=false`).
@@ -90,6 +90,7 @@ Spring Boot BOM의 Jedis 6.0.0을 직접 사용한다. Spring Data Redis 자동 
 
 ```yaml
 client-enabled: false
+wait-timeout-ms: 2000 # Worker 대기 예산, 제한기 자체의 네트워크 timeout과 별개
 host: 127.0.0.1
 port: 16379
 key: notification-lab:provider:mock:quota
@@ -99,9 +100,8 @@ max-connections: 2
 timeout-ms: 250
 ```
 
-`client-enabled=true`는 Spring 빈 생성만 활성화한다. **Worker를 보호하는 스위치가 아니다.**
-기본 실행과 memory/sync 비교 실행에 Redis를 요구하지 않는다. 실제 acquire는 현재 집중 테스트에서 호출한다.
-후속 Worker 연결에서 이 구분과 실행 방법을 갱신한다.
+`client-enabled=true`는 제한기 빈을 만들며 현재는 비동기 Worker의 최초/재시도 quota에도 적용된다.
+기본값 false와 memory/sync 비교 프로필은 기존 기준선을 유지한다.
 
 필요한 경우에만 로컬 Redis를 실행한다. Compose 예시는 README의 `.env` 준비가 된 경우이며,
 자동 테스트에는 `.env`나 Compose 사전 실행이 필요 없다.
@@ -144,9 +144,9 @@ caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks
 
 ## 다음 단계와 남은 한계
 
-최초 발송과 재시도가 같은 limiter를 통과하도록 연결하고, quota 부족을 공급자 실패로 기록하지 않도록 한다.
-대기 때문에 시도 횟수/lease를 소모하거나 미완료 offset을 넘기지 않는지 실제 MySQL/Kafka/HTTP로 검증해야 한다.
-소비 pause/resume, Redis 장기 장애/복구 정책, Circuit Breaker, 우선순위 배분은 남은 PLAN 항목이다.
+최초 발송과 재시도는 이제 같은 limiter를 통과한다. quota 부족을 공급자 실패로 기록하지 않으며
+대기 중 시도 횟수/lease/offset 보존을 별도 통합 테스트로 검증했다.
+소비 pause/resume, Redis 장기 장애/예산 유실·복구 정책, Circuit Breaker, 우선순위 배분은 남은 PLAN 항목이다.
 
 허가를 받은 뒤 스레드가 멈췄다가 여러 개 동시에 HTTP를 호출하면 허가 시점과 실제 요청 시점이 달라진다.
 이 컴포넌트 검증만으로 공급자에서 관측되는 도착률/모든 장애 조합의 quota 준수를 보장하지 않는다.

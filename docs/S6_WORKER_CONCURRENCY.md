@@ -122,8 +122,9 @@ DB 실패 복구의 lease 만료는 SQL로 재현했다. 실제 시간 경과/�
 장시간 대기 중 poll/heartbeat를 유지하는 pause/resume는 다음 계획에 별도로 남아 있다.
 Worker 처리 자리는 로컬 호출과 DB 처리의 상한이다. 클라이언트 timeout 뒤에도 공급자가 계속 처리할 수 있으므로
 공급자 서버의 전체 실행 수까지 같은 값으로 제한한다는 보장은 없다.
-다중 앱 전역 제한·초당 Rate Limit·429 Retry-After·Circuit Breaker는 아직 구현하지 않았다.
-다음 미완료 항목은 Redis Lua 전역 Rate Limit과 속도/버스트 정책이다.
+다중 앱의 공유 요청 예산은 후속 [Redis quota 연동](S6_WORKER_QUOTA.md)에서 추가했다.
+quota 대기는 Worker 처리 자리를 사용하며 여기의 FIFO 대기 시간과 별도로 계산한다.
+429 Retry-After·Circuit Breaker는 남아 있고 다음 미완료 항목은 소비 pause/resume 검증이다.
 
 근거: Spring Kafka 3.3의 [컨테이너·동시성·offset 설명](https://docs.spring.io/spring-kafka/reference/3.3/kafka/receiving-messages/message-listener-container.html),
 [listener thread safety](https://docs.spring.io/spring-kafka/reference/3.3/kafka/thread-safety.html).

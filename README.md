@@ -171,19 +171,31 @@ HTTP 클라이언트 기본값은 연결 2개/추가 호출 4개, 풀 대기 200
 파티션별 순차 처리와 DB 완료 후 RECORD offset 커밋을 유지한다. 처리/대기 상한은 프로세스별이다.
 [문제·대안·선택 이유·종료 정책·검증 결과](docs/S6_WORKER_CONCURRENCY.md)를 참고한다.
 
-## Redis 전역 제한기 (S6, Worker 연결 전)
+## Redis 전역 요청 한도와 Worker 연동 (S6)
 
 여러 클라이언트가 같은 Redis 키에서 토큰을 공유하는 Lua 제한기를 추가했다.
 기본 정책은 **초당 10개 보충 / 최대 버스트 10개**이며, Redis 서버 시간으로 보충·확인·차감을 원자적으로 수행한다.
 `ALLOWED`, `LIMITED`(재확인 대기 시간), `UNAVAILABLE`(오류/포화/설정 충돌)을 구분하며 오류 시 허용하지 않는다.
 
-**현재 Worker는 아직 이 제한기를 호출하지 않는다.** 기본 실행은 Redis가 필요 없고,
-`app.rate-limit.client-enabled=true`도 클라이언트 빈만 생성한다. 실제 HTTP 요청량 제한은 다음 단계에서 연결한다.
-Redis 인프라는 필요할 때 `docker compose --profile redis up -d --wait redis`로 별도 실행할 수 있다.
+`app.rate-limit.client-enabled=true`이면 비동기 Worker의 **최초 발송과 재시도 모두** 같은 quota를 사용한다.
+완료된 메시지 재소비는 quota 없이 처리한다. 발송이 필요하면 DB 트랜잭션을 끝낸 뒤 허가를 기다리고,
+허가 후 새 트랜잭션에서 상태를 재확인하여 시도 횟수/lease를 만든다. memory/sync 비교 프로필은 적용 대상이 아니다.
+
+```bash
+docker compose --profile redis up -d --wait redis
+./gradlew bootRun --args='--app.provider.mode=HTTP --app.rate-limit.client-enabled=true'
+```
+
+기존 MySQL/Kafka와 HTTP Mock 실행도 필요하다. 기본값 false는 Redis 없이 기존 기준선을 실행한다.
 `127.0.0.1:${REDIS_PORT:-16379}`, Redis 7.4.11, AOF/전용 volume/`noeviction`을 사용한다.
+모든 참여 앱에 같은 Redis/키/rate/burst를 설정한다.
+
+`app.rate-limit.wait-timeout-ms` 기본 2000(1~5000)이다. 대기 중 DB 시도/lease를 만들지 않는다.
+한도 대기 초과나 Redis 오류 시 미완료 offset을 보존하고 소비를 중지한다. 원인 해결 후 명시적으로 재시작한다.
+대기는 소비 스레드에서 이루어지므로 자동 pause/resume와 poll 유지 검증은 다음 단계다.
 
 [문제·알고리즘 비교·정책·실제 Redis 검증·한계](docs/S6_REDIS_RATE_LIMIT.md)를 참고한다.
-다음은 최초 발송과 재시도에 같은 공급자 quota를 적용하고, 대기 시 DB 시도 횟수와 offset을 보존하는 작업이다.
+[연동 경계·대안·복구·실제 통합 검증](docs/S6_WORKER_QUOTA.md)을 함께 참고한다.
 
 ## 테스트와 빌드
 
@@ -230,7 +242,8 @@ S2 시절 이미 남은 `PROCESSING` 레코드는 Outbox가 없으므로 S3에�
 - `outbox_sample_age_seconds`, `notification_consumer_sample_age_seconds`: 마지막 지표 수집 성공 후 경과 시간.
 - `notification_worker_active`, `notification_worker_waiting`, `notification_worker_admission_rejected_total{reason=...}`: 처리/대기 수와 진입 거절 횟수.
 - `notification_worker_running`: 소비 중 1, 정지 0.
-- `notification_rate_limit_decisions_total{outcome=allowed|limited|unavailable}`, `notification_rate_limit_connections_active`: 제한기 호출 결과와 사용 중 Redis 연결 수. 클라이언트 활성화 시 등록하며 아직 Worker 발송 지표가 아님.
+- `notification_rate_limit_decisions_total{outcome=allowed|limited|unavailable}`, `notification_rate_limit_connections_active`: 제한기 호출 결과와 사용 중 Redis 연결 수. 클라이언트 활성화 시 등록. 허가 판정 지표이며 실제 HTTP 호출 수와 다를 수 있음.
+- `notification_worker_quota_waiting`, `notification_worker_quota_rejected_total{reason=timeout|unavailable|stopping|interrupted}`: quota 확인/대기 수와 진입 거절. 허가 수와 실제 발송 수는 중단/경합 때문에 다를 수 있음.
 - `notification_worker_exhausted_total`: 복구 선점 상한을 소진해 최종 저장한 작업 수.
 - `outbox_publish_failures_total`, `outbox_published_total`, `notification_worker_failures_total`, `notification_worker_replays_total`.
 
@@ -240,11 +253,12 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-Redis 제한기의 Worker 연결, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+소비 pause/resume, Circuit Breaker, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S6_WORKER_QUOTA.md](docs/S6_WORKER_QUOTA.md): 최초/재시도 공통 quota, 선점 전 대기와 offset 보존
 - [docs/S6_REDIS_RATE_LIMIT.md](docs/S6_REDIS_RATE_LIMIT.md): Redis Lua 공유 토큰 버킷, 속도/버스트 계약과 검증
 - [docs/S6_WORKER_CONCURRENCY.md](docs/S6_WORKER_CONCURRENCY.md): Worker 처리/대기 상한과 파티션별 offset·종료 검증
 - [docs/S6_HTTP_CLIENT.md](docs/S6_HTTP_CLIENT.md): Worker HTTP 선택, timeout/연결 풀/전체 deadline과 실패 분류

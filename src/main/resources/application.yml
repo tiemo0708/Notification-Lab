@@ -62,8 +62,9 @@ spring:
 
 app:
   rate-limit:
-    # Client component only; Worker integration is the next S6 step.
+    # Applies the shared quota to async Worker sends, including retries. Comparison profiles bypass it.
     client-enabled: false
+    wait-timeout-ms: 2000
     host: 127.0.0.1
     port: ${REDIS_PORT:16379}
     key: notification-lab:provider:mock:quota
