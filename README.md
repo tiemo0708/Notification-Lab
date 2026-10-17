@@ -200,6 +200,18 @@ Redis 오류는 두 모드 모두 소비 중지/명시적 재시작이며, 자�
 [문제·알고리즘 비교·정책·실제 Redis 검증·한계](docs/S6_REDIS_RATE_LIMIT.md)를 참고한다.
 [연동 경계·대안·복구·실제 통합 검증](docs/S6_WORKER_QUOTA.md)을 함께 참고한다.
 
+## 공급자 Circuit Breaker (S6)
+
+HTTP 공급자의 연속 장애 시 **DB 선점과 Redis quota 소비 전에** 발송을 보류한다.
+기본은 꺼져 있으며 비동기 HTTP 모드에서 `--app.circuit-breaker.enabled=true`로 선택한다.
+임계값 `failure-threshold=3`, 차단 시간 `open-ms=5000`이 기본이다.
+
+CLOSED → OPEN → HALF_OPEN으로 전환하며, HALF_OPEN에서는 앱당 한 요청으로 복구를 확인한다.
+5xx/통신 오류는 장애로 세고 429/개별 요청 오류/로컬 자원 부족은 제외한다.
+차단 중에는 기존 pause/poll/resume를 사용해 시도 횟수와 미완료 offset을 보존한다.
+상태는 프로세스별이며 재시작하면 CLOSED로 초기화한다. Redis quota와 독립적으로 켤 수 있다.
+[문제·대안·선택 이유·상태 전이·실제 인프라 검증·한계](docs/S6_CIRCUIT_BREAKER.md)를 참고한다.
+
 ## 테스트와 빌드
 
 테스트가 격리된 MySQL/Kafka/Redis 컨테이너를 생성·삭제하므로 `.env`와 Compose 사전 실행은 필요 없다.
@@ -247,6 +259,8 @@ S2 시절 이미 남은 `PROCESSING` 레코드는 Outbox가 없으므로 S3에�
 - `notification_worker_running`: 소비 중 1, 정지 0.
 - `notification_rate_limit_decisions_total{outcome=allowed|limited|unavailable}`, `notification_rate_limit_connections_active`: 제한기 호출 결과와 사용 중 Redis 연결 수. 클라이언트 활성화 시 등록. 허가 판정 지표이며 실제 HTTP 호출 수와 다를 수 있음.
 - `notification_worker_quota_waiting`, `notification_worker_quota_rejected_total{reason=timeout|unavailable|stopping|interrupted}`: 이전 동기 비교 모드의 대기 수와 두 모드의 진입 거절. pause 중 waiting은 0.
+- `notification_provider_circuit_state`, `notification_provider_circuit_failures`, `notification_provider_circuit_probe_active`: 프로세스별 회로 상태(0/1/2), 실패 수, 탐침 점유. 상세 카운터는 [회로 문서](docs/S6_CIRCUIT_BREAKER.md) 참고.
+- `notification_worker_circuit_pauses_pending`, `notification_worker_circuit_pauses_total`, `notification_worker_circuit_resumes_total`: 회로 차단 사유의 재개 예약과 요청 수.
 - `notification_worker_quota_pauses_pending`, `notification_worker_quota_pauses_total`, `notification_worker_quota_resumes_total`: 재개 예약 수와 pause/resume 요청 수. 실제 pause 확정은 컨테이너 상태와 함께 확인.
 - `notification_worker_exhausted_total`: 복구 선점 상한을 소진해 최종 저장한 작업 수.
 - `outbox_publish_failures_total`, `outbox_published_total`, `notification_worker_failures_total`, `notification_worker_replays_total`.
@@ -257,11 +271,12 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-Circuit Breaker, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+Redis 장기 장애/예산 유실 정책, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S6_CIRCUIT_BREAKER.md](docs/S6_CIRCUIT_BREAKER.md): 공급자 회로 차단과 단일 half-open 탐침, 선점/offset 보존
 - [docs/S6_CONSUMER_PAUSE.md](docs/S6_CONSUMER_PAUSE.md): quota 부족 시 자동 pause/resume, poll 유지·종료·리밸런스 검증
 - [docs/S6_WORKER_QUOTA.md](docs/S6_WORKER_QUOTA.md): 최초/재시도 공통 quota, 선점 전 대기와 offset 보존
 - [docs/S6_REDIS_RATE_LIMIT.md](docs/S6_REDIS_RATE_LIMIT.md): Redis Lua 공유 토큰 버킷, 속도/버스트 계약과 검증

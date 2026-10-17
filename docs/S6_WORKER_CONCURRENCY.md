@@ -124,7 +124,8 @@ Worker 처리 자리는 로컬 호출과 DB 처리의 상한이다. 클라이언
 공급자 서버의 전체 실행 수까지 같은 값으로 제한한다는 보장은 없다.
 다중 앱의 공유 요청 예산은 후속 [Redis quota 연동](S6_WORKER_QUOTA.md)에서 추가했다.
 quota의 이전 동기 비교 모드는 Worker 처리 자리를 사용한다. 기본 pause 모드는 LIMITED에서 처리 자리를 반환한다.
-429 Retry-After·Circuit Breaker는 남아 있고 다음 미완료 항목은 Circuit Breaker/half-open 복구다.
+[Circuit Breaker/half-open 복구](S6_CIRCUIT_BREAKER.md)도 선점 전에 연결했다.
+429 Retry-After는 미구현이며 다음 미완료 항목은 Redis 장기 장애/예산 유실 정책이다.
 
 근거: Spring Kafka 3.3의 [컨테이너·동시성·offset 설명](https://docs.spring.io/spring-kafka/reference/3.3/kafka/receiving-messages/message-listener-container.html),
 [listener thread safety](https://docs.spring.io/spring-kafka/reference/3.3/kafka/thread-safety.html).

@@ -2,6 +2,7 @@ package dev.jinhyeon.notificationlab.worker;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.jinhyeon.notificationlab.notification.NotificationService;
+import dev.jinhyeon.notificationlab.provider.ProviderCircuitBreaker;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.UUID;
@@ -15,13 +16,16 @@ import org.springframework.stereotype.Component;
 public class NotificationWorker {
     private final WorkerAdmission admission;
     private final WorkerQuota quota;
+    private final ProviderCircuitBreaker circuit;
     private final WorkerStore store;
     private final NotificationService service;
     private final ObjectMapper mapper;
     private final MeterRegistry registry;
 
     public NotificationWorker(WorkerStore store, NotificationService service,
-                              ObjectMapper mapper, MeterRegistry registry, WorkerAdmission admission, WorkerQuota quota) {
+                              ObjectMapper mapper, MeterRegistry registry, WorkerAdmission admission,
+                              WorkerQuota quota, ProviderCircuitBreaker circuit) {
+        this.circuit = circuit;
         this.admission = admission;
         this.quota = quota;
         this.store = store;
@@ -36,7 +40,7 @@ public class NotificationWorker {
     public void receive(ConsumerRecord<String, String> record) {
         try {
             admission.execute(() -> process(record));
-        } catch (WorkerQuota.QuotaDeferred deferred) {
+        } catch (WorkerQuota.QuotaDeferred | ProviderCircuitBreaker.CircuitDeferred deferred) {
             throw deferred;
         } catch (RuntimeException failure) {
             registry.counter("notification.worker.failures").increment();
@@ -55,31 +59,34 @@ public class NotificationWorker {
             UUID eventId = UUID.fromString(event.path("eventId").asText());
             if (!id.toString().equals(record.key())) throw new IllegalArgumentException();
             String token = UUID.randomUUID().toString();
-            var claimed = store.claim(id, eventId, token, taskId, !quota.enabled());
-            if (claimed.isPresent() && claimed.get().needsPermit()) {
-                quota.awaitPermit();
-                claimed = store.claim(id, eventId, token, taskId); // Revalidate after admission, then start the attempt.
-            }
-            if (claimed.isPresent()) {
-                Timer.Sample sample = Timer.start(registry);
-                var claim = claimed.get();
-                if (claim.send()) {
-                    var completed = service.attempt(claim.notification()); // Outside all DB transactions.
-                    if (store.complete(completed, token)) { // History and retry outbox commit before the original offset.
-                        registry.counter("notification.retry.scheduled").increment();
-                        sample.stop(Timer.builder("notification.processing").tag("status", "WAITING_RETRY")
-                                .publishPercentileHistogram().register(registry));
+            var claimed = store.claim(id, eventId, token, taskId, !quota.enabled() && !circuit.enabled());
+            try (var permit = claimed.isPresent() && claimed.get().needsPermit() ? circuit.acquire() : null) {
+                if (claimed.isPresent() && claimed.get().needsPermit()) {
+                    quota.awaitPermit();
+                    claimed = store.claim(id, eventId, token, taskId); // Revalidate after admission, then start the attempt.
+                }
+                if (claimed.isPresent()) {
+                    Timer.Sample sample = Timer.start(registry);
+                    var claim = claimed.get();
+                    if (claim.send()) {
+                        var completed = service.attempt(claim.notification()); // Outside all DB transactions.
+                        if (permit != null) permit.complete(completed); // Observe HTTP outcome, independently of DB completion.
+                        if (store.complete(completed, token)) { // History and retry outbox commit before the original offset.
+                            registry.counter("notification.retry.scheduled").increment();
+                            sample.stop(Timer.builder("notification.processing").tag("status", "WAITING_RETRY")
+                                    .publishPercentileHistogram().register(registry));
+                        } else {
+                            service.recordCompletion(completed, sample);
+                        }
                     } else {
-                        service.recordCompletion(completed, sample);
+                        registry.counter("notification.worker.exhausted").increment();
+                        service.recordCompletion(claim.notification(), sample);
                     }
                 } else {
-                    registry.counter("notification.worker.exhausted").increment();
-                    service.recordCompletion(claim.notification(), sample);
+                    registry.counter("notification.worker.replays").increment();
                 }
-            } else {
-                registry.counter("notification.worker.replays").increment();
             }
-        } catch (WorkerQuota.QuotaDeferred deferred) {
+        } catch (WorkerQuota.QuotaDeferred | ProviderCircuitBreaker.CircuitDeferred deferred) {
             throw deferred;
         } catch (Exception failure) {
             // Do not attach SQL/JSON exceptions: they can contain recipient data or payloads.

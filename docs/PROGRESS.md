@@ -1078,3 +1078,53 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   Redis 장기 장애/상태 유실·failover 정책은 별도 항목으로 남긴다.
 - 리밸런스 사례는 같은 테스트 JVM의 독립 앱 context다. 별도 호스트/JVM·운영 처리량·1만 건 정합성 실험·원격 CI는 이번 범위가 아니다.
 - DB migration, 사용자 로컬 DB/.env/IDE 설정을 변경하지 않았다. 다음은 Circuit Breaker와 half-open 복구다.
+
+## 2026-10-17: S6 일곱 번째 단계 — 공급자 회로 차단과 half-open 복구
+
+### 문제와 구현
+
+- quota는 속도를 제한하지만 공급자 장애를 판단하지 않는다. 반복 5xx 중 새 알림까지 발송 시도를 소모하는 문제에 대응했다.
+- 연속 관측 실패 기준의 프로세스별 Circuit Breaker를 선택했다. CLOSED/OPEN/HALF_OPEN과 세대별 permit을 직접 구현했다.
+  라이브러리의 실패율/슬라이딩 윈도우나 전역 회로까지 구현한 것은 아니다.
+- 기본은 꺼짐, 비동기 HTTP 모드에서 선택한다. 기본 임계값 3(1~20), cooldown 5000ms(100~60000).
+  monotonic clock을 사용하고 HALF_OPEN에서는 앱당 한 permit만 허용한다.
+- Worker는 DB 확인 뒤 회로 → quota → DB 재검증/선점 → HTTP → 회로 결과 → DB 완료 → offset 순서로 처리한다.
+  OPEN 보류는 시도/lease/Redis 허가를 소모하지 않는다. 완료 재소비는 두 gate를 우회한다.
+- 5xx와 통신/알 수 없는 응답은 실패로 집계한다. 429/개별 요청 오류/로컬 자원 오류/내부 앱 오류는 제외한다.
+  늦은 이전 세대 결과는 현재 회로 상태를 바꾸지 않는다.
+- HTTP 전 quota/DB 오류나 경합으로 permit을 쓰지 못하면 자동 반환한다. HALF_OPEN 탐침이 영구 점유되는 것을 막는다.
+- 기존 부모 컨테이너 pause/poll/resume에 회로 보류를 연결했다. 예약 상한/종료 취소를 유지하고 회로별 메트릭을 추가했다.
+- [문제·대안·선택·트랜잭션·설정·검증·한계](S6_CIRCUIT_BREAKER.md), README/PLAN과 이전 pause 문서를 갱신했다.
+
+### 실제 검증
+
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*ProviderCircuitBreakerTest' --tests '*WorkerCircuitBreakerIntegrationTest'`:
+  **2개 클래스 / 25개 테스트 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(40초), 종료 코드 0.
+- 단위 21개: 실패 분류·성공 초기화, cooldown 경계, 단일 탐침, 탐침 실패 재차단,
+  오래된 성공/실패 무시, 취소·제외 결과의 탐침 반환, 중복 complete/close, 비활성화와 잘못된 설정 거절.
+- 통합 4개: 실제 MySQL 8.4.8/Kafka 4.0.2/Redis 7.4.11와 loopback HTTP 서버. 사례별 schema/토픽/group/키 격리.
+  실제 Relay의 500 두 번 뒤 pause에서 시도/HTTP/허가/offset=2, Worker active=0, DB UPDATE 500ms 이내 완료.
+  202로 바꾼 후 자동 탐침으로 이력=실패/실패/수락, HTTP/허가/offset=3을 확인했다.
+- 소비 스레드 3개에서 HALF_OPEN HTTP 1개와 나머지 QUEUED/시도 0을 관찰했다.
+  탐침 500에서 다시 OPEN, 다음 202에서 CLOSED로 복구했다.
+- OPEN+잘못된 Redis 상태에서도 완료 재소비는 HTTP 없이 offset을 진행했다.
+  새 작업의 HALF_OPEN permit 뒤 Redis 오류는 미선점/미커밋 중지하고 탐침 자리를 반환했다. 복원/명시적 재시작 후 수락했다.
+- OPEN pause 중 context 종료에서 예약 0/기존 offset 보존, 새 context에서 미처리 작업 1회 수락을 확인했다.
+- 집중 테스트 뒤 영구 실패/내부 실패의 실제 상태 enum 분류와 Redis quota 비활성+회로 활성 조합을 보강해 전체 빌드에 포함했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **26개 클래스 / 201개 테스트 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(11분 36초), 종료 코드 0.
+  최종 XML에서 보강한 회로 단위 21개/통합 4개와 기존 회귀를 모두 확인했다. 이번 집중/전체 실행에서 실패는 없었다.
+- 실행 JAR의 회로/permit/보류 예외와 Worker/오류 처리기 바이트가 컴파일 산출물과 일치하며 테스트/Mock 서버 클래스는 제외됐다.
+  문서 상대 링크/코드 블록과 `git diff --check`를 확인했다. JAR 별도 기동 smoke는 이번에 실행하지 않았다.
+- MySQL/Kafka/Redis 테스트 컨테이너와 Java/caffeinate 프로세스 종료를 확인했다. 기존 로컬 MySQL은 healthy다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444 확인. 푸시하지 않았다.
+
+### 한계와 다음 단계
+
+- 프로세스별 회로라 재시작하면 CLOSED이며 앱마다 별도 탐침을 허용한다. 전역 단일 탐침/영속 회로가 아니다.
+- 기존 세대에서 이미 허가한 작업은 OPEN 뒤 HTTP를 시작하거나 끝낼 수 있다. 늦은 결과의 상태 변경만 막는다.
+- HALF_OPEN에서 DB가 오래 멈추면 탐침 자리도 묶일 수 있다. 기존 호출과 새 탐침의 중첩을 피하려고 시간만으로 permit을 반환하지 않는다.
+- 부모 전체 pause·전체 대기 시간 무제한, 공급자 수락 후 DB 저장 전 중단의 불확실성과 외부 중복 가능성은 남아 있다.
+- 별도 호스트/운영 처리량/새 1만 건 정합성 실험/원격 CI는 이번에 실행하지 않았다.
+- DB migration, 사용자 로컬 DB/.env/IDE 설정을 변경하지 않았다. 다음은 Redis 장기 장애/예산 유실·failover 정책이다.
+  S6 전체 완료로 표시하지 않으며 우선순위/자원 분리는 시작하지 않았다.

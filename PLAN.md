@@ -94,7 +94,7 @@ S5에서 Kafka 중단·복구와 ACK 후 Outbox 기록 전 Relay 프로세스 �
 Worker DB 완료 후 offset 커밋 전 종료와 재소비도 검증했다.
 Relay/Worker 재시작, 처리 중 합류와 작업 완료 후 이탈에 따른 리밸런스도 검증했다.
 SIGTERM 정상 종료와 유예 초과 복구까지 검증했다.
-S6에서는 별도 HTTP Mock, HTTP 어댑터의 timeout/연결 풀 상한, Worker 동시성/유한 FIFO 대기열과 Redis 공유 제한기를 추가했다. 최초 발송/재시도의 quota와 정상 한도 부족의 소비 pause/resume를 연결했다. 다음은 Circuit Breaker/half-open 복구다.
+S6에서는 별도 HTTP Mock, HTTP 어댑터의 timeout/연결 풀 상한, Worker 동시성/유한 FIFO 대기열과 Redis 공유 제한기를 추가했다. 최초 발송/재시도의 quota와 정상 한도 부족의 소비 pause/resume를 연결했다. 프로세스별 Circuit Breaker/half-open 복구까지 연결했다. 다음은 Redis 장기 장애/예산 유실 정책이다.
 실제 검증 결과는 docs/PROGRESS.md에 기록한다.
 
 ### S5. 장애·배포 실험
@@ -133,7 +133,7 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 - [x] Redis Lua 전역 Rate Limit (속도와 허용 버스트 정의)
 - [x] 재시도/최초 발송에 동일 provider quota 적용
 - [x] 소비 pause/resume, poll/heartbeat 유지 검증
-- [ ] Circuit Breaker 및 half-open 복구
+- [x] Circuit Breaker 및 half-open 복구
 - [ ] Redis 장애 정책 결정 (대기/fail-closed 등)과 검증
 - [ ] 실시간/캠페인 자원 분리와 공급자 한도 내 우선순위 배분
 
@@ -151,7 +151,9 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 [소비 pause/resume](docs/S6_CONSUMER_PAUSE.md)는 정상 LIMITED에서 처리 자리를 반환하고 미완료 레코드를 보관한 채 poll을 유지한다.
 5초 max.poll.interval보다 긴 7초 pause에서 poll/heartbeat와 offset 보존, 자동 재개·종료·리밸런스를 검증했다.
 앞 문단의 유한 대기는 `pause-enabled=false` 비교 모드다. 기본 pause 모드도 Redis 오류에서는 중지한다.
-S6 전체 완료가 아니며 Circuit Breaker·Redis 장기 장애/예산 유실 정책은 남아 있다.
+[공급자 회로 차단](docs/S6_CIRCUIT_BREAKER.md)은 선점 전 OPEN 보류와 앱당 한 HALF_OPEN 탐침을 적용한다.
+실제 HTTP 500→202, 병렬 소비, Redis 오류 중 탐침 반환과 종료/재시작을 검증했다.
+S6 전체 완료가 아니며 Redis 장기 장애/예산 유실 정책과 우선순위/자원 분리는 남아 있다.
 
 완료 조건: 워커를 늘려도 제한 정책을 유지하고 공급자 장애가 메모리 폭증으로 이어지지 않는다.
 실험용 공급자 한도는 실제 FCM/APNs의 보장/쿼터로 제시하지 않는다.

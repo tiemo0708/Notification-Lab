@@ -124,5 +124,6 @@ MySQL 8.4.8/Kafka 4.0.2/Redis 7.4.11/HTTP Mock을 사용했다. 각 통합 사�
 ## 남은 범위
 
 후속 [pause/resume 단계](S6_CONSUMER_PAUSE.md)는 정상 LIMITED의 대기에서 poll을 유지한다. 이 문서의 비교 모드는 짧은 동기 대기와 중지/명시적 재시작 정책이다.
-Redis 장기 장애/예산 유실/재시작·failover, Circuit Breaker, 429 Retry-After, 우선순위 배분은 남겨 둔다.
+[Circuit Breaker](S6_CIRCUIT_BREAKER.md)는 quota 앞에서 공급자 장애를 판단한다.
+Redis 장기 장애/예산 유실/재시작·failover, 429 Retry-After, 우선순위 배분은 남겨 둔다.
 이번 결과는 지정한 구성의 정합성 검증이며 운영 처리량/모든 장애에서의 공급자 도착률/exactly-once 보장이 아니다.

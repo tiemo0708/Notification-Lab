@@ -108,7 +108,8 @@ connect timeout 설정은 적용했으나 패킷을 버리는 네트워크에서
 
 현재 429의 Retry-After는 재시도 시각에 반영하지 않는다. 기존 DB backoff를 사용한다.
 Worker 병렬 처리/유한 FIFO 대기열은 별도 단계에서 추가했다.
-공급자 쿼터 준수, Redis 전역 Rate Limit, pause/resume, Circuit Breaker는 이후 항목이다.
+후속 단계에서 [Redis 공유 quota](S6_WORKER_QUOTA.md), [pause/resume](S6_CONSUMER_PAUSE.md),
+[프로세스별 Circuit Breaker](S6_CIRCUIT_BREAKER.md)를 연결했다. Redis 장기 장애/예산 유실 정책은 남아 있다.
 연결 풀은 프로세스별이며 Worker를 늘리면 합산 연결 수도 증가한다. S6 전체 완료 또는 전역 보호 달성을 뜻하지 않는다.
 
 설정의 근거: Apache의 [RequestConfig 소스](https://github.com/apache/httpcomponents-client/blob/rel/v5.5.2/httpclient5/src/main/java/org/apache/hc/client5/http/config/RequestConfig.java)와

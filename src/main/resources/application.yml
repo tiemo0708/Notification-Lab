@@ -61,6 +61,10 @@ spring:
     clean-disabled: true
 
 app:
+  circuit-breaker:
+    enabled: false
+    failure-threshold: 3
+    open-ms: 5000
   rate-limit:
     # Applies the shared quota to async Worker sends, including retries. Comparison profiles bypass it.
     client-enabled: false

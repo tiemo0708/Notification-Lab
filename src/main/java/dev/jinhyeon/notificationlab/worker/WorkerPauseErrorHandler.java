@@ -1,5 +1,6 @@
 package dev.jinhyeon.notificationlab.worker;
 
+import dev.jinhyeon.notificationlab.provider.ProviderCircuitBreaker;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import java.util.HashMap;
@@ -19,7 +20,7 @@ import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler;
 import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
-/** Retain failed records in Spring's bounded poll buffer; only normal quota shortage is resumable. */
+/** Retain failed records in Spring's bounded poll buffer; quota shortage and open provider circuits are resumable. */
 @Component
 @Profile("!memory & !sync")
 public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler {
@@ -35,13 +36,15 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
 
     private static final class Pause {
         private ScheduledFuture<?> future;
+        private String reason;
     }
 
     public WorkerPauseErrorHandler(WorkerAdmission admission, MeterRegistry registry) {
         this.admission = admission;
         this.registry = registry;
         scheduler.setRemoveOnCancelPolicy(true);
-        registry.gauge("notification.worker.quota.pauses.pending", this, WorkerPauseErrorHandler::pendingCount);
+        registry.gauge("notification.worker.quota.pauses.pending", this, handler -> handler.pendingCount("quota"));
+        registry.gauge("notification.worker.circuit.pauses.pending", this, handler -> handler.pendingCount("circuit"));
     }
 
     @Override
@@ -56,11 +59,14 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         ensureRunning();
         Throwable cause = failure;
         for (int depth = 0; cause != null && depth < 8; depth++, cause = cause.getCause()) {
-            if (cause instanceof WorkerQuota.QuotaDeferred deferred) {
+            String reason = cause instanceof WorkerQuota.QuotaDeferred ? "quota" : "circuit";
+            long delay = cause instanceof WorkerQuota.QuotaDeferred quota ? quota.delayMs()
+                    : cause instanceof ProviderCircuitBreaker.CircuitDeferred circuit ? circuit.delayMs() : -1;
+            if (delay >= 0) {
                 try {
-                    pause(container, deferred.delayMs());
+                    pause(container, delay, reason);
                 } catch (RuntimeException unavailable) {
-                    handleRemaining(new IllegalStateException("Quota pause unavailable"), List.of(record), consumer, container);
+                    handleRemaining(new IllegalStateException("Worker pause unavailable"), List.of(record), consumer, container);
                 }
                 return false; // Never recover/skip: Spring retains this record and keeps polling while paused.
             }
@@ -69,13 +75,14 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         return false;
     }
 
-    private synchronized void pause(MessageListenerContainer container, long delayMs) {
+    private synchronized void pause(MessageListenerContainer container, long delayMs, String reason) {
         ensureRunning();
         if (pending.containsKey(container)) return;
         // One parent container in this application; keep a hard bound if more listeners are added later.
-        if (pending.size() >= 3) throw new IllegalStateException("Quota pause capacity exceeded");
+        if (pending.size() >= 3) throw new IllegalStateException("Worker pause capacity exceeded");
         container.pause();
         var ticket = new Pause();
+        ticket.reason = reason;
         pending.put(container, ticket);
         try {
             ticket.future = scheduler.schedule(() -> resume(container, ticket), delayMs, TimeUnit.MILLISECONDS);
@@ -84,7 +91,7 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
             container.resume();
             throw failure;
         }
-        registry.counter("notification.worker.quota.pauses").increment();
+        registry.counter("notification.worker." + reason + ".pauses").increment();
     }
 
     private synchronized void resume(MessageListenerContainer container, Pause ticket) {
@@ -92,11 +99,15 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         pending.remove(container);
         if (!stopping && !admission.isStopping()) {
             container.resume(); // Container API only; never access KafkaConsumer from this scheduler.
-            registry.counter("notification.worker.quota.resumes").increment();
+            registry.counter("notification.worker." + ticket.reason + ".resumes").increment();
         }
     }
 
     public synchronized int pendingCount() { return pending.size(); }
+
+    private synchronized int pendingCount(String reason) {
+        return (int) pending.values().stream().filter(ticket -> ticket.reason.equals(reason)).count();
+    }
 
     private void ensureRunning() {
         if (admission.isStopping() || stopping) {
