@@ -119,12 +119,12 @@ DB 실패 복구의 lease 만료는 SQL로 재현했다. 실제 시간 경과/�
 
 대기 중에는 소비 스레드가 poll하지 않는다. 최대 대기는 5초, HTTP deadline은 최대 10초지만 DB 지연까지 합친
 모든 상황에서 `max.poll.interval.ms=60000`을 지킨다는 보장은 없다. Kafka 설정을 바꾸면 이 예산도 다시 검증해야 한다.
-장시간 대기 중 poll/heartbeat를 유지하는 pause/resume는 다음 계획에 별도로 남아 있다.
+후속 [quota pause/resume](S6_CONSUMER_PAUSE.md)는 정상 quota 부족의 대기에서 poll을 유지한다. 여기의 WorkerAdmission 대기는 여전히 소비 스레드에서 수행한다.
 Worker 처리 자리는 로컬 호출과 DB 처리의 상한이다. 클라이언트 timeout 뒤에도 공급자가 계속 처리할 수 있으므로
 공급자 서버의 전체 실행 수까지 같은 값으로 제한한다는 보장은 없다.
 다중 앱의 공유 요청 예산은 후속 [Redis quota 연동](S6_WORKER_QUOTA.md)에서 추가했다.
-quota 대기는 Worker 처리 자리를 사용하며 여기의 FIFO 대기 시간과 별도로 계산한다.
-429 Retry-After·Circuit Breaker는 남아 있고 다음 미완료 항목은 소비 pause/resume 검증이다.
+quota의 이전 동기 비교 모드는 Worker 처리 자리를 사용한다. 기본 pause 모드는 LIMITED에서 처리 자리를 반환한다.
+429 Retry-After·Circuit Breaker는 남아 있고 다음 미완료 항목은 Circuit Breaker/half-open 복구다.
 
 근거: Spring Kafka 3.3의 [컨테이너·동시성·offset 설명](https://docs.spring.io/spring-kafka/reference/3.3/kafka/receiving-messages/message-listener-container.html),
 [listener thread safety](https://docs.spring.io/spring-kafka/reference/3.3/kafka/thread-safety.html).

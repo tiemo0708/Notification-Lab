@@ -14,25 +14,32 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/** Bounded admission on the consumer thread, with no DB transaction or worker lease held. */
+/** Quota admission before the DB claim; LIMITED can defer to container pause or bounded comparison wait. */
 @Component
 @Profile("!memory & !sync")
 public class WorkerQuota {
     private final Supplier<RedisRateLimiter.Decision> acquire;
     private final int waitTimeoutMs;
+    private final boolean pauseEnabled;
     private final MeterRegistry registry;
     private final AtomicInteger waiting = new AtomicInteger();
     private volatile boolean stopping;
 
     @Autowired
     public WorkerQuota(ObjectProvider<RedisRateLimiter> limiter,
-                       @Value("${app.rate-limit.wait-timeout-ms:2000}") int waitTimeoutMs, MeterRegistry registry) {
-        this(supplier(limiter.getIfAvailable()), waitTimeoutMs, registry);
+                       @Value("${app.rate-limit.wait-timeout-ms:2000}") int waitTimeoutMs,
+                       @Value("${app.rate-limit.pause-enabled:true}") boolean pauseEnabled, MeterRegistry registry) {
+        this(supplier(limiter.getIfAvailable()), waitTimeoutMs, pauseEnabled, registry);
     }
 
     WorkerQuota(Supplier<RedisRateLimiter.Decision> acquire, int waitTimeoutMs, MeterRegistry registry) {
+        this(acquire, waitTimeoutMs, false, registry);
+    }
+
+    WorkerQuota(Supplier<RedisRateLimiter.Decision> acquire, int waitTimeoutMs, boolean pauseEnabled, MeterRegistry registry) {
         if (waitTimeoutMs < 1 || waitTimeoutMs > 5000) throw new IllegalArgumentException("Invalid quota wait bound");
         this.acquire = acquire;
+        this.pauseEnabled = pauseEnabled;
         this.waitTimeoutMs = waitTimeoutMs;
         this.registry = registry;
         registry.gauge("notification.worker.quota.waiting", waiting);
@@ -46,6 +53,14 @@ public class WorkerQuota {
 
     public void awaitPermit() {
         if (!enabled()) return;
+        if (pauseEnabled) {
+            checkAvailable();
+            var decision = acquire.get();
+            checkAvailable();
+            if (decision.outcome() == RedisRateLimiter.Outcome.UNAVAILABLE) throw rejected("unavailable");
+            if (decision.outcome() == RedisRateLimiter.Outcome.LIMITED) throw new QuotaDeferred(decision.retryAfterMs());
+            return;
+        }
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(waitTimeoutMs);
         waiting.incrementAndGet();
         try {
@@ -67,10 +82,26 @@ public class WorkerQuota {
         } finally { waiting.decrementAndGet(); }
     }
 
-    private void check(long deadline) {
+    private void checkAvailable() {
         if (stopping) throw rejected("stopping");
         if (Thread.currentThread().isInterrupted()) throw rejected("interrupted");
+    }
+
+    private void check(long deadline) {
+        checkAvailable();
         if (System.nanoTime() >= deadline) throw rejected("timeout");
+    }
+
+    /** Contains only a bounded delay, never record content or a low-level exception. */
+    public static final class QuotaDeferred extends RuntimeException {
+        private final long delayMs;
+
+        QuotaDeferred(long delayMs) {
+            super("Provider quota limited; defer unclaimed record");
+            this.delayMs = Math.max(100, Math.min(60_000, delayMs));
+        }
+
+        public long delayMs() { return delayMs; }
     }
 
     private IllegalStateException rejected(String reason) {

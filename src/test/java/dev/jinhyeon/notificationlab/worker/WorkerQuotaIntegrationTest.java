@@ -74,6 +74,8 @@ class WorkerQuotaIntegrationTest {
     private int burst;
     private int waitMs;
     private boolean relay;
+    private boolean pausing;
+    private int maxPollMs = 60000;
 
     @BeforeEach
     void isolateDatabaseAndMessaging() throws Exception {
@@ -129,7 +131,7 @@ class WorkerQuotaIntegrationTest {
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM notification WHERE worker_token IS NOT NULL", Integer.class)).isZero();
         assertTimeout(Duration.ofMillis(500), () -> jdbc().update("UPDATE delivery_task SET max_attempts = max_attempts"));
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            assertThat(status(first)).isEqualTo("PROVIDER_ACCEPTED");
+            assertThat(status(first)).withFailMessage(() -> quotaDiagnostics(app) + " / " + quotaDiagnostics(second)).isEqualTo("PROVIDER_ACCEPTED");
             assertThat(status(other)).isEqualTo("PROVIDER_ACCEPTED");
             assertThat(offsets()).isEqualTo(2);
         });
@@ -225,6 +227,133 @@ class WorkerQuotaIntegrationTest {
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE notification_id = ? AND event_type = 'NOTIFICATION_DEAD_LETTER'", Integer.class, exhausted.id())).isEqualTo(1);
     }
 
+    @Test
+    void pausedConsumerKeepsPollingAndHeartbeatBeyondMaxPollWithoutSkippingOffsets() throws Exception {
+        pausing = true; maxPollMs = 5000;
+        start("SUCCESS", 2, 100, false);
+        Event first = create(); Event later = create();
+        freeze(11000); publish(first, 0); publish(later, 0);
+        await().atMost(Duration.ofSeconds(5)).until(() -> container(app).isContainerPaused());
+        double heartbeats = consumerMetric(app, "heartbeat-total");
+        double rebalances = consumerMetric(app, "rebalance-total");
+        String member = kafka.describeConsumerGroups(List.of(group)).all().get().get(group).members().iterator().next().consumerId();
+        // A single pause lasts longer than max.poll.interval; repeated poll and heartbeats must continue.
+        await().during(Duration.ofSeconds(7)).atMost(Duration.ofSeconds(9)).untilAsserted(() -> {
+            assertThat(container(app).isContainerPaused()).isTrue();
+            assertThat(consumerMetric(app, "last-poll-seconds-ago")).isLessThan(2);
+            assertThat(consumerMetric(app, "rebalance-total")).isEqualTo(rebalances);
+            assertThat(offsets()).isZero();
+            assertThat(attempts(first) + attempts(later)).isZero();
+            assertThat(stats().requests()).isZero();
+            assertThat(app.getBean(WorkerAdmission.class).active()).isZero();
+        });
+        assertThat(consumerMetric(app, "heartbeat-total")).isGreaterThan(heartbeats);
+        assertThat(kafka.describeConsumerGroups(List.of(group)).all().get().get(group).members().iterator().next().consumerId()).isEqualTo(member);
+        assertThat(app.getBean(WorkerPauseErrorHandler.class).pendingCount()).isEqualTo(1);
+        assertTimeout(Duration.ofMillis(500), () -> jdbc().update("UPDATE delivery_task SET max_attempts = max_attempts"));
+        await().atMost(Duration.ofSeconds(12)).untilAsserted(() -> assertThat(offsets()).isEqualTo(2));
+        assertThat(history(first)).containsExactly("PROVIDER_ACCEPTED");
+        assertThat(history(later)).containsExactly("PROVIDER_ACCEPTED");
+        assertThat(stats().requests()).isEqualTo(2);
+        assertThat(app.getBean(WorkerPauseErrorHandler.class).pendingCount()).isZero();
+        System.out.println("QUOTA_PAUSE pollIntervalMs=5000 observedPauseSeconds=7 offsetsDuringPause=0 finalOffsets=2 heartbeatAdvanced=true rebalanceUnchanged=true");
+    }
+
+    @Test
+    void retriesPauseAndResumeAutomaticallyThroughRealRelay() throws Exception {
+        pausing = true;
+        start("SERVER_ERROR", 1, 100, true);
+        Event event = create();
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(offsets()).isEqualTo(3));
+        assertThat(status(event)).isEqualTo("RETRYABLE_FAILURE");
+        assertThat(attempts(event)).isEqualTo(3);
+        assertThat(stats().requests()).isEqualTo(3);
+        assertThat(allowed(app)).isEqualTo(3);
+        assertThat(app.getBean(MeterRegistry.class).get("notification.worker.quota.pauses").counter().count()).isGreaterThanOrEqualTo(1);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE event_type = 'NOTIFICATION_DEAD_LETTER'", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void redisFailureAfterPauseStopsWithoutClaimAndExplicitRestartReplays() throws Exception {
+        pausing = true;
+        start("SUCCESS", 1, 100, false);
+        Event event = create(); freeze(1500); publish(event, 0);
+        await().atMost(Duration.ofSeconds(3)).until(() -> container(app).isContainerPaused());
+        try (Jedis redis = redis()) { redis.del(quotaKey); redis.set(quotaKey, "invalid-state"); }
+        awaitStopped();
+        assertThat(rejected("unavailable")).isEqualTo(1);
+        assertThat(attempts(event)).isZero(); assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+        assertThat(app.getBean(WorkerPauseErrorHandler.class).pendingCount()).isZero();
+        refill(); container(app).start();
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(offsets()).isEqualTo(1));
+        assertThat(history(event)).containsExactly("PROVIDER_ACCEPTED");
+    }
+
+    @Test
+    void stoppingPausedContainerCancelsTimerAndExplicitRestartDoesNotRemainPaused() throws Exception {
+        pausing = true;
+        start("SUCCESS", 1, 100, false);
+        Event event = create(); freeze(10000); publish(event, 0);
+        await().atMost(Duration.ofSeconds(3)).until(() -> container(app).isContainerPaused());
+        container(app).stop();
+        assertThat(app.getBean(WorkerPauseErrorHandler.class).pendingCount()).isZero();
+        assertThat(container(app).isPauseRequested()).isFalse();
+        assertThat(attempts(event)).isZero(); assertThat(offsets()).isZero();
+        refill(); container(app).start();
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(offsets()).isEqualTo(1));
+        assertThat(stats().requests()).isEqualTo(1);
+    }
+
+    @Test
+    void closingPausedContextPreservesWorkForNewContext() throws Exception {
+        pausing = true;
+        start("SUCCESS", 1, 100, false);
+        Event event = create(); freeze(10000); publish(event, 0);
+        await().atMost(Duration.ofSeconds(3)).until(() -> container(app).isContainerPaused());
+        var handler = app.getBean(WorkerPauseErrorHandler.class);
+        app.close(); app = null;
+        assertThat(handler.pendingCount()).isZero();
+        assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+        refill(); app = application();
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(offsets()).isEqualTo(1));
+        assertThat(attempts(event)).isEqualTo(1);
+        assertThat(stats().requests()).isEqualTo(1);
+    }
+
+    @Test
+    void joiningWorkerWhilePausedRebalancesUncommittedRecordsWithoutDuplicateAttempts() throws Exception {
+        pausing = true;
+        start("SUCCESS", 2, 100, false);
+        Event first = create(); Event other = create();
+        freeze(14000); publish(first, 0); publish(other, 2);
+        await().atMost(Duration.ofSeconds(3)).until(() -> container(app).isContainerPaused());
+        second = application();
+        await().atMost(Duration.ofSeconds(15)).until(() -> assigned(app) + assigned(second) == 6 && assigned(app) > 0 && assigned(second) > 0);
+        await().atMost(Duration.ofSeconds(3)).until(() -> container(second).isContainerPaused());
+        assertThat(container(app).isPauseRequested()).isTrue();
+        assertThat(offsets()).isZero();
+        assertThat(attempts(first) + attempts(other)).isZero();
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> assertThat(offsets()).isEqualTo(2));
+        assertThat(history(first)).containsExactly("PROVIDER_ACCEPTED");
+        assertThat(history(other)).containsExactly("PROVIDER_ACCEPTED");
+        assertThat(allowed(app) + allowed(second)).isEqualTo(2);
+        assertThat(stats().requests()).isEqualTo(2);
+    }
+
+    private String quotaDiagnostics(ServletWebServerApplicationContext context) {
+        return "running=" + container(context).isRunning() + " counters=" + context.getBean(MeterRegistry.class).getMeters().stream()
+                .filter(meter -> meter.getId().getName().startsWith("notification.worker.quota")
+                        || meter.getId().getName().startsWith("notification.rate.limit"))
+                .map(meter -> meter.getId() + "=" + meter.measure()).toList();
+    }
+
+    private double consumerMetric(ServletWebServerApplicationContext context, String name) {
+        var matches = container(context).metrics().values().stream().flatMap(metrics -> metrics.entrySet().stream())
+                .filter(entry -> entry.getKey().name().equals(name)).toList();
+        assertThat(matches).as("Kafka metric must exist: " + name).isNotEmpty();
+        return matches.stream().mapToDouble(entry -> ((Number) entry.getValue().metricValue()).doubleValue()).sum();
+    }
+
     private void start(String mode, int burst, int waitMs, boolean relay) {
         this.burst = burst; this.waitMs = waitMs; this.relay = relay;
         mock = MockServerApplication.start("--server.port=0", "--mock.http.mode=" + mode,
@@ -239,7 +368,9 @@ class WorkerQuotaIntegrationTest {
                 "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort(),
                 "--spring.datasource.url=" + url, "--spring.datasource.username=root", "--spring.datasource.password=" + MYSQL.getPassword(),
                 "--spring.kafka.bootstrap-servers=" + KAFKA.getBootstrapServers(), "--app.async.topic=" + topic, "--app.async.group=" + group,
-                "--app.rate-limit.client-enabled=true", "--app.rate-limit.port=" + REDIS.getMappedPort(6379),
+                "--app.rate-limit.client-enabled=true", "--app.rate-limit.pause-enabled=" + pausing,
+                "--spring.kafka.consumer.properties.max.poll.interval.ms=" + maxPollMs,
+                "--spring.kafka.consumer.properties.heartbeat.interval.ms=1000", "--app.rate-limit.port=" + REDIS.getMappedPort(6379),
                 "--app.rate-limit.key=" + quotaKey, "--app.rate-limit.rate-per-second=1", "--app.rate-limit.burst=" + burst,
                 "--app.rate-limit.timeout-ms=100", "--app.rate-limit.wait-timeout-ms=" + waitMs,
                 "--app.delivery.retry-base-delay-ms=100", "--app.delivery.retry-max-delay-ms=100",

@@ -1023,3 +1023,58 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   허가 후 실제 HTTP까지의 지연과 불확실한 공급자 수락/중복 가능성도 그대로다.
 - 1만 건 실험·실행 JAR 별도 기동 smoke·원격 CI는 이번에 실행하지 않았다.
 - 기존 로컬 DB/.env/IDE 설정은 변경하지 않았다. 사용자 검토 전 원격에 푸시하지 않는다.
+
+
+## 2026-10-17: S6 여섯 번째 단계 — quota pause/resume와 poll 유지
+
+### 문제·대안·선택
+
+- 앞 단계의 유한 동기 대기는 quota를 기다리는 동안 소비 스레드/Worker 처리 자리를 썼다.
+  정상 한도 부족이 오래가면 대기 초과로 중지되며 대기 예산을 단순히 늘리면 max.poll.interval 위험이 생긴다.
+- 별도 executor/비동기 offset 추적 대신 Spring Kafka의 `handleOne=false` 보관 레코드와 컨테이너 pause를 선택했다.
+  실제 의존성 3.3.16 소스와 공식 문서에서 보관·pause poll·리밸런스 pending 정리 계약을 확인했다.
+- `pause-enabled=true`(기본): DB 선점 전 Redis 한 번 확인 → LIMITED 안전 예외 → 처리 자리 반환 → 부모 컨테이너 pause.
+  100~60000ms 이후 resume만 요청하며 같은 레코드/DB 상태/허가를 다시 검사한다. 최초/Retry 공통이다.
+  `client-enabled=false` 기본은 유지한다. 이전 유한 대기는 `pause-enabled=false` 비교 모드로 보존한다.
+- 오류 처리기의 seek/ack-after-handle을 false로 하고 미완료 레코드를 recover/skip하지 않는다.
+  UNAVAILABLE/DB/이벤트/진입 제어 오류는 기존 중지 정책을 유지하며 종료 중 별도 stop 경합을 피한다.
+- 앱 부모 컨테이너당 예약 하나, 내부 예약 맵 최대 3개, 재개 전용 스레드 1개다.
+  기본 poll 1건/소비 스레드 최대 3개에서 보관 레코드도 앱당 최대 3개다. Kafka fetch buffer 전체 상한은 아니다.
+- 중지 이벤트에서 예약 취소/큐 제거/pause 요청 해제, context 종료에서 예약 취소/스케줄러 종료를 구현했다.
+  예약 객체를 비교해 오래된 취소 콜백이 새로운 pause를 해제하지 못하게 한다.
+- poll timeout 500ms, pause poll timeout 100ms. 기본 max.poll.interval 60000ms는 유지한다.
+  pause/resume 요청 수와 남은 재개 예약 수를 고정 이름의 메트릭으로 추가했다.
+- [문제·대안·선택·처리 경계·설정·실험](S6_CONSUMER_PAUSE.md), README/PLAN과 이전 단계 문서를 갱신했다.
+
+### 실제 검증
+
+- 첫 집중 실행 21개 중 20개 통과, 기존 동기 비교 모드 다중 앱 사례 1개 실패(1분 28초).
+  최종 PROVIDER_ACCEPTED 기대 시 QUEUED였고 처리 오류로 소비가 중지됐다. 원래 오류는 payload 보호를 위해 감춰져 있어
+  원인을 단정하지 않았다. 상태 진단에 quota 메트릭을 추가했다. 구현/완료 조건/timeout을 완화하지 않았다.
+- 같은 사례 단독 재실행: **1개 통과**, BUILD SUCCESSFUL(30초).
+- pause/heartbeat 테스트에서 이름이 일치하는 Kafka 메트릭이 실제 존재하는지 검증을 추가했다.
+  리밸런스 테스트는 두 번째 앱 할당 후 양쪽 pause/offset 0을 확인하도록 관찰 구간을 보강했다.
+- `test --tests '*WorkerQuotaTest' --tests '*WorkerQuotaIntegrationTest'`: **21개 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(1분 28초). 단위 9개 + 통합 12개다.
+- max.poll.interval=5000ms 상태에서 7초 이상 pause 유지, last-poll-seconds-ago<2, heartbeat 증가,
+  rebalance 횟수와 consumer member 불변. DB 시도/HTTP/offset/Worker active=0을 유지하고 다른 DB 연결의 UPDATE도 완료했다.
+  자동 재개 뒤 같은 파티션 2건의 시도/HTTP/offset=2를 확인했다.
+- 실제 Relay/HTTP 500에서 최초+재시도 허가/시도/HTTP/offset=3, DLQ Outbox=1.
+- pause 후 Redis 상태 오류는 UNAVAILABLE로 미선점/미커밋 중지 후 명시적 재시작으로 복구했다.
+- 컨테이너 stop/start와 context 종료/재생성에서 예약 정리와 1회 처리 복구를 검증했다.
+- pause 중 다른 앱 context 합류/재할당에서 미완료 작업이 각 1회 처리되고 허가/HTTP/offset 합계=2임을 확인했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **24개 클래스 / 176개 테스트 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(12분 22초), 종료 코드 0.
+  집중 실행에서 실패했던 다중 앱 비교 모드를 포함한 전체 XML 결과를 확인했다.
+- 실행 JAR의 WorkerPauseErrorHandler/QuotaDeferred 바이트가 컴파일 산출물과 일치하며 테스트/Mock 서버 클래스는 제외됐다.
+  문서 상대 링크/코드 블록과 `git diff --check`를 확인했다. JAR 별도 기동 smoke는 이번에 실행하지 않았다.
+- 테스트 컨테이너와 Java/caffeinate 프로세스가 정리됐고, 기존 로컬 MySQL 컨테이너는 healthy다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444 확인. 푸시하지 않았다.
+
+### 한계와 다음 단계
+
+- 검증 범위는 quota pause 동안의 poll 유지다. WorkerAdmission/DB/HTTP의 긴 동기 처리까지 poll 간격을 보장하지 않는다.
+- 부모 컨테이너 전체 pause라 다른 파티션도 영향을 받는다. 앱 간 공정성/우선순위와 운영자 수동 pause 제어 조합은 구현하지 않았다.
+- 정상 quota 부족의 전체 대기 시간은 제한하지 않으며 Redis 오류는 자동 재개하지 않는다.
+  Redis 장기 장애/상태 유실·failover 정책은 별도 항목으로 남긴다.
+- 리밸런스 사례는 같은 테스트 JVM의 독립 앱 context다. 별도 호스트/JVM·운영 처리량·1만 건 정합성 실험·원격 CI는 이번 범위가 아니다.
+- DB migration, 사용자 로컬 DB/.env/IDE 설정을 변경하지 않았다. 다음은 Circuit Breaker와 half-open 복구다.

@@ -1,5 +1,8 @@
 # S6: 최초 발송과 재시도의 공통 quota
 
+이 문서는 최초 연동의 **동기 유한 대기 비교 모드**(`pause-enabled=false`)를 설명한다.
+현재 기본은 [pause/resume 모드](S6_CONSUMER_PAUSE.md)이며 DB 선점 전 검사와 공통 quota 경계는 그대로 사용한다.
+
 ## 문제와 선택
 
 Redis 제한기를 만들었어도 Worker가 호출하지 않으면 실제 발송 예산을 제어하지 못한다.
@@ -40,7 +43,7 @@ Redis 호출 중 DB 잠금을 잡지 않는다. Redis와 MySQL을 하나의 원�
 # README의 .env / MySQL / Kafka와 별도 HTTP Mock을 준비한 뒤
 # Redis 서비스만 추가 실행
 docker compose --profile redis up -d --wait redis
-./gradlew bootRun --args='--app.provider.mode=HTTP --app.rate-limit.client-enabled=true'
+./gradlew bootRun --args='--app.provider.mode=HTTP --app.rate-limit.client-enabled=true --app.rate-limit.pause-enabled=false'
 ```
 
 `client-enabled` 기본 false는 기존 기준선이다. true이면 비동기 Worker의 최초 발송과 재시도에 적용한다.
@@ -120,6 +123,6 @@ MySQL 8.4.8/Kafka 4.0.2/Redis 7.4.11/HTTP Mock을 사용했다. 각 통합 사�
 
 ## 남은 범위
 
-다음은 소비 pause/resume와 poll/heartbeat 유지 검증이다. 현재는 짧은 동기 대기와 중지/명시적 재시작 정책이다.
+후속 [pause/resume 단계](S6_CONSUMER_PAUSE.md)는 정상 LIMITED의 대기에서 poll을 유지한다. 이 문서의 비교 모드는 짧은 동기 대기와 중지/명시적 재시작 정책이다.
 Redis 장기 장애/예산 유실/재시작·failover, Circuit Breaker, 429 Retry-After, 우선순위 배분은 남겨 둔다.
 이번 결과는 지정한 구성의 정합성 검증이며 운영 처리량/모든 장애에서의 공급자 도착률/exactly-once 보장이 아니다.

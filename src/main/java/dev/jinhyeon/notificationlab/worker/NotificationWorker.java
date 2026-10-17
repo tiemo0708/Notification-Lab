@@ -36,6 +36,8 @@ public class NotificationWorker {
     public void receive(ConsumerRecord<String, String> record) {
         try {
             admission.execute(() -> process(record));
+        } catch (WorkerQuota.QuotaDeferred deferred) {
+            throw deferred;
         } catch (RuntimeException failure) {
             registry.counter("notification.worker.failures").increment();
             // Includes admission failure: never return successfully for an unprocessed record.
@@ -77,6 +79,8 @@ public class NotificationWorker {
             } else {
                 registry.counter("notification.worker.replays").increment();
             }
+        } catch (WorkerQuota.QuotaDeferred deferred) {
+            throw deferred;
         } catch (Exception failure) {
             // Do not attach SQL/JSON exceptions: they can contain recipient data or payloads.
             throw new IllegalStateException("Notification processing failed; offset must remain uncommitted");

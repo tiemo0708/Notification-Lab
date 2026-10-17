@@ -190,9 +190,12 @@ docker compose --profile redis up -d --wait redis
 `127.0.0.1:${REDIS_PORT:-16379}`, Redis 7.4.11, AOF/전용 volume/`noeviction`을 사용한다.
 모든 참여 앱에 같은 Redis/키/rate/burst를 설정한다.
 
-`app.rate-limit.wait-timeout-ms` 기본 2000(1~5000)이다. 대기 중 DB 시도/lease를 만들지 않는다.
-한도 대기 초과나 Redis 오류 시 미완료 offset을 보존하고 소비를 중지한다. 원인 해결 후 명시적으로 재시작한다.
-대기는 소비 스레드에서 이루어지므로 자동 pause/resume와 poll 유지 검증은 다음 단계다.
+`app.rate-limit.wait-timeout-ms` 기본 2000(1~5000)이다. 두 모드 모두 quota 대기 중 DB 시도/lease를 만들지 않는다.
+기본 `app.rate-limit.pause-enabled=true`에서는 정상 한도 부족(LIMITED)에 **소비 pause → poll 유지 → 자동 resume**를 사용한다.
+DB 선점과 Worker 처리 자리 없이 기다리고, 재개 후 같은 레코드의 상태와 허가를 다시 확인한다.
+`wait-timeout-ms`는 `pause-enabled=false`인 이전 동기 대기 비교 모드에만 적용된다.
+Redis 오류는 두 모드 모두 소비 중지/명시적 재시작이며, 자동 재개는 정상 한도 부족에만 적용한다.
+[설계·종료/리밸런스·poll/heartbeat 검증](docs/S6_CONSUMER_PAUSE.md)을 참고한다.
 
 [문제·알고리즘 비교·정책·실제 Redis 검증·한계](docs/S6_REDIS_RATE_LIMIT.md)를 참고한다.
 [연동 경계·대안·복구·실제 통합 검증](docs/S6_WORKER_QUOTA.md)을 함께 참고한다.
@@ -243,7 +246,8 @@ S2 시절 이미 남은 `PROCESSING` 레코드는 Outbox가 없으므로 S3에�
 - `notification_worker_active`, `notification_worker_waiting`, `notification_worker_admission_rejected_total{reason=...}`: 처리/대기 수와 진입 거절 횟수.
 - `notification_worker_running`: 소비 중 1, 정지 0.
 - `notification_rate_limit_decisions_total{outcome=allowed|limited|unavailable}`, `notification_rate_limit_connections_active`: 제한기 호출 결과와 사용 중 Redis 연결 수. 클라이언트 활성화 시 등록. 허가 판정 지표이며 실제 HTTP 호출 수와 다를 수 있음.
-- `notification_worker_quota_waiting`, `notification_worker_quota_rejected_total{reason=timeout|unavailable|stopping|interrupted}`: quota 확인/대기 수와 진입 거절. 허가 수와 실제 발송 수는 중단/경합 때문에 다를 수 있음.
+- `notification_worker_quota_waiting`, `notification_worker_quota_rejected_total{reason=timeout|unavailable|stopping|interrupted}`: 이전 동기 비교 모드의 대기 수와 두 모드의 진입 거절. pause 중 waiting은 0.
+- `notification_worker_quota_pauses_pending`, `notification_worker_quota_pauses_total`, `notification_worker_quota_resumes_total`: 재개 예약 수와 pause/resume 요청 수. 실제 pause 확정은 컨테이너 상태와 함께 확인.
 - `notification_worker_exhausted_total`: 복구 선점 상한을 소진해 최종 저장한 작업 수.
 - `outbox_publish_failures_total`, `outbox_published_total`, `notification_worker_failures_total`, `notification_worker_replays_total`.
 
@@ -253,11 +257,12 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-소비 pause/resume, Circuit Breaker, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+Circuit Breaker, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S6_CONSUMER_PAUSE.md](docs/S6_CONSUMER_PAUSE.md): quota 부족 시 자동 pause/resume, poll 유지·종료·리밸런스 검증
 - [docs/S6_WORKER_QUOTA.md](docs/S6_WORKER_QUOTA.md): 최초/재시도 공통 quota, 선점 전 대기와 offset 보존
 - [docs/S6_REDIS_RATE_LIMIT.md](docs/S6_REDIS_RATE_LIMIT.md): Redis Lua 공유 토큰 버킷, 속도/버스트 계약과 검증
 - [docs/S6_WORKER_CONCURRENCY.md](docs/S6_WORKER_CONCURRENCY.md): Worker 처리/대기 상한과 파티션별 offset·종료 검증

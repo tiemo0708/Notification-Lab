@@ -64,6 +64,8 @@ app:
   rate-limit:
     # Applies the shared quota to async Worker sends, including retries. Comparison profiles bypass it.
     client-enabled: false
+    pause-enabled: true
+    # Only used by the previous bounded-wait comparison mode (pause-enabled=false).
     wait-timeout-ms: 2000
     host: 127.0.0.1
     port: ${REDIS_PORT:16379}

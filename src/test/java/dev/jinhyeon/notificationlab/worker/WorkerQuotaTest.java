@@ -17,6 +17,27 @@ import static org.awaitility.Awaitility.await;
 
 class WorkerQuotaTest {
     @Test
+    void pauseModeChecksOnceAndReturnsOnlyABoundedSafeDelay() {
+        var calls = new AtomicInteger();
+        var registry = new SimpleMeterRegistry();
+        var quota = new WorkerQuota(() -> { calls.incrementAndGet(); return new Decision(Outcome.LIMITED, Long.MAX_VALUE); },
+                1, true, registry);
+        assertThatThrownBy(quota::awaitPermit).isInstanceOfSatisfying(WorkerQuota.QuotaDeferred.class,
+                deferred -> assertThat(deferred.delayMs()).isEqualTo(60000));
+        assertThat(calls.get()).isEqualTo(1);
+        assertThat(registry.get("notification.worker.quota.waiting").gauge().value()).isZero();
+        assertThat(new WorkerQuota.QuotaDeferred(0).delayMs()).isEqualTo(100);
+    }
+
+    @Test
+    void pauseModeNeverDefersRedisErrorsOrShutdown() {
+        var quota = new WorkerQuota(() -> new Decision(Outcome.UNAVAILABLE, 0), 100, true, new SimpleMeterRegistry());
+        assertThatThrownBy(quota::awaitPermit).isNotInstanceOf(WorkerQuota.QuotaDeferred.class).hasMessageContaining("unavailable");
+        quota.stopAdmission();
+        assertThatThrownBy(quota::awaitPermit).hasMessageContaining("stopping");
+    }
+
+    @Test
     void retriesLimitedDecisionAndReleasesWaitingCountAfterPermit() {
         var calls = new AtomicInteger();
         var registry = new SimpleMeterRegistry();
