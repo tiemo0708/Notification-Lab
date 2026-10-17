@@ -185,6 +185,7 @@ class WorkerCircuitBreakerIntegrationTest {
         assertThat(offsets()).isEqualTo(3);
         assertThat(requests.get()).isEqualTo(2);
         try (Jedis redis = redis()) { redis.del(quotaKey); } // Reset only this isolated test fixture.
+        seedQuota();
         httpStatus.set(202); container(app).start();
         await().atMost(Duration.ofSeconds(15)).until(() -> offsets() == 4);
         assertThat(history(fresh)).containsExactly("PROVIDER_ACCEPTED");
@@ -233,6 +234,7 @@ class WorkerCircuitBreakerIntegrationTest {
             }
         });
         server.start();
+        seedQuota();
         app = application();
         await().atMost(Duration.ofSeconds(20)).until(() -> assigned(app) == 6);
     }
@@ -252,6 +254,13 @@ class WorkerCircuitBreakerIntegrationTest {
                 "--app.rate-limit.rate-per-second=10", "--app.rate-limit.burst=10", "--app.rate-limit.timeout-ms=100",
                 "--app.delivery.retry-base-delay-ms=100", "--app.delivery.retry-max-delay-ms=100",
                 "--logging.level.root=WARN", "--spring.main.banner-mode=off");
+    }
+
+    private void seedQuota() {
+        // Isolated fixture: preserve the original circuit scenarios' starting budget.
+        try (Jedis redis = redis()) {
+            redis.hset(quotaKey, Map.of("version", "2", "rate", "10", "burst", "10", "credit", "10000", "last_ms", "0"));
+        }
     }
 
     private ProviderCircuitBreaker circuit() { return app.getBean(ProviderCircuitBreaker.class); }

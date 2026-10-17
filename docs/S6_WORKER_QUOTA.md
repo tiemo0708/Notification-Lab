@@ -39,6 +39,8 @@ Redis 호출 중 DB 잠금을 잡지 않는다. Redis와 MySQL을 하나의 원�
 
 ## 활성화와 대기 정책
 
+v2에서는 실행 전 [빈 quota 초기화](S6_REDIS_RECOVERY.md)가 필요하다. 기존 v1 예산은 같은 문서의 전환 절차를 따른다.
+
 ```bash
 # README의 .env / MySQL / Kafka와 별도 HTTP Mock을 준비한 뒤
 # Redis 서비스만 추가 실행
@@ -87,7 +89,8 @@ Worker 처리 자리 안에서 동기 대기하므로 quota 확인/대기 수는
 quota timeout이면 rate/burst와 트래픽, 대기 예산을 확인한다. UNAVAILABLE이면 Redis 접근과 같은 키의 설정 일치 여부를 확인한다.
 원인을 해결한 뒤 앱/소비를 명시적으로 재시작한다. quota 대기만 했다면 새 lease는 없으므로 이를 기다릴 필요가 없다.
 이전에 PROCESSING이던 복구 후보라면 기존 lease/UNKNOWN 정책도 함께 확인한다.
-예산을 열기 위해 운영 Redis 키를 삭제하거나 재시도 횟수를 초기화하는 복구 절차는 제공하지 않는다.
+단순 한도 부족을 우회하려고 운영 Redis 키나 재시도 횟수를 초기화하지 않는다.
+키 유실/버전 전환에는 후속 [정지·확인·대기 후 빈 초기화 절차](S6_REDIS_RECOVERY.md)를 적용한다.
 
 ## 실제 검증과 재현
 
@@ -115,7 +118,8 @@ MySQL 8.4.8/Kafka 4.0.2/Redis 7.4.11/HTTP Mock을 사용했다. 각 통합 사�
 직접 발행한 Outbox는 PENDING으로 유지하며 PUBLISHED로 위조하지 않는다. DB schema를 분리해 이후 자동 Relay 사례에 섞이지 않게 했다.
 두 앱은 하나의 테스트 JVM 안의 독립 Spring context/소비자/Redis 연결 풀이다. 별도 JVM/호스트 실험은 아니다.
 초기 대기를 관찰하기 위해 일부 사례는 테스트 Redis에 미래 last_ms를 지정하고, 명시적 복구 전에 테스트 예산을 복원한다.
-운영 코드에는 예산 초기화/시계 주입/토큰 환불 기능이 없다.
+이 테스트의 예산 복원은 운영 자동 리필 기능이 아니다. 후속 v2의 운영자 전용 빈 초기화와 구분한다.
+Worker 자동 초기화/시계 주입/토큰 환불은 제공하지 않는다.
 
 단위 테스트는 LIMITED 후 재확인, timeout, UNAVAILABLE 즉시 중지, 종료 깨우기, interrupt 보존,
 대기 예산 뒤 도착한 허가 거절, 비활성/잘못된 설정을 확인한다.
@@ -125,5 +129,5 @@ MySQL 8.4.8/Kafka 4.0.2/Redis 7.4.11/HTTP Mock을 사용했다. 각 통합 사�
 
 후속 [pause/resume 단계](S6_CONSUMER_PAUSE.md)는 정상 LIMITED의 대기에서 poll을 유지한다. 이 문서의 비교 모드는 짧은 동기 대기와 중지/명시적 재시작 정책이다.
 [Circuit Breaker](S6_CIRCUIT_BREAKER.md)는 quota 앞에서 공급자 장애를 판단한다.
-Redis 장기 장애/예산 유실/재시작·failover, 429 Retry-After, 우선순위 배분은 남겨 둔다.
+[Redis 장애/예산 유실과 통제된 복구](S6_REDIS_RECOVERY.md)를 추가했다. 자동 failover, 429 Retry-After, 우선순위 배분은 남겨 둔다.
 이번 결과는 지정한 구성의 정합성 검증이며 운영 처리량/모든 장애에서의 공급자 도착률/exactly-once 보장이 아니다.

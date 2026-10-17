@@ -1128,3 +1128,55 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 별도 호스트/운영 처리량/새 1만 건 정합성 실험/원격 CI는 이번에 실행하지 않았다.
 - DB migration, 사용자 로컬 DB/.env/IDE 설정을 변경하지 않았다. 다음은 Redis 장기 장애/예산 유실·failover 정책이다.
   S6 전체 완료로 표시하지 않으며 우선순위/자원 분리는 시작하지 않았다.
+
+## 2026-10-17: S6 여덟 번째 단계 — Redis 장애·예산 유실의 fail-closed 정책
+
+### 문제와 구현
+
+- 기존 연결 오류 중지는 유지하되, quota 키가 없을 때 초기 버스트가 재생성되는 빈틈을 막았다.
+  가용성 우선 fail-open/앱별 fallback 대신, 예산을 확인하지 못하면 새 발송을 시작하지 않는 정책을 선택했다.
+- Lua 상태 v2는 키 부재·예상 밖 TTL·구버전/정책 충돌·손상된 상태에서 UNAVAILABLE을 반환한다.
+  자동 생성/TTL 제거/상태 덮어쓰기를 하지 않으며 Worker는 미선점·미커밋 상태로 중지한다.
+- 운영자 전용 `initialize-provider-quota.lua`: 존재하지 않는 키만 현재 Redis 시각/credit=0으로 원자적 생성한다.
+  기존 키는 타입/내용과 무관하게 거절하며 이름/rate/burst 범위를 검증한다. Worker가 이 스크립트를 자동 호출하지 않는다.
+- **호환성 변경:** 최초 설치도 초기화가 필요하며 기존 version=1은 새 앱에서 사용할 수 없다.
+  모든 발송 주체 중지·기존 허가/HTTP 정리·예산/증거 확인·B/r 대기 후 통제된 v2 초기화 절차를 문서화했다.
+  단순 연결 장애에서 신뢰할 수 있는 기존 v2 예산은 유지하고 앱만 명시적으로 재시작한다.
+- 정상 형식의 오래된 snapshot은 자동 감지하지 못한다. 실제로 소비한 credit을 되돌리면 다시 허가되는 한계를 재현했다.
+  자동 Sentinel/Cluster failover를 지원한다고 주장하지 않으며, 전환 전에 전체 발송 중지와 통제된 복구가 필요하다.
+- 기존 quota/회로 테스트는 초기 예산 fixture를 명시적으로 준비해 이전 관찰 조건을 유지했다.
+  학습 문서 [문제·대안·정책·최초 초기화·v2 전환·장애 복구·검증 한계](S6_REDIS_RECOVERY.md), README/PLAN과 관련 S6 문서를 갱신했다.
+
+### 실제 검증
+
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*RedisRateLimiterTest' --tests '*RateLimitConfigurationTest' --tests '*WorkerQuotaIntegrationTest' --tests '*WorkerCircuitBreakerIntegrationTest'`:
+  **4개 클래스 / 38개 테스트 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(2분 14초), 종료 코드 0.
+- 실제 Redis에서 부재/삭제 후 자동 생성 없음, 명시적 초기화 credit=0/TTL 없음, r=1의 실제 시간 1초 후 첫 허가를 확인했다.
+  기존/잘못된 키 무변경, 초기화 동시 호출 4개 중 1개 생성, 잘못된 설정 거절, TTL 상태 무변경 거절을 검증했다.
+- Docker Redis 안에서 문서와 같은 `redis-cli -e --eval /dev/stdin` 실행을 검증했다.
+  최초 성공 응답과 기존 키 재호출의 0이 아닌 종료 코드를 확인했다.
+- 실제 Redis SIGKILL 후 API 2건 접수/Relay 발행을 유지했다. 6초 관찰 중 새 시도/HTTP=0, 기존 offset=1 유지,
+  Worker active/재개 예약=0, UNAVAILABLE 횟수 불변으로 자동 재시도/로컬 fallback 부재를 확인했다. 다른 DB UPDATE도 500ms 이내 완료했다.
+- 동일 Redis 컨테이너 start 후 AOF의 예산 필드가 저장값과 같음을 확인했다. Redis 복구만으로 소비는 시작하지 않았다.
+  명시적 Worker 재시작 뒤 초기 1건+장애 중 2건의 각 이력은 수락 1회, HTTP/offset 합계=3이었다.
+- quota 키 삭제 후 앱 context를 재생성해도 QUEUED/시도·HTTP·offset=0, 키 부재를 유지했다.
+  명시적 credit=0 초기화와 Worker 재시작 후 2건이 각각 1회 수락되고 HTTP/offset=2가 됐다.
+- 집중 검증 후 장기 중지 관찰에 worker_token 부재 직접 검증도 보강해 전체 빌드에 포함했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **26개 클래스 / 210개 테스트 통과 / 실패·오류·스킵 0**, BUILD SUCCESSFUL(10분 29초), 종료 코드 0.
+  최종 XML에서 새 9개 사례와 기존 회귀를 확인했다. 이번 집중/전체 실행에서 실패는 없었다.
+- 실행 JAR의 제한/초기화 Lua 바이트가 소스와 일치하며 테스트/Mock 서버 클래스는 제외됐다.
+  문서 상대 링크/코드 블록과 `git diff --check`를 확인했다. JAR 별도 기동 smoke는 이번에 실행하지 않았다.
+- 테스트 컨테이너/Java/caffeinate 프로세스 종료를 확인했고 기존 로컬 MySQL은 healthy다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444 확인. 푸시하지 않았다.
+
+### 한계와 다음 단계
+
+- Redis 실패를 관측하기 전에 이미 발급한 허가와 진행 중 HTTP는 취소하지 않는다. 응답 유실 시 토큰 환불도 하지 않는다.
+- 정상 형식의 snapshot rollback은 자동 차단하지 못한다. Sentinel/Cluster 자동 전환·실제 replica 승격·호스트/디스크 손실은 미검증이다.
+  통합 테스트는 appendfsync=always의 동일 컨테이너 SIGKILL/start이며 Compose의 everysec에 대한 무손실 보장이 아니다.
+- 6초 관찰은 중지·무재시도 계약 검증이다. 수시간 장애의 DB/Kafka 용량이나 운영 복구 시간을 측정하지 않았다.
+  API 접수 유지에 따른 적체 증가와 알림 만료/보관 정책은 남아 있다.
+- 별도 1만 건 정합성 실험/운영 처리량/원격 CI는 이번에 실행하지 않았다.
+- DB migration, 사용자 로컬 DB/Redis 예산/.env/IDE 설정은 변경하지 않았다. 기존 v1 예산은 자동 전환하지 않았다.
+- 다음은 실시간/캠페인 자원 분리와 공급자 한도 내 우선순위 배분이다. S6 전체 완료로 표시하지 않는다.

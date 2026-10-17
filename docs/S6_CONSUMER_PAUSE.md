@@ -56,6 +56,8 @@
 
 ## 설정과 관측
 
+실행 전 [v2 quota 초기화/전환 절차](S6_REDIS_RECOVERY.md)를 확인한다. 키가 없으면 정상 LIMITED가 아니라 UNAVAILABLE로 중지한다.
+
 ```bash
 # README의 MySQL/Kafka/HTTP Mock 준비 후
 # Redis가 필요한 연동을 명시적으로 켠다.
@@ -100,7 +102,7 @@ docker compose --profile redis up -d --wait redis
 - pause 중 두 번째 앱 합류: 파티션 재할당과 미커밋 레코드 보존을 확인한 뒤 총 HTTP/시도/offset=2로 완료한다.
 - 단위 검증은 LIMITED의 단일 확인/지연값 상한과 Redis 오류·종료의 비재개 분류를 확인한다.
 
-테스트 Redis의 미래 시각/예산 복원은 관찰 조건을 만드는 장치다. 운영 예산 초기화 기능을 추가한 것이 아니다.
+테스트 Redis의 미래 시각/예산 복원은 관찰 조건을 만드는 장치다. 운영 자동 리필 기능이 아니다. 후속 [v2의 운영자 전용 빈 초기화](S6_REDIS_RECOVERY.md)와 구분한다.
 최종 실행 명령·집계와 실패 이력은 [PROGRESS](PROGRESS.md)에 기록한다.
 
 ## 한계와 다음 단계
@@ -110,8 +112,8 @@ docker compose --profile redis up -d --wait redis
 공급자 수락 뒤 DB 기록 전 중단의 불확실성과 외부 중복 가능성도 남아 있다.
 스케줄러 지연은 재개를 늦출 수 있고, 앱 전체 pause는 다른 파티션 처리량에도 영향을 준다.
 운영자 수동 pause 제어 API와의 pause 소유권 조합은 아직 구현하지 않았다.
-Redis 장기 장애/상태 유실/failover 정책, 우선순위와 자원 분리는 후속 범위다. [Circuit Breaker/half-open 복구](S6_CIRCUIT_BREAKER.md)는 같은 pause 경로에 연결했다.
-다음 PLAN 항목은 Redis 장기 장애/예산 유실 정책이다.
+[Redis 장애/상태 유실의 통제된 복구 정책](S6_REDIS_RECOVERY.md)을 추가했다. 자동 failover와 우선순위/자원 분리는 후속 범위다. [Circuit Breaker/half-open 복구](S6_CIRCUIT_BREAKER.md)는 같은 pause 경로에 연결했다.
+다음 PLAN 항목은 우선순위/자원 분리다.
 
 근거: [Spring Kafka의 오류 처리와 보관 레코드/pause poll 계약](https://docs.spring.io/spring-kafka/reference/3.3-SNAPSHOT/kafka/annotation-error-handling.html).
 실제 의존성 3.3.16의 CommonErrorHandler/KafkaMessageListenerContainer 소스도 확인했다.

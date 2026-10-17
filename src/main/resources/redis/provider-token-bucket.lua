@@ -6,12 +6,20 @@ local burst = tonumber(ARGV[2])
 local capacity = burst * 1000
 local time = redis.call('TIME')
 local now = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
-local credit = capacity
+local credit = 0
 local last = now
 
-if redis.call('EXISTS', key) == 1 then
+-- Missing state is ambiguous: first setup and lost budget must not mint a fresh burst.
+if redis.call('EXISTS', key) == 0 then
+    return redis.error_reply('QUOTA_NOT_INITIALIZED')
+end
+if redis.call('PTTL', key) ~= -1 then
+    return redis.error_reply('QUOTA_UNEXPECTED_EXPIRY')
+end
+
+do
     local state = redis.call('HMGET', key, 'version', 'rate', 'burst', 'credit', 'last_ms')
-    if state[1] ~= '1' or tonumber(state[2]) ~= rate or tonumber(state[3]) ~= burst then
+    if state[1] ~= '2' or tonumber(state[2]) ~= rate or tonumber(state[3]) ~= burst then
         return redis.error_reply('QUOTA_POLICY_MISMATCH')
     end
     credit = tonumber(state[4])
@@ -38,5 +46,5 @@ end
 
 -- No TTL: this is a single bounded provider bucket, not a per-user key set.
 -- Expiry must not erase an exhausted budget or a conflicting policy.
-redis.call('HSET', key, 'version', '1', 'rate', rate, 'burst', burst, 'credit', credit, 'last_ms', last)
+redis.call('HSET', key, 'version', '2', 'rate', rate, 'burst', burst, 'credit', credit, 'last_ms', last)
 return {admitted, retry_after}

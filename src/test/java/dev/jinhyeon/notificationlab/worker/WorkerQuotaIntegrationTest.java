@@ -1,6 +1,7 @@
 package dev.jinhyeon.notificationlab.worker;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import dev.jinhyeon.notificationlab.NotificationLabApplication;
@@ -8,6 +9,7 @@ import dev.jinhyeon.notificationmock.MockPushEndpoint;
 import dev.jinhyeon.notificationmock.MockServerApplication;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -59,9 +62,10 @@ class WorkerQuotaIntegrationTest {
                             new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 0), port)).toList()));
     @Container
     static final GenericContainer<?> REDIS = new GenericContainer<>("redis:7.4.11-alpine").withExposedPorts(6379)
+            .withCommand("redis-server", "--appendonly", "yes", "--appendfsync", "always", "--save", "")
+            .withStartupAttempts(3)
             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
-                    Arrays.stream(cmd.getExposedPorts()).map(port ->
-                            new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 0), port)).toList()));
+                    new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", unusedRedisPort()), ExposedPort.tcp(6379))));
 
     private ServletWebServerApplicationContext app;
     private ServletWebServerApplicationContext second;
@@ -76,6 +80,13 @@ class WorkerQuotaIntegrationTest {
     private boolean relay;
     private boolean pausing;
     private int maxPollMs = 60000;
+
+    private static int unusedRedisPort() {
+        // Keep the same host endpoint across an actual kill/start of this test container.
+        try (var socket = new java.net.ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))) {
+            return socket.getLocalPort();
+        } catch (java.io.IOException failure) { throw new java.io.UncheckedIOException(failure); }
+    }
 
     @BeforeEach
     void isolateDatabaseAndMessaging() throws Exception {
@@ -111,6 +122,87 @@ class WorkerQuotaIntegrationTest {
         assertThat(history(event)).containsExactly("RETRYABLE_FAILURE", "RETRYABLE_FAILURE", "RETRYABLE_FAILURE");
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE notification_id = ? AND event_type = 'NOTIFICATION_DEAD_LETTER'", Integer.class, event.id())).isEqualTo(1);
         System.out.println("WORKER_QUOTA_RETRY permits=3 http=3 attempts=3 offsets=3 dlq=1");
+    }
+
+    @Test
+    void killedRedisKeepsAcceptedWorkUnclaimedUntilVerifiedRecoveryAndExplicitRestart() throws Exception {
+        pausing = true;
+        start("SUCCESS", 2, 5000, true);
+        Event baseline = create();
+        await().atMost(Duration.ofSeconds(10)).until(() -> offsets() == 1);
+        Map<String, String> saved;
+        try (Jedis redis = redis()) { saved = redis.hgetAll(quotaKey); }
+        String containerId = REDIS.getContainerId();
+        REDIS.getDockerClient().killContainerCmd(containerId).withSignal("KILL").exec();
+        try {
+            await().atMost(Duration.ofSeconds(5)).until(() -> !REDIS.isRunning());
+            Event first = create(); Event later = create();
+            awaitStopped();
+            double decisions = rejected("unavailable");
+            assertThat(decisions).isEqualTo(1);
+            // Longer than the Redis timeout and normal quota wait budget; no background retry or local fallback.
+            await().during(Duration.ofSeconds(6)).atMost(Duration.ofSeconds(8)).untilAsserted(() -> {
+                assertThat(container(app).isRunning()).isFalse();
+                assertThat(status(first)).isEqualTo("QUEUED"); assertThat(status(later)).isEqualTo("QUEUED");
+                assertThat(attempts(first) + attempts(later)).isZero();
+                assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM notification WHERE worker_token IS NOT NULL", Integer.class)).isZero();
+                assertThat(offsets()).isEqualTo(1); assertThat(stats().requests()).isEqualTo(1);
+                assertThat(rejected("unavailable")).isEqualTo(decisions);
+                assertThat(app.getBean(WorkerAdmission.class).active()).isZero();
+                assertThat(app.getBean(WorkerPauseErrorHandler.class).pendingCount()).isZero();
+            });
+            assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status = 'PUBLISHED'", Integer.class)).isEqualTo(3);
+            assertTimeout(Duration.ofMillis(500), () -> jdbc().update("UPDATE delivery_task SET max_attempts = max_attempts"));
+            restartRedis();
+            assertThat(REDIS.getContainerId()).isEqualTo(containerId);
+            try (Jedis redis = redis()) { assertThat(redis.hgetAll(quotaKey)).isEqualTo(saved); }
+            await().during(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                assertThat(container(app).isRunning()).isFalse();
+                assertThat(offsets()).isEqualTo(1);
+            });
+            container(app).start();
+            await().atMost(Duration.ofSeconds(15)).until(() -> offsets() == 3);
+            for (Event event : List.of(baseline, first, later)) assertThat(history(event)).containsExactly("PROVIDER_ACCEPTED");
+            assertThat(stats().requests()).isEqualTo(3);
+            System.out.println("REDIS_OUTAGE killed=true observedStoppedSeconds=6 attemptsDuringOutage=0 offsetsBefore=1 offsetsAfter=3 aofStatePreserved=true explicitRestart=true");
+        } finally { if (!REDIS.isRunning()) restartRedis(); }
+    }
+
+    @Test
+    void deletedBudgetSurvivesApplicationRestartAsStoppedWorkAndExplicitEmptyInitializationRecovers() throws Exception {
+        pausing = true;
+        start("SUCCESS", 2, 5000, false);
+        try (Jedis redis = redis()) { redis.del(quotaKey); }
+        Event first = create(); Event later = create();
+        publish(first, 0); publish(later, 0);
+        awaitStopped();
+        assertThat(attempts(first) + attempts(later)).isZero();
+        assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+        app.close(); app = application();
+        awaitStopped();
+        assertThat(status(first)).isEqualTo("QUEUED"); assertThat(status(later)).isEqualTo("QUEUED");
+        assertThat(attempts(first) + attempts(later)).isZero();
+        assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+        try (Jedis redis = redis()) {
+            assertThat(redis.exists(quotaKey)).isFalse();
+            String script = new ClassPathResource("redis/initialize-provider-quota.lua").getContentAsString(StandardCharsets.UTF_8);
+            assertThat(redis.eval(script, List.of(quotaKey), List.of("1", "2"))).isEqualTo("QUOTA_INITIALIZED_EMPTY");
+            assertThat(redis.hget(quotaKey, "credit")).isEqualTo("0");
+        }
+        // This fixture has no earlier permits or in-flight sends. The new empty bucket must refill normally.
+        container(app).start();
+        await().atMost(Duration.ofSeconds(15)).until(() -> offsets() == 2);
+        assertThat(history(first)).containsExactly("PROVIDER_ACCEPTED");
+        assertThat(history(later)).containsExactly("PROVIDER_ACCEPTED");
+        assertThat(allowed(app)).isEqualTo(2); assertThat(stats().requests()).isEqualTo(2);
+        System.out.println("REDIS_LOSS recreatedAutomatically=false attemptsBeforeInitialization=0 finalHttp=2 finalOffsets=2");
+    }
+
+    private void restartRedis() {
+        REDIS.getDockerClient().startContainerCmd(REDIS.getContainerId()).exec();
+        await().atMost(Duration.ofSeconds(15)).ignoreExceptions().until(() -> {
+            try (Jedis redis = redis()) { return "PONG".equals(redis.ping()); }
+        });
     }
 
     @Test
@@ -358,6 +450,7 @@ class WorkerQuotaIntegrationTest {
         this.burst = burst; this.waitMs = waitMs; this.relay = relay;
         mock = MockServerApplication.start("--server.port=0", "--mock.http.mode=" + mode,
                 "--logging.level.root=WARN", "--spring.main.banner-mode=off");
+        refill(); // Existing quota scenarios begin with an explicitly seeded isolated budget.
         app = application();
         await().atMost(Duration.ofSeconds(20)).until(() -> assigned(app) == 6);
     }
@@ -398,13 +491,13 @@ class WorkerQuotaIntegrationTest {
     private void freeze(long futureMs) {
         try (Jedis redis = redis()) {
             var time = redis.time(); long now = Long.parseLong(time.get(0)) * 1000 + Long.parseLong(time.get(1)) / 1000;
-            redis.hset(quotaKey, Map.of("version", "1", "rate", "1", "burst", Integer.toString(burst), "credit", "0", "last_ms", Long.toString(now + futureMs)));
+            redis.hset(quotaKey, Map.of("version", "2", "rate", "1", "burst", Integer.toString(burst), "credit", "0", "last_ms", Long.toString(now + futureMs)));
         }
     }
     private void refill() {
         try (Jedis redis = redis()) {
             redis.del(quotaKey); // Isolated test fixture; production never resets/refunds the bucket.
-            redis.hset(quotaKey, Map.of("version", "1", "rate", "1", "burst", Integer.toString(burst), "credit", Integer.toString(burst * 1000), "last_ms", "0"));
+            redis.hset(quotaKey, Map.of("version", "2", "rate", "1", "burst", Integer.toString(burst), "credit", Integer.toString(burst * 1000), "last_ms", "0"));
         }
     }
     private Jedis redis() { return new Jedis("127.0.0.1", REDIS.getMappedPort(6379), 3000); }

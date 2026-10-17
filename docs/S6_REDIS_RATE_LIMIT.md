@@ -22,15 +22,16 @@ Worker 동시 처리 수와 HTTP 연결 수는 프로세스별 상한이다. 앱
 클라이언트에서 GET 후 SET하면 동시에 같은 잔량을 쓸 수 있으므로 보충·확인·차감을 Lua 한 번으로 실행한다.
 Redis는 스크립트를 원자적으로 실행하며 실행 중 다른 명령이 끼어들지 않는다.
 스크립트는 키 1개와 고정된 필드 5개만 처리하고 반복문/스캔을 사용하지 않는다.
+후속 [장애 정책](S6_REDIS_RECOVERY.md)에서 v2로 변경해 키 부재/TTL도 거절하고 명시적인 빈 초기화를 사용한다.
 근거: [Redis 스크립팅 계약](https://redis.io/docs/latest/develop/programmability/eval-intro/).
 
 ## 속도와 버스트 계약
 
 - `rate-per-second = r`: 초당 보충하는 토큰 수. 기본 10, 허용 1~10000.
-- `burst = B`: 최대 보관/초기 토큰 수. 기본 10, 허용 1~10000.
+- `burst = B`: 최대 보관 토큰 수(v2 초기 토큰은 0). 기본 10, 허용 1~10000.
 - 한 번의 `tryAcquire()` 허용은 토큰 1개를 소비한다. 사용하지 않은 허가나 실패한 호출의 토큰을 반환하지 않는다.
 - 동일 Redis 시간 기준 구간 Δms의 허용 수는 `B + floor(r × Δms / 1000)` 이하이다.
-  기본값은 순간 10개를 허용하고 이후 초당 10개를 보충한다. 모든 1초 구간을 반드시 10개 이하로 제한하는 정책은 아니다.
+  기본값은 충분히 보충된 예산에서 순간 10개를 허용하고 이후 초당 10개를 보충한다. 최초 빈 초기화 직후에는 보충을 기다린다. 모든 1초 구간을 반드시 10개 이하로 제한하는 정책은 아니다.
 - 공급자 fixed-window 한도와 token bucket은 서로 다른 계약이다. 실제 공급자 문서/허용 버스트에 맞춰 별도로 설정해야 한다.
   이 수치를 실제 FCM/APNs quota로 제시하지 않는다.
 
@@ -52,11 +53,12 @@ LIMITED의 재확인 시간에는 시계가 따라잡는 시간도 포함한다.
 
 Hash 필드는 `version`, `rate`, `burst`, `credit`, `last_ms`다. 기존 rate/burst/version과 다르면
 `UNAVAILABLE`로 반환하며 잔량을 덮어쓰거나 키를 삭제하지 않는다. 잘못된 타입/불완전한 상태/범위 밖 credit도 거절한다.
-정책 변경을 혼합 배포로 처리하지 않는다. 안전한 예산 전환/운영 절차는 추후 범위다.
+정책 변경을 혼합 배포로 처리하지 않는다. version=2만 허용하며 [전환/복구 절차](S6_REDIS_RECOVERY.md)를 따른다.
 
 **TTL을 두지 않는다.** 사용자별 키가 아니라 공급자당 고정 키 하나라 요청량에 따라 키 수가 늘지 않는다.
 만료에 의한 예산 초기화나 설정 충돌의 자동 해제를 피한다. 앱 클라이언트 재시작과 `SCRIPT FLUSH`도 잔량을 초기화하지 않는다.
-외부 관리자가 키를 삭제하거나 Redis 상태를 잃으면 초기 버스트가 다시 생성될 수 있다.
+v1에서는 외부 키 삭제/상태 유실로 초기 버스트가 재생성될 수 있었다. v2는 키 부재·예상 밖 TTL에서 UNAVAILABLE을 반환한다.
+최초 설치를 포함해 명시적인 초기화가 필요하며, 정상 형식의 오래된 snapshot 복원은 자동 감지하지 못한다.
 
 ## Java 호출과 자원 상한
 
@@ -66,7 +68,7 @@ Hash 필드는 `version`, `rate`, `burst`, `credit`, `last_ms`다. 기존 rate/b
 | --- | --- | --- |
 | `ALLOWED` | 토큰 1개 차감 완료 | 공급자 호출을 진행할 수 있음 |
 | `LIMITED` | 현재 토큰 부족 | `retryAfterMs` 이후 다시 확인; 예약/미래 허가가 아님 |
-| `UNAVAILABLE` | Redis 오류, timeout, 풀 포화/종료, 정책 충돌/상태 오류 | 허가로 취급하지 않음; retryAfterMs=0도 즉시 호출 허가가 아님 |
+| `UNAVAILABLE` | Redis 오류, timeout, 풀 포화/종료, 정책 충돌/상태 오류/키 부재/TTL | 허가로 취급하지 않음; retryAfterMs=0도 즉시 호출 허가가 아님 |
 
 timeout이면 Redis에서 이미 토큰을 소비했을 수도 있다. 응답을 못 받았다고 자동 재시도하거나 환불하지 않는다.
 따라서 장애 중 예산을 덜 사용할 수 있다. Worker의 유한 대기/소비 중지/명시적 재시작과 offset 보존은
@@ -108,6 +110,7 @@ timeout-ms: 250
 
 ```bash
 docker compose --profile redis up -d --wait redis
+# 최초 초기화와 기존 v1 전환은 S6_REDIS_RECOVERY.md를 따른다.
 ```
 
 Redis 7.4.11-alpine, loopback 16379, 메모리 상한 32MB/컨테이너 128MB, `noeviction`, AOF와 redis-data volume을 사용한다.
@@ -123,7 +126,7 @@ AOF 기본 everysec는 모든 ACK의 영구 보존이나 failover 시 예산 보
 caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks
 ```
 
-최종 집중 테스트 13개 통과. Testcontainers Redis 7.4.11을 loopback 임의 포트로 사용하며 Docker 부재 시 자동 스킵하지 않는다.
+최초 제한기 단계의 집중 테스트는 13개 통과했다. 아래는 당시 기본 알고리즘 검증이며 v2에서는 기존 예산 조건을 명시적인 fixture로 만든다. Testcontainers Redis 7.4.11을 loopback 임의 포트로 사용하며 Docker 부재 시 자동 스킵하지 않는다.
 
 | 시나리오 | 확인한 결과 |
 | --- | --- |
@@ -147,7 +150,7 @@ caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks
 최초 발송과 재시도는 이제 같은 limiter를 통과한다. quota 부족을 공급자 실패로 기록하지 않으며
 대기 중 시도 횟수/lease/offset 보존을 별도 통합 테스트로 검증했다.
 정상 LIMITED의 [소비 pause/resume](S6_CONSUMER_PAUSE.md)와 [프로세스별 Circuit Breaker](S6_CIRCUIT_BREAKER.md)도 연결했다.
-Redis 장기 장애/예산 유실·복구 정책, 우선순위 배분은 남은 PLAN 항목이다.
+[Redis 장애/예산 유실·통제된 복구 정책](S6_REDIS_RECOVERY.md)도 추가했다. 다음 PLAN 항목은 우선순위 배분/자원 분리다.
 
 허가를 받은 뒤 스레드가 멈췄다가 여러 개 동시에 HTTP를 호출하면 허가 시점과 실제 요청 시점이 달라진다.
 이 컴포넌트 검증만으로 공급자에서 관측되는 도착률/모든 장애 조합의 quota 준수를 보장하지 않는다.

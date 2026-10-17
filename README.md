@@ -175,7 +175,8 @@ HTTP 클라이언트 기본값은 연결 2개/추가 호출 4개, 풀 대기 200
 
 여러 클라이언트가 같은 Redis 키에서 토큰을 공유하는 Lua 제한기를 추가했다.
 기본 정책은 **초당 10개 보충 / 최대 버스트 10개**이며, Redis 서버 시간으로 보충·확인·차감을 원자적으로 수행한다.
-`ALLOWED`, `LIMITED`(재확인 대기 시간), `UNAVAILABLE`(오류/포화/설정 충돌)을 구분하며 오류 시 허용하지 않는다.
+`ALLOWED`, `LIMITED`(재확인 대기 시간), `UNAVAILABLE`(오류/포화/설정 충돌/예산 부재)을 구분하며 오류 시 허용하지 않는다.
+최초 설치도 명시적인 빈 예산 초기화가 필요하다. 키 삭제·TTL·예산 유실에서 자동 버스트를 만들지 않는다.
 
 `app.rate-limit.client-enabled=true`이면 비동기 Worker의 **최초 발송과 재시도 모두** 같은 quota를 사용한다.
 완료된 메시지 재소비는 quota 없이 처리한다. 발송이 필요하면 DB 트랜잭션을 끝낸 뒤 허가를 기다리고,
@@ -183,12 +184,18 @@ HTTP 클라이언트 기본값은 연결 2개/추가 호출 4개, 풀 대기 200
 
 ```bash
 docker compose --profile redis up -d --wait redis
+# 최초 설치, 모든 참여 앱을 실행하기 전 한 번만 초기화
+docker compose exec -T redis redis-cli -e --eval /dev/stdin \
+  notification-lab:provider:mock:quota , 10 10 \
+  < src/main/resources/redis/initialize-provider-quota.lua
 ./gradlew bootRun --args='--app.provider.mode=HTTP --app.rate-limit.client-enabled=true'
 ```
 
 기존 MySQL/Kafka와 HTTP Mock 실행도 필요하다. 기본값 false는 Redis 없이 기존 기준선을 실행한다.
 `127.0.0.1:${REDIS_PORT:-16379}`, Redis 7.4.11, AOF/전용 volume/`noeviction`을 사용한다.
-모든 참여 앱에 같은 Redis/키/rate/burst를 설정한다.
+모든 참여 앱에 같은 Redis/키/rate/burst를 설정한다. 초기화는 토큰 0개에서 시작하고 기존 키는 덮어쓰지 않는다.
+**기존 version=1 예산은 새 앱과 호환되지 않는다.** 전체 발송 중지·확인·대기 후 [v2 전환/복구 절차](docs/S6_REDIS_RECOVERY.md)를 따른다.
+단순 연결 장애에서 신뢰할 수 있는 기존 v2 예산은 유지한다. 정상 형식의 오래된 snapshot 복원은 자동 감지하지 못하므로 자동 failover를 지원한다고 해석하지 않는다.
 
 `app.rate-limit.wait-timeout-ms` 기본 2000(1~5000)이다. 두 모드 모두 quota 대기 중 DB 시도/lease를 만들지 않는다.
 기본 `app.rate-limit.pause-enabled=true`에서는 정상 한도 부족(LIMITED)에 **소비 pause → poll 유지 → 자동 resume**를 사용한다.
@@ -271,11 +278,12 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-Redis 장기 장애/예산 유실 정책, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+자동 Redis failover, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S6_REDIS_RECOVERY.md](docs/S6_REDIS_RECOVERY.md): Redis 장애/예산 유실의 발송 중지, 최초 초기화·v2 전환·통제된 복구
 - [docs/S6_CIRCUIT_BREAKER.md](docs/S6_CIRCUIT_BREAKER.md): 공급자 회로 차단과 단일 half-open 탐침, 선점/offset 보존
 - [docs/S6_CONSUMER_PAUSE.md](docs/S6_CONSUMER_PAUSE.md): quota 부족 시 자동 pause/resume, poll 유지·종료·리밸런스 검증
 - [docs/S6_WORKER_QUOTA.md](docs/S6_WORKER_QUOTA.md): 최초/재시도 공통 quota, 선점 전 대기와 offset 보존

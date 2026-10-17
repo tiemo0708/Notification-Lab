@@ -6,6 +6,7 @@ import dev.jinhyeon.notificationlab.config.RateLimitProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,15 +18,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.MountableFile;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 import static dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiter.Outcome.ALLOWED;
 import static dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiter.Outcome.LIMITED;
 import static dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiter.Outcome.UNAVAILABLE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 
@@ -73,6 +78,7 @@ class RedisRateLimiterTest {
     void realServerTimeRefillsFractionalCreditAcrossRepeatedDenials() {
         String key = key();
         try (var client = client(key, 2, 1, new SimpleMeterRegistry()); Jedis admin = admin()) {
+            seed(admin, key, 2, 1, 1000, now(admin));
             assertThat(client.tryAcquire().outcome()).isEqualTo(ALLOWED);
             long started = Long.parseLong(admin.hget(key, "last_ms"));
             var denied = client.tryAcquire();
@@ -104,6 +110,7 @@ class RedisRateLimiterTest {
                 }
                 return admitted;
             }));
+            seed(admin, key, 10, 3, 3000, now(admin));
             long began = now(admin);
             start.countDown();
             int admitted = 0;
@@ -178,14 +185,14 @@ class RedisRateLimiterTest {
         String key = key();
         try (Jedis admin = admin(); var client = client(key, 10, 10, new SimpleMeterRegistry())) {
             for (Map<String, String> state : List.of(
-                    Map.of("version", "1", "rate", "20", "burst", "10", "credit", "10000", "last_ms", "1"),
-                    Map.of("version", "1", "rate", "10", "burst", "20", "credit", "10000", "last_ms", "1"),
-                    Map.of("version", "2", "rate", "10", "burst", "10", "credit", "10000", "last_ms", "1"),
-                    Map.of("version", "1", "rate", "10", "burst", "10", "credit", "-1", "last_ms", "1"),
-                    Map.of("version", "1", "rate", "10", "burst", "10", "credit", "10001", "last_ms", "1"),
-                    Map.of("version", "1", "rate", "10", "burst", "10", "credit", "0.5", "last_ms", "1"),
-                    Map.of("version", "1", "rate", "10", "burst", "10", "credit", "0", "last_ms", "bad"),
-                    Map.of("version", "1"))) {
+                    Map.of("version", "2", "rate", "20", "burst", "10", "credit", "10000", "last_ms", "1"),
+                    Map.of("version", "2", "rate", "10", "burst", "20", "credit", "10000", "last_ms", "1"),
+                    Map.of("version", "1", "rate", "10", "burst", "10", "credit", "10000", "last_ms", "1"),
+                    Map.of("version", "2", "rate", "10", "burst", "10", "credit", "-1", "last_ms", "1"),
+                    Map.of("version", "2", "rate", "10", "burst", "10", "credit", "10001", "last_ms", "1"),
+                    Map.of("version", "2", "rate", "10", "burst", "10", "credit", "0.5", "last_ms", "1"),
+                    Map.of("version", "2", "rate", "10", "burst", "10", "credit", "0", "last_ms", "bad"),
+                    Map.of("version", "2"))) {
                 admin.del(key); admin.hset(key, state);
                 assertThat(client.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
                 assertThat(admin.hgetAll(key)).isEqualTo(state);
@@ -200,6 +207,7 @@ class RedisRateLimiterTest {
     void scriptCacheFlushDoesNotResetBudgetOrRequireUnsafeRetry() {
         String key = key();
         try (Jedis admin = admin(); var client = client(key, 1, 1, new SimpleMeterRegistry())) {
+            seed(admin, key, 1, 1, 1000, now(admin));
             assertThat(client.tryAcquire().outcome()).isEqualTo(ALLOWED);
             admin.scriptFlush();
             assertThat(client.tryAcquire().outcome()).isEqualTo(LIMITED);
@@ -213,6 +221,7 @@ class RedisRateLimiterTest {
         var settings = new RateLimitProperties("127.0.0.1", REDIS.getMappedPort(6379), key, 1, 1, 1, 250);
         try (Jedis admin = admin(); var client = new RedisRateLimiter(settings, registry);
                 var executor = Executors.newSingleThreadExecutor()) {
+            seed(admin, key, 1, 1, 1000, now(admin));
             assertThat(client.tryAcquire().outcome()).isEqualTo(ALLOWED); // Warm the sole connection.
             admin.clientPause(1500);
             try {
@@ -227,6 +236,137 @@ class RedisRateLimiterTest {
         }
     }
 
+    @Test
+    void missingOrDeletedBudgetNeverCreatesPermitsAndExplicitInitializationStartsEmpty() throws Exception {
+        String key = key();
+        try (Jedis admin = admin(); var client = client(key, 1, 2, new SimpleMeterRegistry())) {
+            for (int i = 0; i < 3; i++) assertThat(client.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+            assertThat(admin.exists(key)).isFalse();
+            assertThat(initialize(admin, key, 1, 2)).isEqualTo("QUOTA_INITIALIZED_EMPTY");
+            assertThat(admin.hget(key, "credit")).isEqualTo("0");
+            assertThat(admin.pttl(key)).isEqualTo(-1);
+            long initialized = Long.parseLong(admin.hget(key, "last_ms"));
+            assertThat(client.tryAcquire().outcome()).isEqualTo(LIMITED);
+            await().pollInterval(Duration.ofMillis(20)).atMost(Duration.ofSeconds(3))
+                    .until(() -> client.tryAcquire().outcome() == ALLOWED);
+            assertThat(Long.parseLong(admin.hget(key, "last_ms")) - initialized).isGreaterThanOrEqualTo(1000);
+            admin.del(key);
+            assertThat(client.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+            try (var restarted = client(key, 1, 2, new SimpleMeterRegistry())) {
+                assertThat(restarted.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+            }
+            assertThat(admin.exists(key)).isFalse();
+        }
+    }
+
+    @Test
+    void initializationNeverOverwritesExistingOrInvalidState() throws Exception {
+        String key = key();
+        try (Jedis admin = admin()) {
+            for (Map<String, String> state : List.of(
+                    Map.of("version", "2", "rate", "1", "burst", "2", "credit", "0", "last_ms", "1"),
+                    Map.of("version", "1"), Map.of("broken", "state"))) {
+                admin.del(key); admin.hset(key, state);
+                assertThatThrownBy(() -> initialize(admin, key, 1, 2)).isInstanceOf(JedisDataException.class);
+                assertThat(admin.hgetAll(key)).isEqualTo(state);
+            }
+            admin.del(key); admin.set(key, "wrong-type");
+            assertThatThrownBy(() -> initialize(admin, key, 1, 2)).isInstanceOf(JedisDataException.class);
+            assertThat(admin.get(key)).isEqualTo("wrong-type");
+        }
+    }
+
+    @Test
+    void concurrentInitializersCreateExactlyOneEmptyBucket() throws Exception {
+        String key = key();
+        try (var executor = Executors.newFixedThreadPool(4); Jedis admin = admin()) {
+            var start = new CountDownLatch(1);
+            var tasks = new ArrayList<Future<Boolean>>();
+            for (int i = 0; i < 4; i++) tasks.add(executor.submit(() -> {
+                try (Jedis connection = admin()) {
+                    assertThat(start.await(2, TimeUnit.SECONDS)).isTrue();
+                    try { initialize(connection, key, 1, 2); return true; }
+                    catch (JedisDataException exists) { return false; }
+                }
+            }));
+            start.countDown();
+            int created = 0;
+            for (var task : tasks) if (task.get(3, TimeUnit.SECONDS)) created++;
+            assertThat(created).isEqualTo(1);
+            assertThat(admin.hget(key, "credit")).isEqualTo("0");
+            assertThat(admin.hget(key, "version")).isEqualTo("2");
+            assertThat(admin.hlen(key)).isEqualTo(5);
+        }
+    }
+
+    @Test
+    void expiringBudgetFailsClosedWithoutRemovingItsExpiryOrChangingCredit() throws Exception {
+        String key = key();
+        try (Jedis admin = admin(); var client = client(key, 1, 2, new SimpleMeterRegistry())) {
+            initialize(admin, key, 1, 2);
+            var original = admin.hgetAll(key);
+            admin.pexpire(key, 60000);
+            assertThat(client.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+            assertThat(admin.hgetAll(key)).isEqualTo(original);
+            assertThat(admin.pttl(key)).isBetween(1L, 60000L);
+        }
+    }
+
+    @Test
+    void initializationRejectsInvalidPolicyWithoutCreatingState() throws Exception {
+        String key = key();
+        try (Jedis admin = admin()) {
+            for (int[] bounds : List.of(new int[]{0, 1}, new int[]{10001, 1}, new int[]{1, 0}, new int[]{1, 10001})) {
+                assertThatThrownBy(() -> initialize(admin, key, bounds[0], bounds[1])).isInstanceOf(JedisDataException.class);
+            }
+            assertThatThrownBy(() -> initialize(admin, "bad key", 1, 1)).isInstanceOf(JedisDataException.class);
+            assertThat(admin.exists(key)).isFalse();
+            assertThat(admin.exists("bad key")).isFalse();
+        }
+    }
+
+    @Test
+    void documentedCliInitializesFromStdinAndReturnsNonzeroForExistingBudget() throws Exception {
+        String key = key();
+        REDIS.copyFileToContainer(MountableFile.forClasspathResource("redis/initialize-provider-quota.lua"), "/tmp/quota-init.lua");
+        String[] command = {"sh", "-c", "redis-cli -e --eval /dev/stdin \"$1\" , 1 2 < /tmp/quota-init.lua", "quota-init", key};
+        var first = REDIS.execInContainer(command);
+        assertThat(first.getExitCode()).isZero();
+        assertThat(first.getStdout().trim()).isEqualTo("QUOTA_INITIALIZED_EMPTY");
+        try (Jedis admin = admin()) {
+            var state = admin.hgetAll(key);
+            var second = REDIS.execInContainer(command);
+            assertThat(second.getExitCode()).isNotZero();
+            assertThat(admin.hgetAll(key)).isEqualTo(state);
+        }
+    }
+
+    @Test
+    void structurallyValidSnapshotRollbackIsNotDetectableAndNeedsQuiescedReinitialization() throws Exception {
+        String key = key();
+        try (Jedis admin = admin(); var client = client(key, 10, 2, new SimpleMeterRegistry())) {
+            // Controlled stale-snapshot injection, not an actual replica promotion or clock-change experiment.
+            seed(admin, key, 10, 2, 2000, now(admin) + 10000);
+            var stale = admin.hgetAll(key);
+            assertThat(client.tryAcquire().outcome()).isEqualTo(ALLOWED);
+            assertThat(client.tryAcquire().outcome()).isEqualTo(ALLOWED);
+            assertThat(client.tryAcquire().outcome()).isEqualTo(LIMITED);
+            admin.hset(key, stale);
+            assertThat(client.tryAcquire().outcome()).isEqualTo(ALLOWED); // Known limit: no external epoch authority.
+            // No participating sender/in-flight permit remains in this isolated test. Drain + B/r quiet period.
+            TimeUnit.MILLISECONDS.sleep(250);
+            admin.del(key);
+            initialize(admin, key, 10, 2);
+            assertThat(admin.hget(key, "credit")).isEqualTo("0");
+            assertThat(client.tryAcquire().outcome()).isEqualTo(LIMITED);
+        }
+    }
+
+    private static String initialize(Jedis admin, String key, int rate, int burst) throws java.io.IOException {
+        String script = new ClassPathResource("redis/initialize-provider-quota.lua").getContentAsString(StandardCharsets.UTF_8);
+        return (String) admin.eval(script, List.of(key), List.of(Integer.toString(rate), Integer.toString(burst)));
+    }
+
     private static RedisRateLimiter client(String key, int rate, int burst, SimpleMeterRegistry registry) {
         return new RedisRateLimiter(new RateLimitProperties("127.0.0.1", REDIS.getMappedPort(6379), key,
                 rate, burst, 2, 1000), registry);
@@ -239,7 +379,7 @@ class RedisRateLimiterTest {
         return Long.parseLong(time.get(0)) * 1000 + Long.parseLong(time.get(1)) / 1000;
     }
     private static void seed(Jedis admin, String key, int rate, int burst, long credit, long time) {
-        admin.hset(key, Map.of("version", "1", "rate", Integer.toString(rate), "burst", Integer.toString(burst),
+        admin.hset(key, Map.of("version", "2", "rate", Integer.toString(rate), "burst", Integer.toString(burst),
                 "credit", Long.toString(credit), "last_ms", Long.toString(time)));
     }
 }
