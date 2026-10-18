@@ -257,6 +257,60 @@ class CampaignApiTest {
         assertThat(jdbc().queryForObject("SELECT status FROM campaign", String.class)).isEqualTo("START_REQUESTED");
     }
 
+    @Test
+    void audienceResumesAcrossApplicationsAndRestartWithoutStartingOrDispatching() throws Exception {
+        var created = call(first, "POST", "/campaigns", PAYLOAD.replace("100000", "2003"), UUID.randomUUID().toString());
+        String location = created.headers().firstValue("Location").orElseThrow();
+        var defaults = call(first, "GET", location + "/audience", null, null);
+        assertThat(defaults.statusCode()).isEqualTo(200);
+        assertThat(json(defaults).path("items")).hasSize(100);
+        assertThat(json(defaults).path("nextAfter").asLong()).isEqualTo(100);
+        var firstPage = json(call(first, "GET", location + "/audience?after=0&limit=1000", null, null));
+        assertThat(firstPage.path("campaignId")).isEqualTo(json(created).path("campaignId"));
+        assertThat(firstPage.path("audience").asText()).isEqualTo("SYNTHETIC_V1");
+        assertThat(firstPage.path("targetCount").asInt()).isEqualTo(2003);
+        assertThat(firstPage.path("items")).hasSize(1000);
+        assertThat(firstPage.path("items").get(0).path("recipientId").asText()).isEqualTo("synthetic-v1-1");
+        assertThat(firstPage.path("nextAfter").asLong()).isEqualTo(1000);
+        // Another campaign and the first campaign's start must not alter frozen membership.
+        create();
+        assertThat(json(call(first, "GET", location, null, null)).path("status").asText()).isEqualTo("DRAFT");
+        assertThat(call(second, "POST", location + "/start", null, null).statusCode()).isEqualTo(202);
+        for (var response : concurrent((app, i) -> call(app, "GET", location + "/audience?after=0&limit=1000", null, null))) {
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(json(response)).isEqualTo(firstPage);
+        }
+        first.close(); first = application("CAMPAIGN");
+        var secondPage = json(call(first, "GET", location + "/audience?after=1000&limit=1000", null, null));
+        assertThat(secondPage.path("items")).hasSize(1000);
+        assertThat(secondPage.path("items").get(0).path("ordinal").asLong()).isEqualTo(1001);
+        assertThat(secondPage.path("nextAfter").asLong()).isEqualTo(2000);
+        var last = json(call(second, "GET", location + "/audience?after=2000&limit=5", null, null));
+        assertThat(last.path("items")).hasSize(3);
+        assertThat(last.path("items").get(2).path("recipientId").asText()).isEqualTo("synthetic-v1-2003");
+        assertThat(last.path("nextAfter").isNull()).isTrue();
+        var end = json(call(first, "GET", location + "/audience?after=2003&limit=1", null, null));
+        assertThat(end.path("items")).isEmpty();
+        assertThat(end.path("nextAfter").isNull()).isTrue();
+        assertNoDispatch();
+    }
+
+    @Test
+    void audienceRejectsInvalidKeysAndSizesAndIsUnavailableOnRealtime() throws Exception {
+        String location = create();
+        for (String query : List.of("after=-1", "after=100001", "after=9223372036854775807", "after=9223372036854775808",
+                "after=1.5", "after=secret-cursor", "limit=0", "limit=-1", "limit=1001", "limit=2147483648", "limit=1.5")) {
+            var response = call(first, "GET", location + "/audience?" + query, null, null);
+            assertThat(response.statusCode()).isEqualTo(400);
+            assertThat(response.body()).doesNotContain("secret-cursor", "SQL");
+        }
+        assertThat(call(first, "GET", "/campaigns/" + UUID.randomUUID() + "/audience", null, null).statusCode()).isEqualTo(404);
+        assertThat(call(first, "GET", "/campaigns/not-a-uuid/audience", null, null).statusCode()).isEqualTo(400);
+        assertThat(call(realtime, "GET", location + "/audience", null, null).statusCode()).isEqualTo(404);
+        assertThat(jdbc().queryForObject("SELECT status FROM campaign", String.class)).isEqualTo("DRAFT");
+        assertNoDispatch();
+    }
+
     private void executeAsRoot(String sql) throws SQLException {
         try (var connection = DriverManager.getConnection(MYSQL.getJdbcUrl(), "root", MYSQL.getPassword());
              var statement = connection.createStatement()) {

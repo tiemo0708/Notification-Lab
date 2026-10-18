@@ -1305,3 +1305,53 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 사용자 로컬 DB, Redis 예산, .env, IntelliJ 설정에는 직접 변경을 적용하지 않았다. V8은 다음 새 앱 기동 시 적용된다.
   검증은 격리된 Testcontainers DB/토픽과 가상 데이터만 사용했다.
 - 다음 단계는 고정된 가상 대상자 집합과 keyset pagination이다. 그 뒤 Batch checkpoint와 결정적 작업 ID를 연결한다.
+
+## 2026-10-18: S7 두 번째 단계 — 고정 가상 대상자와 keyset 조회
+
+### 문제와 구현
+
+- 재시작/재조회 시 대상과 순서가 달라지지 않는 가상 집합이 필요하다.
+  기존 DB 정의의 SYNTHETIC_V1과 targetCount로 순번 1~N, 수신자 ID synthetic-v1-번호를 고정했다.
+  별도 전체 목록이나 DB seed를 만들지 않고 요청한 페이지의 구성원만 계산한다.
+- CAMPAIGN 앱에 GET /campaigns/{id}/audience?after=0&limit=100을 추가했다.
+  숫자 ordinal을 키로 `after < ordinal <= targetCount`를 최대 1,000개 반환한다.
+  다음 키 nextAfter가 null이면 종료이며 after=targetCount는 빈 페이지다.
+  페이지 크기는 다음 요청에서 변경할 수 있고 동일 키/크기는 동일 대상을 반환한다.
+- 잘못된 커서/크기는 400, 없는 캠페인은 404다. 지원하지 않는 버전/손상된 정의는 503으로 거절한다.
+  DRAFT/START_REQUESTED에서 조회할 수 있으며 읽기가 캠페인 상태나 발송 진행 위치를 변경하지 않는다.
+  after는 인증/캠페인 식별 토큰이 아니므로 campaignId와 함께 보관해야 한다.
+- [학습 문서](S7_CAMPAIGN_AUDIENCE.md)에 전체 메모리 목록/DB 스냅샷/가상 집합의 대안과 선택 이유,
+  numeric key와 문자열 정렬의 차이, 이어 읽기·checkpoint 경계, HTTP 예제와 고정 해시를 기록했다.
+  PLAN의 두 번째 항목과 README/API 문서를 갱신했다. V8과 기존 migration은 수정하지 않았다.
+
+### 실제 검증
+
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*CampaignApiTest' --tests '*SyntheticCampaignAudienceTest'`:
+  **2개 클래스/18개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(20초), 종료 코드 0.
+- 가상 대상 100,000명은 101페이지, 1,000,000명은 1,002페이지로 997/1,000 크기를 번갈아 순회했다.
+  단조 증가 순번/총수와 UTF-8 ordinal:recipientId 줄 단위 SHA-256이 고정 기준값과 일치했다.
+  깊은 키 999997부터 재개, 마지막 부분/빈 페이지, 크기 변경, 범위/오버플로/알 수 없는 버전 거절을 검증했다.
+  반환 목록의 변경도 거절되어 호출자가 페이지 내용을 수정할 수 없다.
+- 실제 MySQL 8.4.8/Kafka 4.0.2와 독립 앱 context로 2,003명 캠페인을 조회했다.
+  기본 100개, 최대 1,000개와 마지막 3개/종료 빈 목록을 대조했다.
+  다른 캠페인 생성과 시작 상태 전환 뒤 두 CAMPAIGN 앱의 동시 조회 12건이 같은 페이지를 반환했다.
+  앱 context 재시작 후 after=1000에서 1001번부터 이어 읽었다.
+- HTTP의 잘못된 값/UUID/없는 ID/REALTIME 404를 확인했다. 조회 전 DRAFT는 조회 후에도 DRAFT다.
+  발송 관련 DB 행/Kafka end offset/Redis 허가 카운터 0을 대조했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **29개 클래스/240개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(11분 27초), 종료 코드 0.
+  test 태스크는 실행됐고 XML 합계를 대조했다. 기존 Kafka 복구·프로세스 종료·Redis·회로·역할 분리·리밸런스 회귀를 포함한다.
+- 실행 JAR의 캠페인 class 바이트 일치와 테스트/별도 Mock 서버 클래스 제외를 확인했다.
+  문서 링크/코드 블록과 `git diff --check`를 확인했다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444를 확인했다.
+  기존 main 위에 로컬 커밋하며 푸시하지 않는다. 테스트 컨테이너/Java/caffeinate는 종료됐고 기존 MySQL은 healthy다.
+
+### 한계와 다음 단계
+
+- 가상 집합의 keyset 열거를 검증했다. 실제 회원 테이블의 SQL keyset/인덱스 성능과 변경 중 스냅샷은 별도 범위다.
+- 10만/100만 대상 열거는 정합성 검사이며 DB 저장·Kafka 발행·공급자 발송 부하 테스트가 아니다.
+  이번에 별도 1만 건 정합성 태스크/원격 CI/실행 JAR 기동 smoke를 실행하지 않았다.
+- 페이지 조회는 checkpoint를 저장하지 않으며 START_REQUESTED에서 실제 Batch 실행/발송은 아직 진행되지 않는다.
+  재시작 검증은 앱 context 재생성이다. 실제 캠페인 프로세스 강제 종료 실험은 후속 Batch 연결 시 필요하다.
+- 사용자 로컬 DB/Redis 예산/.env/IntelliJ는 변경하지 않았다. 신규 migration이나 대상자 전체 seed도 없다.
+- 다음은 Spring Batch chunk checkpoint와 작업 인계/ACK, 재시작 시 동일 범위 중복 처리 검증이다.

@@ -37,5 +37,9 @@ public class CampaignService {
 
     public Campaign get(UUID id) { return store.find(id).orElseThrow(CampaignNotFoundException::new); }
 
+    public CampaignAudiencePage audience(UUID id, long after, int limit) {
+        return SyntheticCampaignAudience.read(get(id), after, limit);
+    }
+
     public CampaignStore.Start start(UUID id) { return store.start(id); }
 }

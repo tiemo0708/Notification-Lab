@@ -1,6 +1,6 @@
 # S7: 캠페인 생성과 영속 시작 요청
 
-2026-10-18 구현 범위. 캠페인 정의를 저장하고 시작 요청을 한 번 수락하는 단계다.
+2026-10-18 첫 단계 구현 범위. 캠페인 정의를 저장하고 시작 요청을 한 번 수락하는 단계다.
 실제 대상자 확장, Spring Batch Job 실행, Kafka 발행과 공급자 호출은 아직 연결하지 않았다.
 
 ## 문제와 선택
@@ -49,7 +49,8 @@ SQL/본문/수신자 정보는 오류 응답에 넣지 않는다. HTTP 응답은
 
 응답은 `campaignId/name/title/body/audience/targetCount/status/createdAt/startRequestedAt`이다.
 `audience`는 서버가 `SYNTHETIC_V1`로 고정한다. 이는 후속 가상 대상자 규칙의 버전 식별자이며,
-지금 대상자 데이터가 존재하거나 스냅샷을 만들었다는 뜻은 아니다.
+후속 [고정 가상 집합 조회](S7_CAMPAIGN_AUDIENCE.md)에서는 이 버전과 targetCount로 대상을 재현한다.
+DB에 대상자 행을 적재하거나 실제 회원 스냅샷을 만든 것은 아니다.
 시각은 DB의 UTC 마이크로초 값을 사용하며 DRAFT의 `startRequestedAt`은 null이다.
 
 ## 실행 예
@@ -110,5 +111,5 @@ DB CHECK, 입력 오류, REALTIME 엔드포인트 부재를 검증한다.
 
 실행 결과와 최초 실패를 포함한 이력은 [PROGRESS](PROGRESS.md)에 기록한다.
 별도 OS 프로세스 강제 종료, 운영 처리량, 대량 데이터, 실제 FCM/APNs는 이번 검증 범위가 아니다.
-다음 작업은 **고정된 가상 대상자 집합과 keyset pagination**이다. 그 뒤 Batch checkpoint,
-결정적 대상자 작업 ID, 실패 후 재처리를 연결한다.
+[고정 가상 대상자와 keyset pagination](S7_CAMPAIGN_AUDIENCE.md)을 후속 단계로 추가했다.
+다음은 Batch checkpoint, 결정적 대상자 작업 ID, 실패 후 재처리를 연결한다.

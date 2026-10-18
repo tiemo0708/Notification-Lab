@@ -1,6 +1,7 @@
 package dev.jinhyeon.notificationlab.api;
 
 import dev.jinhyeon.notificationlab.campaign.Campaign;
+import dev.jinhyeon.notificationlab.campaign.CampaignAudiencePage;
 import dev.jinhyeon.notificationlab.campaign.CampaignRequest;
 import dev.jinhyeon.notificationlab.campaign.CampaignService;
 import dev.jinhyeon.notificationlab.notification.InvalidIdempotencyKeyException;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -45,6 +47,13 @@ public class CampaignController {
 
     @GetMapping("/{id}")
     public Campaign get(@PathVariable UUID id) { return service.get(id); }
+
+    @GetMapping("/{id}/audience")
+    public CampaignAudiencePage audience(@PathVariable UUID id,
+                                         @RequestParam(defaultValue = "0") long after,
+                                         @RequestParam(defaultValue = "100") int limit) {
+        return service.audience(id, after, limit);
+    }
 
     private URI location(UUID id) { return URI.create("/campaigns/" + id); }
 }

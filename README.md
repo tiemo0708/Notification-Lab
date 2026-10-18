@@ -236,7 +236,7 @@ CLOSED → OPEN → HALF_OPEN으로 전환하며, HALF_OPEN에서는 앱당 한 
 재시도/DLQ/선택 재발행은 원래 역할을 보존하며 다른 역할의 redrive는 409다.
 S7에서 캠페인 정의와 시작 요청 API를 추가했다. 대상자 확장/Spring Batch는 후속 범위다. MySQL/Kafka/Redis 서버와 호스트 자원은 공유한다.
 
-## 캠페인 생성·시작·조회 (S7 첫 단계)
+## 캠페인 생성·시작·조회와 가상 대상자 (S7)
 
 CAMPAIGN 역할의 비동기 앱에서 `POST /campaigns`로 정의를 저장하고,
 `POST /campaigns/{id}/start`로 시작 의도를 기록하며 `GET /campaigns/{id}`로 조회한다.
@@ -244,7 +244,10 @@ CAMPAIGN 역할의 비동기 앱에서 `POST /campaigns`로 정의를 저장하�
 최초 시작은 202, 중복 시작은 200이며 DB에 최초 요청 시각을 한 번 저장한다.
 
 현재 상태는 `DRAFT → START_REQUESTED`까지다. **시작 요청을 저장해도 실제 발송은 실행하지 않는다.**
-가상 대상 수 1~100만을 정의에 기록하며 대상자 집합·확장·Spring Batch 연결은 다음 단계다.
+가상 대상 수 1~100만을 정의에 기록한다. `GET /campaigns/{id}/audience?after=0&limit=100`으로
+고정 가상 대상자를 최대 1,000명씩 읽고, 응답의 nextAfter로 이어 읽는다.
+[집합 고정·keyset·재시작 계약](docs/S7_CAMPAIGN_AUDIENCE.md)을 참고한다.
+가상 집합을 규칙으로 계산하며 실제 회원 DB 조회나 발송 작업 생성·Spring Batch 실행은 아직 연결하지 않았다.
 [요청 예제·트랜잭션·동시성·실패 정책·검증](docs/S7_CAMPAIGN_API.md)을 참고한다.
 
 ## 테스트와 빌드
