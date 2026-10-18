@@ -124,7 +124,7 @@ DLQ는 자동 소비/재발송하지 않는다. 선택한 PUBLISHED DLQ는 사�
 같은 DLQ는 한 번, 원본 기준 계보 전체는 최대 3회 재발행한다.
 [선택 재발행 API](docs/S4_DLQ_REDRIVE.md)와 [토픽·DLQ 정책](docs/S4_RETRY_TOPICS_DLQ.md)을 참고한다.
 [작업/복구 정책](docs/S4_DELIVERY_TASKS.md)과 [재시도 정책](docs/S4_RETRY_POLICY.md)을 참고한다.
-기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V7 DB를 사용하며 실시간/캠페인 역할을 모르는 이전 앱·Relay와 혼합 실행하지 않는다. 기존 행은 REALTIME으로 보존한다.
+기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V8 DB를 사용하며 실시간/캠페인 역할을 모르는 이전 앱·Relay와 혼합 실행하지 않는다. 기존 행은 REALTIME으로 보존한다.
 
 기본 Mock 지연은 100ms(허용 0~5000ms), SUCCESS다. 앱 재시작으로 설정한다.
 
@@ -232,9 +232,20 @@ CLOSED → OPEN → HALF_OPEN으로 전환하며, HALF_OPEN에서는 앱당 한 
 **분리 모드는 v3 빈 예산을 명시적으로 초기화해야 하며 기존 v2와 혼합할 수 없다.**
 [선택 이유·역할별 실행·v2/v3 전환·실제 검증·한계](docs/S6_TRAFFIC_ISOLATION.md)를 먼저 확인한다.
 
-캠페인 요청도 현재는 역할별 `/notifications`로 가상 대상 한 명씩 접수한다. API 본문으로 역할을 바꾸지 않는다.
+개별 캠페인 알림은 역할별 `/notifications`로 가상 대상 한 명씩 접수한다. API 본문으로 역할을 바꾸지 않는다.
 재시도/DLQ/선택 재발행은 원래 역할을 보존하며 다른 역할의 redrive는 409다.
-캠페인 생성/대상자 확장/Spring Batch는 다음 S7 범위다. MySQL/Kafka/Redis 서버와 호스트 자원은 공유한다.
+S7에서 캠페인 정의와 시작 요청 API를 추가했다. 대상자 확장/Spring Batch는 후속 범위다. MySQL/Kafka/Redis 서버와 호스트 자원은 공유한다.
+
+## 캠페인 생성·시작·조회 (S7 첫 단계)
+
+CAMPAIGN 역할의 비동기 앱에서 `POST /campaigns`로 정의를 저장하고,
+`POST /campaigns/{id}/start`로 시작 의도를 기록하며 `GET /campaigns/{id}`로 조회한다.
+생성에는 `Idempotency-Key`가 필수다. 같은 키/같은 정의는 기존 캠페인을 반환하고 다른 정의는 409다.
+최초 시작은 202, 중복 시작은 200이며 DB에 최초 요청 시각을 한 번 저장한다.
+
+현재 상태는 `DRAFT → START_REQUESTED`까지다. **시작 요청을 저장해도 실제 발송은 실행하지 않는다.**
+가상 대상 수 1~100만을 정의에 기록하며 대상자 집합·확장·Spring Batch 연결은 다음 단계다.
+[요청 예제·트랜잭션·동시성·실패 정책·검증](docs/S7_CAMPAIGN_API.md)을 참고한다.
 
 ## 테스트와 빌드
 
@@ -295,7 +306,7 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-자동 Redis failover, 캠페인 생성·대상자 확장/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+자동 Redis failover, 캠페인 대상자 확장/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건

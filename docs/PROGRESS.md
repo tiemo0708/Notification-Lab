@@ -1247,3 +1247,61 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 새 migration 파일을 추가했지만 사용자 로컬 DB/Redis 예산/.env/IDE 설정에 직접 적용하지 않았다. 실제 테스트는 disposable schema/container만 사용했다.
 - 테스트 컨테이너와 Gradle/테스트 Java/caffeinate 프로세스 종료를 확인했다. 기존 로컬 MySQL은 healthy다.
 - S6를 정의한 로컬 실험 범위에서 완료 표시했다. 다음은 S7 캠페인 생성/시작/조회와 중복 시작 방지다.
+
+## 2026-10-18: S7 첫 단계 — 캠페인 생성·조회와 영속 시작 요청
+
+### 문제와 구현
+
+- 중복 클릭·응답 유실·서로 다른 앱의 동시 시작에서 캠페인 정의와 시작 의도를 한 번 확정한다.
+  [학습 문서](S7_CAMPAIGN_API.md)에 문제/대안/DB 유니크·조건부 갱신의 선택 이유와 실패 경계를 정리했다.
+- 비동기 CAMPAIGN 역할에만 POST /campaigns, GET /campaigns/{id}, POST /campaigns/{id}/start를 추가했다.
+  생성은 필수 Idempotency-Key와 정확한 정의 비교로 201/200/409를 구분한다.
+  이름·제목·본문 길이와 targetCount 1~100만 JSON 정수를 검증한다. 소수/문자열의 암묵 변환도 거절한다.
+- V8은 campaign 테이블만 추가한다. 키는 binary unique, audience는 SYNTHETIC_V1로 고정한다.
+  DB CHECK가 대상 수/상태/시각 조합을 제한한다. 이전 migration이나 기존 알림·시도 이력은 변경하지 않았다.
+- 시작은 별도 DB 트랜잭션에서 DRAFT를 START_REQUESTED로 바꾸고 최신 잠금 조회로 응답한다.
+  최초 202, 중복 200이며 최초 시각을 유지한다. 생성 충돌도 실패 트랜잭션 롤백 후 기존 정의를 읽는다.
+  호출자의 오래된 REPEATABLE READ 스냅샷과 롤백으로 접수 결과가 달라지지 않게 경계를 분리했다.
+- START_REQUESTED는 시작 의도만 의미한다. 실제 Batch Job·대상자 확장·발송은 실행하지 않는다.
+  README/PLAN을 이 범위에 맞게 갱신하고 S7 첫 체크박스만 완료했다.
+
+### 실제 검증
+
+- 집중 실행 1차: CampaignApiTest 9개 + MySqlNotificationTest 16개 중 **23개 통과/2개 실패**,
+  BUILD FAILED(26초). 한 실패는 테스트용 트리거를 앱 계정으로 만들다가 MySQL SUPER 권한 부족으로 발생했다.
+  다른 실패는 CHECK 위반이 DataIntegrityViolationException으로 번역된다는 테스트의 가정이었다.
+  격리 컨테이너의 트리거 DDL에만 기존 테스트와 같은 root 연결을 사용하고,
+  CHECK 검증은 DataAccessException의 실제 MySQL 오류 코드 3819를 대조하도록 고쳤다.
+  앱의 권한이나 DB 제약은 완화하지 않았다.
+- 잘못된 targetCount의 암묵 숫자 변환을 방지하도록 전용 필드 역직렬화와 HTTP 오류 검증을 추가했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*CampaignApiTest' --tests '*MySqlNotificationTest'`:
+  **2개 클래스/25개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(30초), 종료 코드 0.
+- 실제 MySQL 8.4.8/Kafka 4.0.2와 CAMPAIGN 2개/REALTIME 1개 독립 앱 context를 사용했다.
+  두 앱에 동시 시작 12건을 보내 202 1건/200 11건, 같은 결과/최초 시각/저장 행 1개를 대조했다.
+  동시 동일 생성은 201 1건/200 11건, 상충 정의 생성은 201 1건/409 11건이며 각각 행 1개다.
+- 앱 context 재시작 뒤 조회·중복 시작·생성 재요청이 기존 시작 상태를 유지했다.
+  이전 caller 트랜잭션 스냅샷이 있어도 커밋된 결과를 관측하며 caller 롤백 후에도 시작 의도는 유지됐다.
+- 테스트용 AFTER UPDATE 트리거로 시작 변경 중 실패를 주입해 503과 DRAFT/시각 null 롤백을 확인했다.
+  트리거 제거 뒤 같은 ID로 202 수락·200 재요청을 확인했다. SQL/테스트 본문은 오류 응답에 노출되지 않았다.
+- 잘못된 입력·키·중복 헤더·UUID·없는 캠페인·DB CHECK와 REALTIME 엔드포인트 404를 확인했다.
+  생성·시작 후 notification/delivery_task/outbox_event/delivery_attempt 행, 캠페인 Kafka 토픽 end offset,
+  앱의 Redis 허가 카운터는 모두 0이었다. 이번 캠페인 API 테스트는 Redis 컨테이너를 사용하지 않는다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **28개 클래스/231개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(11분 13초), 종료 코드 0.
+  XML 합계를 대조했다. 기존 Kafka 중단/복구, 프로세스 종료/offset 복구, graceful shutdown,
+  재시도/DLQ, Redis 장애·예산, 회로, 역할 분리와 리밸런스 회귀를 포함한 단일 전체 실행 결과다.
+- 실행 JAR 안의 캠페인 클래스와 V8 migration 바이트가 빌드 파일과 일치했다.
+  테스트/별도 HTTP Mock 서버 클래스는 알림 JAR에서 제외됐다. 문서 링크/코드 블록/`git diff --check`를 확인했다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444를 확인했다.
+  기존 main 이력 위에 로컬 커밋하며 푸시하지 않는다.
+- 테스트 컨테이너와 Java/caffeinate 프로세스 종료를 확인했다. 기존 로컬 MySQL은 healthy다.
+
+### 한계와 다음 단계
+
+- START_REQUESTED는 현재 실행기를 기다리는 영속 의도다. Batch 실행·자동 재개·진행률·취소·대상자별 작업은 아직 없다.
+- SYNTHETIC_V1은 후속 가상 대상 규칙의 버전 식별자다. 실제 대상자 집합이나 100만 건을 생성/발송한 결과가 아니다.
+- 캠페인 테스트의 재시작은 앱 context 종료/재생성이며 별도 캠페인 OS 프로세스 강제 종료 실험은 하지 않았다.
+  1만 건 정합성 재실행/대량 부하/운영 처리량/원격 CI/별도 실행 JAR 기동 smoke는 이번에 실행하지 않았다.
+- 사용자 로컬 DB, Redis 예산, .env, IntelliJ 설정에는 직접 변경을 적용하지 않았다. V8은 다음 새 앱 기동 시 적용된다.
+  검증은 격리된 Testcontainers DB/토픽과 가상 데이터만 사용했다.
+- 다음 단계는 고정된 가상 대상자 집합과 keyset pagination이다. 그 뒤 Batch checkpoint와 결정적 작업 ID를 연결한다.

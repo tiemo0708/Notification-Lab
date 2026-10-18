@@ -1,6 +1,7 @@
 package dev.jinhyeon.notificationlab.api;
 
 import dev.jinhyeon.notificationlab.notification.NotificationNotFoundException;
+import dev.jinhyeon.notificationlab.campaign.CampaignNotFoundException;
 import dev.jinhyeon.notificationlab.deadletter.DeadLetterNotFoundException;
 import dev.jinhyeon.notificationlab.deadletter.RedriveConflictException;
 import dev.jinhyeon.notificationlab.notification.InvalidIdempotencyKeyException;
@@ -51,6 +52,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(RedriveConflictException.class)
     public ProblemDetail redriveConflict(RedriveConflictException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(CampaignNotFoundException.class)
+    public ProblemDetail campaignNotFound(CampaignNotFoundException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
     @ExceptionHandler(NotificationNotFoundException.class)
