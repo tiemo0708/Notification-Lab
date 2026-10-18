@@ -110,7 +110,8 @@ connect timeout 설정은 적용했으나 패킷을 버리는 네트워크에서
 Worker 병렬 처리/유한 FIFO 대기열은 별도 단계에서 추가했다.
 후속 단계에서 [Redis 공유 quota](S6_WORKER_QUOTA.md), [pause/resume](S6_CONSUMER_PAUSE.md),
 [프로세스별 Circuit Breaker](S6_CIRCUIT_BREAKER.md)를 연결했다. [Redis 장애/예산 유실 정책](S6_REDIS_RECOVERY.md)도 추가했다.
-연결 풀은 프로세스별이며 Worker를 늘리면 합산 연결 수도 증가한다. S6 전체 완료 또는 전역 보호 달성을 뜻하지 않는다.
+[역할별 자원·예약 예산](S6_TRAFFIC_ISOLATION.md)도 추가했다. 연결 풀은 프로세스별이며 Worker를 늘리면 합산 연결 수도 증가한다.
+HTTP 연결 풀만으로 공급자 전체 한도가 보장되는 것은 아니다.
 
 설정의 근거: Apache의 [RequestConfig 소스](https://github.com/apache/httpcomponents-client/blob/rel/v5.5.2/httpclient5/src/main/java/org/apache/hc/client5/http/config/RequestConfig.java)와
 [연결 풀 설명](https://hc.apache.org/httpcomponents-client-5.6.x/connection-pooling.html).

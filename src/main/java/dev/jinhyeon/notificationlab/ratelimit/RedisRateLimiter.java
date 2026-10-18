@@ -1,6 +1,7 @@
 package dev.jinhyeon.notificationlab.ratelimit;
 
 import dev.jinhyeon.notificationlab.config.RateLimitProperties;
+import dev.jinhyeon.notificationlab.config.TrafficProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
@@ -21,7 +22,9 @@ public final class RedisRateLimiter implements AutoCloseable {
     // retryAfterMs is advisory, not a reservation. It is meaningful only for LIMITED.
     public record Decision(Outcome outcome, long retryAfterMs) { }
 
-    private static final String SCRIPT = loadScript();
+    private static final String SCRIPT = loadScript("redis/provider-token-bucket.lua");
+    private static final String SPLIT_SCRIPT = loadScript("redis/provider-split-bucket.lua");
+    private final String script;
     private final JedisPool pool;
     private final Semaphore connectionSlots;
     private final List<String> keys;
@@ -31,6 +34,15 @@ public final class RedisRateLimiter implements AutoCloseable {
     private final Counter unavailable;
 
     public RedisRateLimiter(RateLimitProperties settings, MeterRegistry registry) {
+        this(settings, new TrafficProperties(TrafficProperties.Lane.REALTIME, false, 2, 2), registry);
+    }
+
+    public RedisRateLimiter(RateLimitProperties settings, TrafficProperties traffic, MeterRegistry registry) {
+        if (traffic.splitEnabled() && (traffic.campaignRate() >= settings.ratePerSecond()
+                || traffic.campaignBurst() >= settings.burst())) {
+            throw new IllegalArgumentException("Both traffic roles require a positive reserved rate and burst");
+        }
+        script = traffic.splitEnabled() ? SPLIT_SCRIPT : SCRIPT;
         var config = new GenericObjectPoolConfig<Jedis>();
         config.setMaxTotal(settings.maxConnections());
         config.setMaxIdle(settings.maxConnections());
@@ -39,7 +51,10 @@ public final class RedisRateLimiter implements AutoCloseable {
         pool = new JedisPool(config, settings.host(), settings.port(), settings.timeoutMs());
         connectionSlots = new Semaphore(settings.maxConnections());
         keys = List.of(settings.key());
-        arguments = List.of(Integer.toString(settings.ratePerSecond()), Integer.toString(settings.burst()));
+        arguments = traffic.splitEnabled()
+                ? List.of(Integer.toString(settings.ratePerSecond()), Integer.toString(settings.burst()),
+                    Integer.toString(traffic.campaignRate()), Integer.toString(traffic.campaignBurst()), traffic.lane().name())
+                : List.of(Integer.toString(settings.ratePerSecond()), Integer.toString(settings.burst()));
         allowed = registry.counter("notification.rate.limit.decisions", "outcome", "allowed");
         limited = registry.counter("notification.rate.limit.decisions", "outcome", "limited");
         unavailable = registry.counter("notification.rate.limit.decisions", "outcome", "unavailable");
@@ -56,7 +71,7 @@ public final class RedisRateLimiter implements AutoCloseable {
         try (Jedis connection = pool.getResource()) {
             // One EVAL, no automatic retry: a timeout may already have consumed a token.
             // Fixed script/arguments, no per-call script generation or client wall clock.
-            var reply = (List<?>) connection.eval(SCRIPT, keys, arguments);
+            var reply = (List<?>) connection.eval(script, keys, arguments);
             long admitted = ((Number) reply.get(0)).longValue();
             long retryAfterMs = ((Number) reply.get(1)).longValue();
             if (admitted == 1) {
@@ -80,9 +95,9 @@ public final class RedisRateLimiter implements AutoCloseable {
         pool.close();
     }
 
-    private static String loadScript() {
+    private static String loadScript(String path) {
         try {
-            return new ClassPathResource("redis/provider-token-bucket.lua").getContentAsString(StandardCharsets.UTF_8);
+            return new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException failure) {
             throw new UncheckedIOException("Missing provider quota script", failure);
         }

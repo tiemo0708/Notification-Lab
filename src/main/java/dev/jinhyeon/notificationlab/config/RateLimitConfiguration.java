@@ -9,11 +9,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "app.rate-limit.client-enabled", havingValue = "true")
-@EnableConfigurationProperties(RateLimitProperties.class)
+@EnableConfigurationProperties({RateLimitProperties.class, TrafficProperties.class})
 public class RateLimitConfiguration {
     // The async Worker uses this shared client for initial sends and retries when enabled.
     @Bean(destroyMethod = "close")
-    RedisRateLimiter redisRateLimiter(RateLimitProperties settings, MeterRegistry registry) {
-        return new RedisRateLimiter(settings, registry);
+    RedisRateLimiter redisRateLimiter(RateLimitProperties settings, TrafficProperties traffic, MeterRegistry registry) {
+        return new RedisRateLimiter(settings, traffic, registry);
     }
 }

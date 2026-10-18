@@ -1,5 +1,6 @@
 package dev.jinhyeon.notificationlab.worker;
 
+import dev.jinhyeon.notificationlab.config.TrafficProperties;
 import dev.jinhyeon.notificationlab.notification.Notification;
 import dev.jinhyeon.notificationlab.notification.NotificationStatus;
 import dev.jinhyeon.notificationlab.notification.NotificationStore;
@@ -18,11 +19,13 @@ public class WorkerStore {
     private final JdbcTemplate jdbc;
     private final NotificationStore notifications;
     private final RetryPolicy retries;
+    private final TrafficProperties traffic;
 
-    public WorkerStore(JdbcTemplate jdbc, NotificationStore notifications, RetryPolicy retries) {
+    public WorkerStore(JdbcTemplate jdbc, NotificationStore notifications, RetryPolicy retries, TrafficProperties traffic) {
         this.jdbc = jdbc;
         this.notifications = notifications;
         this.retries = retries;
+        this.traffic = traffic;
     }
 
     public enum Disposition { SEND, EXHAUSTED, NEEDS_PERMIT }
@@ -45,8 +48,12 @@ public class WorkerStore {
     @Transactional
     public Optional<Claim> claim(UUID id, UUID eventId, String token, UUID expectedTaskId, boolean sendPermitted) {
         // One lock order for every claim/completion; no provider I/O while this lock is held.
-        if (jdbc.queryForList("SELECT notification_id FROM notification WHERE notification_id = ? FOR UPDATE",
-                String.class, id.toString()).isEmpty()) throw new IllegalStateException("Unknown notification");
+        var roles = jdbc.queryForList("SELECT traffic_class FROM notification WHERE notification_id = ? FOR UPDATE",
+                String.class, id.toString());
+        if (roles.isEmpty()) throw new IllegalStateException("Unknown notification");
+        if (!traffic.lane().name().equals(roles.getFirst())) {
+            throw new IllegalStateException("Worker traffic class mismatch");
+        }
         Notification notification = notifications.find(id).orElseThrow();
         var events = jdbc.queryForList("""
                 SELECT retry_generation FROM outbox_event WHERE event_id = ? AND notification_id = ?
@@ -149,10 +156,11 @@ public class WorkerStore {
             String eventId = UUID.randomUUID().toString();
             jdbc.update("""
                     INSERT INTO outbox_event (event_id, notification_id, event_type, payload,
-                        retry_generation, created_at, available_at)
+                        retry_generation, traffic_class, created_at, available_at)
                     SELECT ?, notification_id, 'NOTIFICATION_RETRY',
                         JSON_OBJECT('schemaVersion', 2, 'eventId', ?, 'notificationId', notification_id, 'taskId', task_id),
-                        retry_generation, UTC_TIMESTAMP(6), next_attempt_at FROM delivery_task WHERE task_id = ?
+                        retry_generation, traffic_class, UTC_TIMESTAMP(6), next_attempt_at
+                    FROM delivery_task JOIN notification USING(notification_id) WHERE task_id = ?
                     """, eventId, eventId, task.id());
         } else if (result.status() != NotificationStatus.PROVIDER_ACCEPTED) {
             deadLetter(result, task);
@@ -164,13 +172,13 @@ public class WorkerStore {
     private void deadLetter(Notification result, Task task) {
         String eventId = UUID.randomUUID().toString();
         int inserted = jdbc.update("""
-                INSERT INTO outbox_event (event_id, notification_id, event_type, payload, created_at, available_at)
+                INSERT INTO outbox_event (event_id, notification_id, event_type, payload, traffic_class, created_at, available_at)
                 SELECT ?, notification_id, 'NOTIFICATION_DEAD_LETTER',
                     JSON_OBJECT('schemaVersion', 1, 'eventType', 'NOTIFICATION_DEAD_LETTER',
                         'eventId', ?, 'notificationId', notification_id, 'taskId', ?,
                         'sourceEventId', event_id, 'retryGeneration', retry_generation,
                         'status', ?, 'errorCode', ?, 'attemptCount', ?, 'maxAttempts', ?),
-                    UTC_TIMESTAMP(6), UTC_TIMESTAMP(6)
+                    traffic_class, UTC_TIMESTAMP(6), UTC_TIMESTAMP(6)
                 FROM outbox_event WHERE notification_id = ? AND retry_generation = ?
                     AND event_type IN ('NOTIFICATION_REQUESTED', 'NOTIFICATION_RETRY')
                 """, eventId, eventId, task.id(), result.status().name(), result.errorCode(),

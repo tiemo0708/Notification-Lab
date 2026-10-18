@@ -1,5 +1,6 @@
 package dev.jinhyeon.notificationlab.deadletter;
 
+import dev.jinhyeon.notificationlab.config.TrafficProperties;
 import dev.jinhyeon.notificationlab.notification.NotificationRequest;
 import dev.jinhyeon.notificationlab.notification.NotificationStore;
 import dev.jinhyeon.notificationlab.notification.NotificationStatus;
@@ -21,11 +22,14 @@ public class DeadLetterService {
     private final JdbcTemplate jdbc;
     private final NotificationStore notifications;
     private final SubmissionService submissions;
+    private final TrafficProperties traffic;
 
-    public DeadLetterService(JdbcTemplate jdbc, NotificationStore notifications, SubmissionService submissions) {
+    public DeadLetterService(JdbcTemplate jdbc, NotificationStore notifications,
+                             SubmissionService submissions, TrafficProperties traffic) {
         this.jdbc = jdbc;
         this.notifications = notifications;
         this.submissions = submissions;
+        this.traffic = traffic;
     }
 
     public record Redrive(UUID sourceEventId, UUID sourceNotificationId, UUID rootNotificationId,
@@ -65,6 +69,10 @@ public class DeadLetterService {
                 WHERE e.event_id = ? AND e.event_type = 'NOTIFICATION_DEAD_LETTER' FOR UPDATE
                 """, (rs, row) -> new Source(rs.getString(1), rs.getString(2)), eventId.toString());
         if (sources.isEmpty()) throw new DeadLetterNotFoundException();
+        if (!traffic.lane().name().equals(jdbc.queryForObject(
+                "SELECT traffic_class FROM notification WHERE notification_id = ?", String.class, sources.getFirst().notificationId()))) {
+            throw new RedriveConflictException("Redrive must use the original traffic role");
+        }
         var existing = audit(eventId, true); // Current locking read, including after waiting on another redrive.
         if (!existing.isEmpty()) {
             if (!existing.getFirst().reason().equals(request.reason().name())) {

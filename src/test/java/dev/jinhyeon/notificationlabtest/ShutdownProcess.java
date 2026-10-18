@@ -84,7 +84,8 @@ public class ShutdownProcess {
         private final AtomicBoolean first = new AtomicBoolean(true);
 
         public GatedOutboxStore(JdbcTemplate jdbc, OutboxStore delegate, Path directory) {
-            super(jdbc);
+            super(jdbc, new dev.jinhyeon.notificationlab.config.TrafficProperties(
+                    dev.jinhyeon.notificationlab.config.TrafficProperties.Lane.REALTIME, false, 2, 2));
             this.delegate = delegate;
             this.directory = directory;
         }

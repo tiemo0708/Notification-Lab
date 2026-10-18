@@ -1,5 +1,6 @@
 package dev.jinhyeon.notificationlab.outbox;
 
+import dev.jinhyeon.notificationlab.config.TrafficProperties;
 import java.util.Optional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,9 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Profile("!memory & !sync")
 public class OutboxStore {
     private final JdbcTemplate jdbc;
+    private final TrafficProperties traffic;
 
-    public OutboxStore(JdbcTemplate jdbc) {
+    public OutboxStore(JdbcTemplate jdbc, TrafficProperties traffic) {
         this.jdbc = jdbc;
+        this.traffic = traffic;
     }
 
     public record Claim(String eventId, String notificationId, String payload, String token, int attempt, String eventType) { }
@@ -50,10 +53,10 @@ public class OutboxStore {
     private List<Candidate> candidate(String status) {
         return jdbc.query("""
                 SELECT event_id, notification_id, payload, attempt_count, available_at, event_type FROM outbox_event
-                WHERE status = ? AND available_at <= UTC_TIMESTAMP(6)
+                WHERE traffic_class = ? AND status = ? AND available_at <= UTC_TIMESTAMP(6)
                 ORDER BY available_at, event_id LIMIT 1 FOR UPDATE SKIP LOCKED
                 """, (rs, n) -> new Candidate(new Claim(rs.getString(1), rs.getString(2), rs.getString(3),
-                UUID.randomUUID().toString(), rs.getInt(4) + 1, rs.getString(6)), rs.getObject(5, LocalDateTime.class)), status);
+                UUID.randomUUID().toString(), rs.getInt(4) + 1, rs.getString(6)), rs.getObject(5, LocalDateTime.class)), traffic.lane().name(), status);
     }
 
     @Transactional

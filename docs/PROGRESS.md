@@ -1180,3 +1180,70 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 별도 1만 건 정합성 실험/운영 처리량/원격 CI는 이번에 실행하지 않았다.
 - DB migration, 사용자 로컬 DB/Redis 예산/.env/IDE 설정은 변경하지 않았다. 기존 v1 예산은 자동 전환하지 않았다.
 - 다음은 실시간/캠페인 자원 분리와 공급자 한도 내 우선순위 배분이다. S6 전체 완료로 표시하지 않는다.
+
+## 2026-10-18: S6 아홉 번째 단계 — 실시간·캠페인 자원과 예약 예산 분리
+
+### 문제와 구현
+
+- 캠페인이 공통 Worker/HTTP 자리와 quota를 점유하면 실시간 알림도 기다리는 문제에 대응했다.
+  같은 JAR의 역할별 프로세스와 고정 예약을 선택했다. 단일 메모리 우선순위 큐/토픽만 분리/엄격 우선순위와의 비교는
+  [학습 문서](S6_TRAFFIC_ISOLATION.md)에 정리했다. 캠페인 생성·대상자 확장·Batch는 S7에 남긴다.
+- 기본 REALTIME의 기존 토픽/group과 v2 예산은 유지한다. 선택적 분리 모드의 CAMPAIGN은 `.campaign` 토픽/group을 사용한다.
+  두 역할 모두 shared Redis/pause/비동기 실행을 요구하며 역할 간 토픽 이름 충돌과 잘못된 배분을 기동 시 거절한다.
+- 접수한 프로세스의 역할을 notification/Outbox에 함께 저장한다. V7 migration은 기존 행을 REALTIME으로 보존하고
+  복합 FK로 역할 불일치를 막는다. Relay는 역할/status/due 인덱스로 자기 역할만 선점한다.
+- Worker는 DB 선점/회로/quota 전에 DB 역할을 검증한다. 잘못된 토픽에 들어온 메시지도 승격/자동 skip하지 않는다.
+  최초/Retry/DLQ/선택 redrive의 역할을 유지하며 다른 역할의 Idempotency-Key 재사용과 redrive는 409다.
+- 분리 모드는 하나의 Redis Hash/v3 Lua에서 두 credit을 원자적으로 보충하고 해당 몫만 소비한다.
+  기본 전체 r=10/B=10에서 실시간 8/8, 캠페인 2/2. 여러 앱도 같은 몫을 공유하며 유휴 몫은 빌리지 않는다.
+- v3 운영자 초기화는 없는 키에 두 credit=0만 생성한다. v2/v3/배분 충돌, 부재/TTL/손상은 fail-closed다.
+  기존 버전의 snapshot rollback·이미 받은 허가·HTTP 결과 불확실성은 그대로 남는다.
+- 각 역할의 Worker/HTTP/DB/Redis 풀과 pause/회로는 별도 앱 자원이며 MySQL/Kafka/Redis 서버·호스트는 공유한다.
+  backlog/lag 지표도 역할별로 조회한다. 개별 앱 수 증가에 따른 자원 총량 증가는 운영자가 고려해야 한다.
+- README/PLAN 및 기존 S6 문서의 후속 상태를 갱신하고, 명시적 v2↔v3 정책 전환과 구버전 혼합 금지를 문서화했다.
+
+### 실제 검증
+
+- 첫 compileTestJava는 기존 테스트 전용 Relay/종료 실험의 상속 생성자 2곳이 새 TrafficProperties 인자를 전달하지 않아 실패했다.
+  두 fixture가 기존 REALTIME 역할을 명시하도록 수정했다.
+- 최초 Redis/config 집중 실행: 2개 클래스/26개 테스트 통과, BUILD SUCCESSFUL(17초), 실패·오류·스킵 0.
+- 최초 새 통합 실행: 5개 중 2개 통과/3개 실패. 테스트 HTTP 응답의 providerMessageId가 어댑터 계약에 맞지 않아
+  성공 응답이 WAITING_RETRY로 분류됐다. 테스트 응답을 기존 `http-mock-UUID` 형식으로 수정했으며 공급자 검증은 완화하지 않았다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*TrafficIsolationIntegrationTest' --tests '*RedisRateLimiterTest' --tests '*RateLimitConfigurationTest'`:
+  **3개 클래스/32개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(36초), 종료 코드 0.
+- 실제 Redis의 독립 클라이언트 4개/동시 48회 호출에서 실시간 허가 8/캠페인 허가 2를 대조했다.
+  실제 시간 보충의 역할별 상한과 차용 없음, v2/v3 상호 거절/초기화/TTL/잘못된 상태 무변경 거절을 확인했다.
+  split 초기화도 문서의 redis-cli 표준입력 방식으로 성공과 기존 키 거절의 nonzero exit를 확인했다.
+- 실제 MySQL 8.4.8/Kafka 4.0.2/Redis 7.4.11와 공통 loopback HTTP 공급자, 역할별 독립 앱 context 2개로 검증했다.
+  캠페인 HTTP/Worker 슬롯 1개가 사용 중일 때 실시간 완료/offset=1, 캠페인 offset=0을 확인한 후
+  응답을 해제해 캠페인 두 작업이 각 1회 시도로 완료되는 것을 대조했다.
+- 캠페인 quota pause의 미선점/worker_token 없음/offset=0과 실시간 진행을 확인했다.
+  집중 검증 후 캠페인 Relay의 미발행 1건을 실시간 Relay가 가져가지 않는 조건과 역할별 미발행 지표를 보강했다.
+  이 보강 검증 결과는 아래 전체 빌드에 포함한다.
+- 캠페인 500 두 번 뒤 Retry/DLQ, 같은 역할 redrive 성공, 최초·재시도·redrive 허가 합계3/실시간 허가0을 확인했다.
+  다른 역할 Idempotency-Key/redrive 409, 잘못된 토픽의 미선점·미커밋 중지, FK와 실제 V6→V7 기존 행 보존을 검증했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks`:
+  **27개 클래스/222개 테스트 실행, 220개 통과/2개 실패/오류·스킵 0**, BUILD FAILED(10분 41초), 종료 코드 1.
+  실패 두 개는 기존 MySQL 테스트의 migration 개수 6 및 V7 이전 전체 행 비교 기대값이었다.
+  적용 개수 7과 새 REALTIME 컬럼만 기대값에 추가하고 기존 모든 데이터/lease/시도 이력의 보존 비교를 유지했다.
+- 위 전체 실행에서 보강한 캠페인 Relay 미발행/역할별 지표와 context 재시작 테스트까지 통과했다.
+  캠페인 pause/종료 중 실시간 2건 완료, 미선점 캠페인 대기/미발행 2건은 재시작 후 각 1회 수락했다.
+  기존 Kafka 중단/복구, JVM 종료/offset 복구, graceful shutdown, 회로, Redis 장애와 리밸런스 회귀도 통과했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*MySqlNotificationTest' build`:
+  **1개 클래스/16개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(16초), 종료 코드 0.
+  전체 실행 이후 기능 코드는 변경하지 않았다. 실패한 두 사례를 포함한 MySQL 테스트군만 재실행했다.
+  두 실행의 XML을 클래스/테스트 이름으로 대조했을 때 고유 222개 모두의 최신 결과는 통과다.
+  **단일 전체 실행 222개 무실패로 보고하지 않는다.** 마지막 HTML 보고서는 MySQL 16개 재실행 결과다.
+- 실행 JAR의 v3 초기화/제한 Lua, V7 migration, 역할/Worker/Relay/제한기 class 바이트가 빌드 산출물과 일치했다.
+  테스트 및 별도 HTTP Mock 서버 클래스는 알림 JAR에서 제외됐으며 문서 링크/코드 블록/`git diff --check`도 확인했다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444 확인. 푸시하지 않았다.
+
+### 한계와 다음 단계
+
+- 고정 몫은 양쪽의 quota를 예약하지만 실제 처리량/지연 SLO는 보장하지 않는다. 동적 차용/역할 내부의 전역 공정 순서는 없다.
+- 독립 context 통합 검증이며 별도 OS 프로세스/호스트의 CPU·장애 격리를 측정하지 않았다.
+  공유 DB/브로커/Redis/공급자의 장애와 전체 자원 포화는 양쪽에 영향을 줄 수 있다.
+- 새 1만 건 정합성/대량 캠페인 부하/운영 처리량/원격 CI/별도 실행 JAR 기동 smoke는 이번에 실행하지 않았다.
+- 새 migration 파일을 추가했지만 사용자 로컬 DB/Redis 예산/.env/IDE 설정에 직접 적용하지 않았다. 실제 테스트는 disposable schema/container만 사용했다.
+- 테스트 컨테이너와 Gradle/테스트 Java/caffeinate 프로세스 종료를 확인했다. 기존 로컬 MySQL은 healthy다.
+- S6를 정의한 로컬 실험 범위에서 완료 표시했다. 다음은 S7 캠페인 생성/시작/조회와 중복 시작 방지다.

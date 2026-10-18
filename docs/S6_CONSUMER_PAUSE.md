@@ -112,8 +112,8 @@ docker compose --profile redis up -d --wait redis
 공급자 수락 뒤 DB 기록 전 중단의 불확실성과 외부 중복 가능성도 남아 있다.
 스케줄러 지연은 재개를 늦출 수 있고, 앱 전체 pause는 다른 파티션 처리량에도 영향을 준다.
 운영자 수동 pause 제어 API와의 pause 소유권 조합은 아직 구현하지 않았다.
-[Redis 장애/상태 유실의 통제된 복구 정책](S6_REDIS_RECOVERY.md)을 추가했다. 자동 failover와 우선순위/자원 분리는 후속 범위다. [Circuit Breaker/half-open 복구](S6_CIRCUIT_BREAKER.md)는 같은 pause 경로에 연결했다.
-다음 PLAN 항목은 우선순위/자원 분리다.
+[Redis 장애/상태 유실의 통제된 복구 정책](S6_REDIS_RECOVERY.md)을 추가했다. 자동 failover는 후속 범위다. [Circuit Breaker/half-open 복구](S6_CIRCUIT_BREAKER.md)는 같은 pause 경로에 연결했다.
+[역할별 자원·예약 예산](S6_TRAFFIC_ISOLATION.md)도 추가했다. 각 프로세스의 부모 컨테이너를 pause하므로 다른 역할은 계속 처리할 수 있다.
 
 근거: [Spring Kafka의 오류 처리와 보관 레코드/pause poll 계약](https://docs.spring.io/spring-kafka/reference/3.3-SNAPSHOT/kafka/annotation-error-handling.html).
 실제 의존성 3.3.16의 CommonErrorHandler/KafkaMessageListenerContainer 소스도 확인했다.

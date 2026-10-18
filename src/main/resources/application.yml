@@ -61,6 +61,13 @@ spring:
     clean-disabled: true
 
 app:
+  traffic:
+    # Run one lane per process. CAMPAIGN requires split-enabled + Redis quota + pause.
+    lane: REALTIME
+    split-enabled: false
+    # The remaining provider rate/burst is reserved exclusively for REALTIME.
+    campaign-rate: 2
+    campaign-burst: 2
   circuit-breaker:
     enabled: false
     failure-threshold: 3

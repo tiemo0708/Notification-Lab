@@ -1452,7 +1452,7 @@ class AsyncNotificationTest {
     private String outboxStatus() { return jdbc().queryForObject("SELECT status FROM outbox_event", String.class); }
     private void expireOutbox() { jdbc().update("UPDATE outbox_event SET available_at = TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6))"); }
     private OutboxRelay relay(KafkaTemplate<String, String> template) {
-        return new OutboxRelay(app.getBean(OutboxStore.class), template, app.getBean(AsyncProperties.class), registry());
+        return new OutboxRelay(app.getBean(OutboxStore.class), template, app.getBean(AsyncProperties.class), registry(), app.getBean(dev.jinhyeon.notificationlab.config.TrafficRouting.class));
     }
     private org.springframework.kafka.listener.MessageListenerContainer container() {
         return app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker");

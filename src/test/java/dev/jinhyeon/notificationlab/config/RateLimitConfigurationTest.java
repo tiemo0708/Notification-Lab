@@ -15,6 +15,33 @@ class RateLimitConfigurationTest {
             .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
 
     @Test
+    void splitRejectsMissingReservationsAndUnknownRolesAtStartup() {
+        for (String property : new String[]{"campaign-rate=10", "campaign-rate=0", "campaign-burst=10", "lane=UNKNOWN"}) {
+            context.withPropertyValues("app.rate-limit.client-enabled=true", "app.traffic.split-enabled=true", "app.traffic." + property)
+                    .run(app -> assertThat(app).hasFailed());
+        }
+        context.withPropertyValues("app.rate-limit.client-enabled=true", "app.traffic.lane=CAMPAIGN")
+                .run(app -> assertThat(app).hasFailed());
+    }
+
+    @Test
+    void splitRequiresQuotaPauseAndAsyncExecution() {
+        var async = new AsyncProperties("r", "retry", "dlq", "g", 10);
+        var traffic = new TrafficProperties(TrafficProperties.Lane.CAMPAIGN, true, 2, 2);
+        assertThatThrownBy(() -> new TrafficRouting(async, traffic, false, true)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new TrafficRouting(async, traffic, true, false)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new TrafficRouting(new AsyncProperties("r", "r.campaign", "dlq", "g", 10), traffic, true, true))
+                .isInstanceOf(IllegalArgumentException.class);
+        var routing = new TrafficRouting(async, traffic, true, true);
+        assertThat(routing.topic()).isEqualTo("r.campaign");
+        assertThat(routing.retryTopic()).isEqualTo("retry.campaign");
+        assertThat(routing.destination("NOTIFICATION_DEAD_LETTER")).isEqualTo("dlq.campaign");
+        new ApplicationContextRunner().withUserConfiguration(LabConfiguration.class)
+                .withPropertyValues("spring.profiles.active=memory", "app.traffic.split-enabled=true")
+                .run(app -> assertThat(app).hasFailed());
+    }
+
+    @Test
     void defaultDoesNotCreateRedisClient() {
         context.run(app -> assertThat(app).doesNotHaveBean(RedisRateLimiter.class));
     }

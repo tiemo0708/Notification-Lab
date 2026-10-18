@@ -68,7 +68,7 @@ POST의 `202 Accepted`와 `Location`은 요청/발송 작업/Outbox가 DB에 커
 
 응답 유실이나 DB 오류 후 같은 알림의 중복 접수를 막으려면 `Idempotency-Key`를 보낸다.
 처음 접수는 202, 같은 키·같은 필드 재요청은 기존 알림의 현재 상태와 같은 Location을 200으로 반환한다.
-같은 키에 recipientId/title/body 중 하나라도 다르면 409이다. 200은 처리 성공을 뜻하지 않는다.
+같은 키에 recipientId/title/body 중 하나라도 다르거나 접수 역할이 다르면 409이다. 200은 처리 성공을 뜻하지 않는다.
 키가 없으면 기존처럼 요청마다 새로운 ID가 생긴다.
 
 ```bash
@@ -124,7 +124,7 @@ DLQ는 자동 소비/재발송하지 않는다. 선택한 PUBLISHED DLQ는 사�
 같은 DLQ는 한 번, 원본 기준 계보 전체는 최대 3회 재발행한다.
 [선택 재발행 API](docs/S4_DLQ_REDRIVE.md)와 [토픽·DLQ 정책](docs/S4_RETRY_TOPICS_DLQ.md)을 참고한다.
 [작업/복구 정책](docs/S4_DELIVERY_TASKS.md)과 [재시도 정책](docs/S4_RETRY_POLICY.md)을 참고한다.
-기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V6 DB를 사용하며 재시도/DLQ 이벤트는 이전 앱·Relay와 혼합 실행하지 않는다.
+기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V7 DB를 사용하며 실시간/캠페인 역할을 모르는 이전 앱·Relay와 혼합 실행하지 않는다. 기존 행은 REALTIME으로 보존한다.
 
 기본 Mock 지연은 100ms(허용 0~5000ms), SUCCESS다. 앱 재시작으로 설정한다.
 
@@ -219,6 +219,23 @@ CLOSED → OPEN → HALF_OPEN으로 전환하며, HALF_OPEN에서는 앱당 한 
 상태는 프로세스별이며 재시작하면 CLOSED로 초기화한다. Redis quota와 독립적으로 켤 수 있다.
 [문제·대안·선택 이유·상태 전이·실제 인프라 검증·한계](docs/S6_CIRCUIT_BREAKER.md)를 참고한다.
 
+## 실시간·캠페인 분리 (S6)
+
+같은 JAR를 `REALTIME`/`CAMPAIGN` 역할의 별도 프로세스로 실행한다.
+각 역할은 요청/Retry/DLQ 토픽, consumer group, Relay 선점 경로와 Worker/HTTP/DB 연결 풀을 따로 사용한다.
+공급자 Redis 키는 하나를 공유하며 기본 전체 10/s·burst 10을 **실시간 8/8, 캠페인 2/2**로 예약한다.
+사용하지 않는 다른 역할의 몫을 빌리지 않는다. 이 정책은 처리 순서 추월이나 지연 SLO를 보장하지 않는다.
+
+기본 `app.traffic.split-enabled=false`는 기존 단일 REALTIME/v2 예산을 유지한다.
+분리는 두 앱 모두 `--app.traffic.split-enabled=true --app.rate-limit.client-enabled=true`로 켜고,
+역할만 `--app.traffic.lane=REALTIME` 또는 `CAMPAIGN`으로 구분한다. 기본 pause 모드를 유지해야 한다.
+**분리 모드는 v3 빈 예산을 명시적으로 초기화해야 하며 기존 v2와 혼합할 수 없다.**
+[선택 이유·역할별 실행·v2/v3 전환·실제 검증·한계](docs/S6_TRAFFIC_ISOLATION.md)를 먼저 확인한다.
+
+캠페인 요청도 현재는 역할별 `/notifications`로 가상 대상 한 명씩 접수한다. API 본문으로 역할을 바꾸지 않는다.
+재시도/DLQ/선택 재발행은 원래 역할을 보존하며 다른 역할의 redrive는 409다.
+캠페인 생성/대상자 확장/Spring Batch는 다음 S7 범위다. MySQL/Kafka/Redis 서버와 호스트 자원은 공유한다.
+
 ## 테스트와 빌드
 
 테스트가 격리된 MySQL/Kafka/Redis 컨테이너를 생성·삭제하므로 `.env`와 Compose 사전 실행은 필요 없다.
@@ -259,8 +276,8 @@ S2 시절 이미 남은 `PROCESSING` 레코드는 Outbox가 없으므로 S3에�
 - `notification_retry_scheduled_total`: 성공적으로 저장한 일시 실패의 후속 예약 수.
 - `notification_processing_seconds_*`: 공급자 처리와 결과 저장 시간. 큐 대기 제외.
 - `http_server_requests_seconds_*`: HTTP 처리 시간.
-- `outbox_unpublished`, `outbox_failed`, `outbox_oldest_age_seconds`: 미발행 수(FAILED 포함), 실패 수, 가장 오래된 미발행 시간.
-- `notification_consumer_lag`: 요청/Retry 두 토픽의 end offset에서 Worker 그룹 committed offset을 뺀 파티션별 합계. DLQ 제외.
+- `outbox_unpublished`, `outbox_failed`, `outbox_oldest_age_seconds`: 해당 프로세스 역할의 미발행 수(FAILED 포함), 실패 수, 가장 오래된 미발행 시간.
+- `notification_consumer_lag`: 해당 역할의 요청/Retry 두 토픽의 end offset에서 Worker 그룹 committed offset을 뺀 파티션별 합계. DLQ 제외.
 - `outbox_sample_age_seconds`, `notification_consumer_sample_age_seconds`: 마지막 지표 수집 성공 후 경과 시간.
 - `notification_worker_active`, `notification_worker_waiting`, `notification_worker_admission_rejected_total{reason=...}`: 처리/대기 수와 진입 거절 횟수.
 - `notification_worker_running`: 소비 중 1, 정지 0.
@@ -278,11 +295,12 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-자동 Redis failover, 캠페인/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+자동 Redis failover, 캠페인 생성·대상자 확장/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건
 - [docs/PROGRESS.md](docs/PROGRESS.md): 실제 실행 결과와 다음 작업
+- [docs/S6_TRAFFIC_ISOLATION.md](docs/S6_TRAFFIC_ISOLATION.md): 역할별 자원/토픽, 고정 예약 quota와 초기화·전환
 - [docs/S6_REDIS_RECOVERY.md](docs/S6_REDIS_RECOVERY.md): Redis 장애/예산 유실의 발송 중지, 최초 초기화·v2 전환·통제된 복구
 - [docs/S6_CIRCUIT_BREAKER.md](docs/S6_CIRCUIT_BREAKER.md): 공급자 회로 차단과 단일 half-open 탐침, 선점/offset 보존
 - [docs/S6_CONSUMER_PAUSE.md](docs/S6_CONSUMER_PAUSE.md): quota 부족 시 자동 pause/resume, poll 유지·종료·리밸런스 검증

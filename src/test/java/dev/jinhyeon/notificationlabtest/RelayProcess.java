@@ -41,7 +41,8 @@ public class RelayProcess {
         private final Path marker;
 
         public AckBoundaryStore(JdbcTemplate jdbc, Path marker) {
-            super(jdbc);
+            super(jdbc, new dev.jinhyeon.notificationlab.config.TrafficProperties(
+                    dev.jinhyeon.notificationlab.config.TrafficProperties.Lane.REALTIME, false, 2, 2));
             this.marker = marker;
         }
 

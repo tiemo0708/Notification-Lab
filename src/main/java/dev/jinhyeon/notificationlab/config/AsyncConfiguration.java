@@ -17,17 +17,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties({AsyncProperties.class, DeliveryProperties.class, WorkerProperties.class})
 public class AsyncConfiguration {
     @Bean
-    NewTopic notificationTopic(AsyncProperties properties) {
+    NewTopic notificationTopic(TrafficRouting properties) {
         return TopicBuilder.name(properties.topic()).partitions(3).replicas(1).build();
     }
 
     @Bean
-    NewTopic notificationRetryTopic(AsyncProperties properties) {
+    NewTopic notificationRetryTopic(TrafficRouting properties) {
         return TopicBuilder.name(properties.retryTopic()).partitions(3).replicas(1).build();
     }
 
     @Bean
-    NewTopic notificationDeadLetterTopic(AsyncProperties properties) {
+    NewTopic notificationDeadLetterTopic(TrafficRouting properties) {
         return TopicBuilder.name(properties.deadLetterTopic()).partitions(3).replicas(1).build();
     }
 

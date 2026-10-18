@@ -1,6 +1,7 @@
 package dev.jinhyeon.notificationlab.outbox;
 
-import dev.jinhyeon.notificationlab.config.AsyncProperties;
+import dev.jinhyeon.notificationlab.config.TrafficRouting;
+import dev.jinhyeon.notificationlab.config.TrafficProperties;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
@@ -23,7 +24,8 @@ import org.springframework.stereotype.Component;
 public class PipelineMetrics {
     private final JdbcTemplate jdbc;
     private final Admin admin;
-    private final AsyncProperties properties;
+    private final TrafficRouting properties;
+    private final TrafficProperties traffic;
     private volatile double unpublished = Double.NaN;
     private volatile double failed = Double.NaN;
     private volatile double oldestAge = Double.NaN;
@@ -31,11 +33,13 @@ public class PipelineMetrics {
     private volatile long dbSample;
     private volatile long kafkaSample;
 
-    public PipelineMetrics(JdbcTemplate jdbc, KafkaAdmin kafkaAdmin, AsyncProperties properties,
+    public PipelineMetrics(JdbcTemplate jdbc, KafkaAdmin kafkaAdmin, TrafficRouting properties,
+                           TrafficProperties traffic,
                            KafkaListenerEndpointRegistry listeners, MeterRegistry registry) {
         this.jdbc = jdbc;
         this.admin = Admin.create(kafkaAdmin.getConfigurationProperties());
         this.properties = properties;
+        this.traffic = traffic;
         Gauge.builder("outbox.unpublished", this, m -> m.unpublished).register(registry);
         Gauge.builder("outbox.failed", this, m -> m.failed).register(registry);
         Gauge.builder("outbox.oldest.age.seconds", this, m -> m.oldestAge).register(registry);
@@ -54,12 +58,12 @@ public class PipelineMetrics {
             jdbc.query("""
                     SELECT COUNT(*), COALESCE(SUM(status = 'FAILED'), 0),
                         COALESCE(TIMESTAMPDIFF(MICROSECOND, MIN(created_at), UTC_TIMESTAMP(6)) / 1000000.0, 0)
-                    FROM outbox_event WHERE status <> 'PUBLISHED'
+                    FROM outbox_event WHERE status <> 'PUBLISHED' AND traffic_class = ?
                     """, rs -> {
                 unpublished = rs.getDouble(1);
                 failed = rs.getDouble(2);
                 oldestAge = Math.max(0, rs.getDouble(3));
-            });
+            }, traffic.lane().name());
             dbSample = System.nanoTime();
         } catch (RuntimeException unavailable) {
             unpublished = failed = oldestAge = Double.NaN;

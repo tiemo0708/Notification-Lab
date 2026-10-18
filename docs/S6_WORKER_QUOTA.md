@@ -129,5 +129,5 @@ Worker 자동 초기화/시계 주입/토큰 환불은 제공하지 않는다.
 
 후속 [pause/resume 단계](S6_CONSUMER_PAUSE.md)는 정상 LIMITED의 대기에서 poll을 유지한다. 이 문서의 비교 모드는 짧은 동기 대기와 중지/명시적 재시작 정책이다.
 [Circuit Breaker](S6_CIRCUIT_BREAKER.md)는 quota 앞에서 공급자 장애를 판단한다.
-[Redis 장애/예산 유실과 통제된 복구](S6_REDIS_RECOVERY.md)를 추가했다. 자동 failover, 429 Retry-After, 우선순위 배분은 남겨 둔다.
+[Redis 장애/예산 유실과 통제된 복구](S6_REDIS_RECOVERY.md)를 추가했다. [역할별 자원·예약 예산](S6_TRAFFIC_ISOLATION.md)을 추가했다. 자동 failover와 429 Retry-After는 남겨 둔다.
 이번 결과는 지정한 구성의 정합성 검증이며 운영 처리량/모든 장애에서의 공급자 도착률/exactly-once 보장이 아니다.

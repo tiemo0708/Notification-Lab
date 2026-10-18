@@ -113,4 +113,4 @@ active는 지연을 포함한 현재 처리 수, maxActive는 기동 후 관찰�
 설정 상한과 monotonic 윈도우 리필을 검증한다. 상세 실행 결과는 [PROGRESS](PROGRESS.md)에 기록한다.
 후속 단계에서 [HTTP 어댑터](S6_HTTP_CLIENT.md), [Worker 동시성 상한](S6_WORKER_CONCURRENCY.md),
 [Redis quota](S6_WORKER_QUOTA.md), [pause/resume](S6_CONSUMER_PAUSE.md), [Circuit Breaker](S6_CIRCUIT_BREAKER.md)를 연결했다.
-[Redis 장애/예산 유실 정책](S6_REDIS_RECOVERY.md)까지 추가했다. 다음은 우선순위 배분/자원 분리다.
+[Redis 장애/예산 유실 정책](S6_REDIS_RECOVERY.md)까지 추가했다. [역할별 자원·예약 예산](S6_TRAFFIC_ISOLATION.md)도 추가했다. 캠페인 생성/Batch는 S7 범위다.

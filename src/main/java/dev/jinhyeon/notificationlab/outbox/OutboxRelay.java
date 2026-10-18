@@ -1,5 +1,6 @@
 package dev.jinhyeon.notificationlab.outbox;
 
+import dev.jinhyeon.notificationlab.config.TrafficRouting;
 import dev.jinhyeon.notificationlab.config.AsyncProperties;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.TimeUnit;
@@ -21,15 +22,17 @@ public class OutboxRelay {
     private final OutboxStore store;
     private final KafkaTemplate<String, String> kafka;
     private final AsyncProperties properties;
+    private final TrafficRouting routing;
     private final MeterRegistry registry;
     private volatile boolean stopping;
 
     public OutboxRelay(OutboxStore store, KafkaTemplate<String, String> kafka,
-                       AsyncProperties properties, MeterRegistry registry) {
+                       AsyncProperties properties, MeterRegistry registry, TrafficRouting routing) {
         this.store = store;
         this.kafka = kafka;
         this.properties = properties;
         this.registry = registry;
+        this.routing = routing;
     }
 
     @EventListener(ContextClosedEvent.class)
@@ -48,7 +51,7 @@ public class OutboxRelay {
                 var claim = next.get();
                 try {
                     // No surrounding DB transaction. Only confirmed ACKs can become PUBLISHED.
-                    kafka.send(properties.destination(claim.eventType()), claim.notificationId(), claim.payload()).get(12, TimeUnit.SECONDS);
+                    kafka.send(routing.destination(claim.eventType()), claim.notificationId(), claim.payload()).get(12, TimeUnit.SECONDS);
                 } catch (Exception failure) {
                     store.failed(claim, properties.maxPublishAttempts());
                     registry.counter("outbox.publish.failures").increment();

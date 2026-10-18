@@ -150,7 +150,7 @@ caffeinate -i ./gradlew --no-daemon --console=plain build --rerun-tasks
 최초 발송과 재시도는 이제 같은 limiter를 통과한다. quota 부족을 공급자 실패로 기록하지 않으며
 대기 중 시도 횟수/lease/offset 보존을 별도 통합 테스트로 검증했다.
 정상 LIMITED의 [소비 pause/resume](S6_CONSUMER_PAUSE.md)와 [프로세스별 Circuit Breaker](S6_CIRCUIT_BREAKER.md)도 연결했다.
-[Redis 장애/예산 유실·통제된 복구 정책](S6_REDIS_RECOVERY.md)도 추가했다. 다음 PLAN 항목은 우선순위 배분/자원 분리다.
+[Redis 장애/예산 유실·통제된 복구 정책](S6_REDIS_RECOVERY.md)도 추가했다. [역할별 자원 분리와 v3 예약 예산](S6_TRAFFIC_ISOLATION.md)을 추가했다. 이 문서의 단일 버킷은 기본 v2 비교 모드다.
 
 허가를 받은 뒤 스레드가 멈췄다가 여러 개 동시에 HTTP를 호출하면 허가 시점과 실제 요청 시점이 달라진다.
 이 컴포넌트 검증만으로 공급자에서 관측되는 도착률/모든 장애 조합의 quota 준수를 보장하지 않는다.

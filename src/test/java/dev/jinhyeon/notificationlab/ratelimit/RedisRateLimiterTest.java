@@ -45,6 +45,128 @@ class RedisRateLimiterTest {
                             new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 0), port)).toList()));
 
     @Test
+    void splitReservationsRemainEightAndTwoAcrossIndependentClients() throws Exception {
+        String key = key();
+        var clients = new ArrayList<RedisRateLimiter>();
+        try (Jedis admin = admin(); var executor = Executors.newFixedThreadPool(4)) {
+            initializeSplit(admin, key);
+            admin.hset(key, Map.of("realtime_credit", "8000", "campaign_credit", "2000", "last_ms", Long.toString(now(admin) + 10000)));
+            var start = new CountDownLatch(1);
+            var tasks = new ArrayList<Future<Integer>>();
+            for (int i = 0; i < 4; i++) {
+                var client = splitClient(key, i < 2 ? "REALTIME" : "CAMPAIGN");
+                clients.add(client);
+                tasks.add(executor.submit(() -> {
+                    assertThat(start.await(2, TimeUnit.SECONDS)).isTrue();
+                    int allowed = 0;
+                    for (int j = 0; j < 12; j++) {
+                        var result = client.tryAcquire();
+                        assertThat(result.outcome()).isIn(ALLOWED, LIMITED);
+                        if (result.outcome() == ALLOWED) allowed++;
+                    }
+                    return allowed;
+                }));
+            }
+            start.countDown();
+            int realtime = tasks.get(0).get(5, TimeUnit.SECONDS) + tasks.get(1).get(5, TimeUnit.SECONDS);
+            int campaign = tasks.get(2).get(5, TimeUnit.SECONDS) + tasks.get(3).get(5, TimeUnit.SECONDS);
+            assertThat(realtime).isEqualTo(8);
+            assertThat(campaign).isEqualTo(2);
+            assertThat(admin.hget(key, "realtime_credit")).isEqualTo("0");
+            assertThat(admin.hget(key, "campaign_credit")).isEqualTo("0");
+            assertThat(admin.pttl(key)).isEqualTo(-1);
+            System.out.println("TRAFFIC_BURST clients=4 attempts=48 realtime=8 campaign=2 total=10");
+        } finally { clients.forEach(RedisRateLimiter::close); }
+    }
+
+    @Test
+    void splitLiveClockPreservesBothRateEnvelopesAndDoesNotBorrowIdleBudget() throws Exception {
+        String key = key();
+        try (Jedis admin = admin(); var realtime = splitClient(key, "REALTIME"); var campaign = splitClient(key, "CAMPAIGN")) {
+            initializeSplit(admin, key);
+            long began = Long.parseLong(admin.hget(key, "last_ms"));
+            int rt = 0, cp = 0;
+            for (int i = 0; i < 60; i++) {
+                var a = realtime.tryAcquire(); var b = campaign.tryAcquire();
+                assertThat(a.outcome()).isIn(ALLOWED, LIMITED);
+                assertThat(b.outcome()).isIn(ALLOWED, LIMITED);
+                if (a.outcome() == ALLOWED) rt++;
+                if (b.outcome() == ALLOWED) cp++;
+                long elapsed = now(admin) - began;
+                assertThat(rt).isLessThanOrEqualTo((int) (elapsed * 8 / 1000));
+                assertThat(cp).isLessThanOrEqualTo((int) (elapsed * 2 / 1000));
+                TimeUnit.MILLISECONDS.sleep(25);
+            }
+            assertThat(rt).isGreaterThan(8); assertThat(cp).isGreaterThanOrEqualTo(2);
+            admin.hset(key, Map.of("realtime_credit", "8000", "campaign_credit", "0", "last_ms", Long.toString(now(admin) + 5000)));
+            assertThat(campaign.tryAcquire().outcome()).isEqualTo(LIMITED);
+            assertThat(admin.hget(key, "realtime_credit")).isEqualTo("8000");
+            assertThat(realtime.tryAcquire().outcome()).isEqualTo(ALLOWED);
+        }
+    }
+
+    @Test
+    void splitRejectsMissingExpiredLegacyMismatchedAndCorruptStateWithoutMutation() {
+        String key = key();
+        try (Jedis admin = admin(); var realtime = splitClient(key, "REALTIME"); var campaign = splitClient(key, "CAMPAIGN")) {
+            assertThat(realtime.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+            assertThat(admin.exists(key)).isFalse();
+            seed(admin, key, 10, 10, 10000, now(admin));
+            var legacy = admin.hgetAll(key);
+            assertThat(realtime.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+            assertThat(admin.hgetAll(key)).isEqualTo(legacy);
+            admin.del(key); initializeSplit(admin, key);
+            var valid = admin.hgetAll(key);
+            for (var bad : List.of(Map.of("campaign_rate", "3"), Map.of("campaign_credit", "-1"), Map.of("realtime_credit", "8001"))) {
+                admin.hset(key, bad); var before = admin.hgetAll(key);
+                assertThat(realtime.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+                assertThat(campaign.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+                assertThat(admin.hgetAll(key)).isEqualTo(before); admin.hset(key, valid);
+            }
+            try (var old = client(key, 10, 10, new SimpleMeterRegistry())) {
+                assertThat(old.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+            }
+            admin.pexpire(key, 10000);
+            assertThat(realtime.tryAcquire().outcome()).isEqualTo(UNAVAILABLE);
+            assertThat(admin.hgetAll(key)).isEqualTo(valid);
+            assertThat(admin.pttl(key)).isPositive();
+        }
+    }
+
+    @Test
+    void splitInitializationCreatesOnlyEmptyAbsentStateAndRejectsInvalidAllocation() throws Exception {
+        String key = key();
+        String script = new ClassPathResource("redis/initialize-split-quota.lua").getContentAsString(StandardCharsets.UTF_8);
+        try (Jedis admin = admin()) {
+            for (var args : List.of(List.of("10", "10", "10", "2"), List.of("10", "10", "2", "0"),
+                    List.of("10", "10", "1.5", "2"), List.of("10", "10", "2", "10"))) {
+                assertThatThrownBy(() -> admin.eval(script, List.of(key), args)).isInstanceOf(JedisDataException.class);
+                assertThat(admin.exists(key)).isFalse();
+            }
+            initializeSplit(admin, key);
+            assertThat(admin.hget(key, "realtime_credit")).isEqualTo("0");
+            assertThat(admin.hget(key, "campaign_credit")).isEqualTo("0");
+            assertThat(admin.hlen(key)).isEqualTo(8);
+            var before = admin.hgetAll(key);
+            assertThatThrownBy(() -> initializeSplit(admin, key)).isInstanceOf(JedisDataException.class);
+            assertThat(admin.hgetAll(key)).isEqualTo(before);
+        }
+    }
+
+    private RedisRateLimiter splitClient(String key, String lane) {
+        return new RedisRateLimiter(new RateLimitProperties("127.0.0.1", REDIS.getMappedPort(6379), key, 10, 10, 1, 250),
+                new dev.jinhyeon.notificationlab.config.TrafficProperties(
+                        dev.jinhyeon.notificationlab.config.TrafficProperties.Lane.valueOf(lane), true, 2, 2), new SimpleMeterRegistry());
+    }
+
+    private void initializeSplit(Jedis redis, String key) {
+        try {
+            String script = new ClassPathResource("redis/initialize-split-quota.lua").getContentAsString(StandardCharsets.UTF_8);
+            assertThat(redis.eval(script, List.of(key), List.of("10", "10", "2", "2"))).isEqualTo("QUOTA_INITIALIZED_EMPTY");
+        } catch (java.io.IOException failure) { throw new java.io.UncheckedIOException(failure); }
+    }
+
+    @Test
     void independentClientsShareOneBurstUnderConcurrentAcquisition() throws Exception {
         String key = key();
         var registry = new SimpleMeterRegistry();
@@ -322,6 +444,22 @@ class RedisRateLimiterTest {
             assertThatThrownBy(() -> initialize(admin, "bad key", 1, 1)).isInstanceOf(JedisDataException.class);
             assertThat(admin.exists(key)).isFalse();
             assertThat(admin.exists("bad key")).isFalse();
+        }
+    }
+
+    @Test
+    void splitInitializationCliRejectsExistingBudgetWithoutOverwriting() throws Exception {
+        String key = key();
+        REDIS.copyFileToContainer(MountableFile.forClasspathResource("redis/initialize-split-quota.lua"), "/tmp/quota-split-init.lua");
+        String[] command = {"sh", "-c", "redis-cli -e --eval /dev/stdin \"$1\" , 10 10 2 2 < /tmp/quota-split-init.lua", "quota-init", key};
+        var first = REDIS.execInContainer(command);
+        assertThat(first.getExitCode()).isZero();
+        assertThat(first.getStdout().trim()).isEqualTo("QUOTA_INITIALIZED_EMPTY");
+        try (Jedis admin = admin()) {
+            var state = admin.hgetAll(key);
+            var second = REDIS.execInContainer(command);
+            assertThat(second.getExitCode()).isNotZero();
+            assertThat(admin.hgetAll(key)).isEqualTo(state);
         }
     }
 
