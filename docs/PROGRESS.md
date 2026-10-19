@@ -1418,3 +1418,58 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   Batch 명령은 테스트 런타임 classpath의 별도 JVM으로 실행했다.
 - 사용자 로컬 DB/Redis 예산/.env/IntelliJ는 변경하지 않았다. V9은 다음 새 앱 실행 시 적용된다.
   모든 검증은 가상 데이터와 격리된 Testcontainers DB/토픽/예산만 사용했다.
+
+## 2026-10-20 — S7 Batch 강제 종료 소유권 복구
+
+### 변경과 선택 이유
+
+- 강제 종료된 STARTED/UNKNOWN 실행을 시간만 보고 FAILED로 바꾸면, 잠시 멈췄던 이전 JVM이 다시 쓸 수 있다.
+  [학습 문서](S7_CAMPAIGN_RECOVERY.md)에 문제 상황, 상태 변경/lease fencing/MySQL 세션 방식의 대안과 한계를 정리했다.
+- 현재 단일 스레드 동기 Batch에 맞춰 캠페인별 MySQL GET_LOCK과 전용 물리 연결을 사용한다.
+  실행 전용 JobRepository/JobExplorer/Writer/TransactionManager가 그 연결을 공유한다.
+  연결이 끊긴 이전 JVM은 업무 행뿐 아니라 실행 상태/checkpoint도 새 연결로 쓰지 못한다.
+- 전용 연결은 풀로 반환하지 않고 종료해 잠금을 해제한다. autoReconnect/autoReconnectForPools와 다중 호스트 프록시는 거절한다.
+  Driver 종류와 재접속 설정을 확인하므로 Connector/J 의존성을 runtimeOnly에서 implementation으로 변경했다. BOM 버전은 유지한다.
+- 내부에서 별도 커밋하는 MySQL 시퀀스 incrementer만 기존 풀을 사용한다. 실행 연결을 실수로 커밋하지 않도록 분리했다.
+  시퀀스 번호의 빈 간격은 허용하며, 그 연결은 업무 행/실행 기록/checkpoint를 저장하지 않는다.
+- `ownershipProtocol=mysql-session-v1`을 비식별 JobParameter로 실행 생성 시 함께 저장한다. campaignId만으로 식별하던 계약을 유지한다.
+  잠금을 얻고 이 표시를 확인한 실행만 불확실한 Step/Job을 한 트랜잭션에서 FAILED로 정리한다.
+  이전 checkpoint/완료 Step/대상 ID를 유지하고 동일 인스턴스에서 재개한다. 추가 migration은 필요 없다.
+- 살아 있는 세션과 소유권 표시가 없는 구버전의 불확실한 실행은 거절한다. 상태 임의 변경/타이머 탈취/자동 세션 KILL은 하지 않는다.
+  기존 campaignBatch 명령으로 명시적 재시작한다. README/PLAN과 Batch 문서를 갱신했다.
+
+### 실제 검증
+
+- 실제 MySQL 8.4.8/Kafka 4.0.2/Redis 7.4.11 격리 컨테이너를 사용했다.
+- 별도 Batch JVM을 앞 3건 커밋 후 강제 종료했다. STARTED/checkpoint 3이 남았고,
+  새 JVM 명령으로 같은 JobInstance에서 4건을 읽어 총 7건/checkpoint 7로 완료했다. 실행 기록은 2개, Kafka 레코드는 0개였다.
+- 이전 JVM을 SIGSTOP했을 때 살아 있는 DB 세션 때문에 실행이 거절됐다.
+  테스트 관리자 연결에서 그 세션을 종료하고 새 실행을 완료한 뒤, 이전 JVM을 SIGCONT했다.
+  이전 JVM은 종료 코드 1, 최종 업무 행 7건과 Job/Step/양쪽 ExecutionContext 전체 조회 결과는 그대로였다.
+- UNKNOWN 복구 시 Job 상태 저장을 실패시켜 Step 상태 변경까지 롤백되는 것을 확인했다. 원인 제거 후 3번 checkpoint부터 정상 재개했다.
+- 실행 파라미터 저장 실패에서 JobInstance/JobExecution/파라미터/Job context가 부분 커밋되지 않았다. 재요청은 정상 완료했다.
+- 서로 다른 두 캠페인은 다른 앱에서 각각 완료했고, 같은 캠페인의 두 번째 실행은 계속 거절했다.
+  구버전 STARTING/UNKNOWN과 자동 재접속 연결도 거절했다.
+- 기존 11개 Batch 테스트는 BUILD SUCCESSFUL(35초). 최초 새 시나리오 포함 16개는 BUILD SUCCESSFUL(54초).
+  전체 행 비교 보강 중 VARBINARY의 byte[] 객체 참조 비교 때문에 테스트 1개가 실패했다. 실제 바이트를 비교하도록 수정했다.
+- `./gradlew --no-daemon --console=plain test --tests '*CampaignBatchTest' --tests '*CampaignCheckpointTest'`:
+  **2개 클래스/18개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(45초), 종료 코드 0. XML 합계와 실험 출력을 확인했다.
+- `./gradlew --no-daemon --console=plain build`:
+  **31개 클래스/258개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(11분 47초), 종료 코드 0.
+  XML 합계와 강제 종료/이전 소유자/ACK 실험 출력을 대조했다. 기존 비동기/리밸런스/정상 종료/Redis/회로/역할 분리 회귀를 포함한다.
+- 테스트 컨테이너가 정리됐고 기존 notification-lab-mysql-1(MySQL 8.4.8)은 healthy였다.
+  사용자 로컬 DB/.env/Redis 예산/IntelliJ를 변경하지 않았다. 모든 장애 주입은 격리된 테스트 DB/프로세스에만 적용했다.
+- 실행 JAR의 변경 클래스 3개가 빌드 출력과 일치하고, 기존 NotificationLabApplication main과 Connector/J 9.7.0이 포함되는지 확인했다.
+  테스트/별도 Mock 서버 클래스는 알림 앱 JAR에 포함되지 않았다. 패키징 JAR 기동 smoke를 실행했다는 뜻은 아니다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444를 읽기 전용으로 확인했다.
+  기존 main의 로컬 이력을 유지하며 푸시하지 않는다. 문서 링크/코드 블록/`git diff --check`도 확인했다.
+
+### 한계와 다음 단계
+
+- 단일 MySQL 서버/DB, 같은 소유권 프로토콜, 동기 단일 스레드 Step 범위다. 다중 primary/자동 failover/병렬 Step은 지원하지 않는다.
+  DB가 이전 세션을 살아 있다고 판단하면 네트워크 단절이 길어져도 탈취하지 않는다. 가용성보다 중복 실행 방지를 우선한다.
+- 구버전의 불확실한 실행에는 자동 복구를 제공하지 않는다. 새 버전과 구버전 실행기를 동시에 운용하지 않는다.
+- 전용 연결은 기본 spring.datasource URL/사용자/비밀번호를 사용한다. Hikari 전용 옵션은 적용되지 않는다.
+- 강제 정지/재개 검증은 macOS/Linux POSIX 신호를 사용한다. Windows에서 같은 테스트를 직접 수행하는 경로는 검증하지 않았다.
+- 다음 단계는 10만→100만 건 영속 인계/발송 부하 실험이다. 이번에는 대량 부하/별도 1만 건 정합성/운영 성능/원격 CI를 실행하지 않았다.
+  명령 검증은 테스트 런타임 classpath의 별도 JVM이며 패키징 JAR 기동 smoke와 구분한다.

@@ -264,15 +264,211 @@ class CampaignBatchTest {
         assertRows(0);
     }
 
+    @Test
+    void killedJvmRecoversOnlyCommittedChunkInSameJobInstance() throws Exception {
+        Campaign campaign = requested(7);
+        root("CREATE TRIGGER slow_chunk BEFORE INSERT ON campaign_target FOR EACH ROW BEGIN IF NEW.target_ordinal = 4 THEN DO SLEEP(8); END IF; END");
+        Path output = Files.createTempFile("campaign-kill-", ".log");
+        Process process = startCommand(campaign.campaignId(), output);
+        try {
+            awaitFirstChunk();
+            long firstId = db().queryForObject("SELECT JOB_EXECUTION_ID FROM BATCH_JOB_EXECUTION", Long.class);
+            process.destroyForcibly();
+            assertThat(process.waitFor(5, TimeUnit.SECONDS)).isTrue();
+            await().atMost(Duration.ofSeconds(20)).until(() -> owner(campaign) == null);
+            root("DROP TRIGGER slow_chunk");
+            assertRows(3);
+            assertThat(db().queryForObject("SELECT STATUS FROM BATCH_JOB_EXECUTION", String.class)).isEqualTo("STARTED");
+            assertThat(command(campaign.campaignId())).isZero();
+            assertRows(7);
+            assertIdentities(campaign);
+            var old = app.getBean(JobExplorer.class).getJobExecution(firstId);
+            assertThat(old.getStatus()).isEqualTo(BatchStatus.FAILED);
+            assertThat(checkpoint(old)).isEqualTo(3);
+            assertThat(old.getExitStatus().getExitDescription()).contains("exclusive MySQL session");
+            var resumed = app.getBean(JobExplorer.class).getJobExecution(run(campaign).getId());
+            assertThat(resumed.getStepExecutions()).hasSize(1);
+            assertThat(resumed.getJobInstance().getId()).isEqualTo(old.getJobInstance().getId());
+            assertThat(resumed.getStepExecutions()).allSatisfy(step -> assertThat(step.getReadCount()).isEqualTo(4));
+            assertThat(checkpoint(resumed)).isEqualTo(7);
+            assertThat(db().queryForObject("SELECT COUNT(*) FROM BATCH_JOB_EXECUTION", Integer.class)).isEqualTo(2);
+            assertThat(endOffset()).isZero();
+            System.out.println("CAMPAIGN_BATCH_KILL checkpoint=3 resumedRead=4 finalTargets=7 instances=1 executions=2");
+        } finally {
+            if (process.isAlive()) { process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); }
+            Files.deleteIfExists(output);
+        }
+    }
+
+    @Test
+    void pausedOldJvmCannotWriteBusinessOrMetadataAfterItsMysqlSessionIsKilled() throws Exception {
+        Campaign campaign = requested(7);
+        root("CREATE TRIGGER slow_chunk BEFORE INSERT ON campaign_target FOR EACH ROW BEGIN IF NEW.target_ordinal = 4 THEN DO SLEEP(15); END IF; END");
+        Path output = Files.createTempFile("campaign-stale-owner-", ".log");
+        Process process = startCommand(campaign.campaignId(), output);
+        try {
+            awaitFirstChunk();
+            long ownerId = owner(campaign);
+            signal(process, "-STOP");
+            // Paused does not mean dead. A live MySQL session must block takeover, irrespective of age.
+            assertThatThrownBy(() -> run(campaign)).isInstanceOf(JobExecutionAlreadyRunningException.class);
+            root("KILL CONNECTION " + ownerId);
+            await().atMost(Duration.ofSeconds(10)).until(() -> owner(campaign) == null);
+            root("DROP TRIGGER slow_chunk");
+            var resumed = run(campaign);
+            assertThat(resumed.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+            assertThat(checkpoint(resumed)).isEqualTo(7);
+            var business = new java.util.LinkedHashMap<String, List<Map<String, Object>>>();
+            for (String table : List.of("notification", "delivery_task", "outbox_event", "campaign_target", "BATCH_JOB_EXECUTION_CONTEXT")) {
+                business.put(table, snapshot(table));
+            }
+            var jobs = db().queryForList("SELECT * FROM BATCH_JOB_EXECUTION ORDER BY JOB_EXECUTION_ID");
+            var steps = db().queryForList("SELECT * FROM BATCH_STEP_EXECUTION ORDER BY STEP_EXECUTION_ID");
+            var contextsBefore = db().queryForList("SELECT * FROM BATCH_STEP_EXECUTION_CONTEXT ORDER BY STEP_EXECUTION_ID");
+            signal(process, "-CONT");
+            assertThat(process.waitFor(40, TimeUnit.SECONDS)).isTrue();
+            assertThat(process.exitValue()).isEqualTo(1);
+            assertRows(7);
+            assertIdentities(campaign);
+            assertThat(db().queryForList("SELECT * FROM BATCH_JOB_EXECUTION ORDER BY JOB_EXECUTION_ID")).isEqualTo(jobs);
+            assertThat(db().queryForList("SELECT * FROM BATCH_STEP_EXECUTION ORDER BY STEP_EXECUTION_ID")).isEqualTo(steps);
+            assertThat(db().queryForList("SELECT * FROM BATCH_STEP_EXECUTION_CONTEXT ORDER BY STEP_EXECUTION_ID")).isEqualTo(contextsBefore);
+            for (var snapshot : business.entrySet()) {
+                assertThat(snapshot(snapshot.getKey())).as(snapshot.getKey())
+                        .containsExactlyInAnyOrderElementsOf(snapshot.getValue());
+            }
+            assertThat(owner(campaign)).isNull();
+            System.out.println("CAMPAIGN_BATCH_FENCE pausedOwnerRejected=true staleExit=1 targets=7 metadataUnchanged=true");
+        } finally {
+            if (process.isAlive()) { signal(process, "-CONT"); process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); }
+            Files.deleteIfExists(output);
+        }
+    }
+
+    @Test
+    void legacyUncertainExecutionIsNeverReclassifiedWithoutOwnershipEvidence() throws Exception {
+        var campaign = requested(2);
+        var repository = app.getBean(org.springframework.batch.core.repository.JobRepository.class);
+        var parameters = new org.springframework.batch.core.JobParametersBuilder()
+                .addString("campaignId", campaign.campaignId().toString()).toJobParameters();
+        var legacy = repository.createJobExecution(CampaignBatchService.JOB_NAME, parameters);
+        for (var status : List.of(BatchStatus.STARTING, BatchStatus.UNKNOWN)) {
+            legacy.setStatus(status);
+            repository.update(legacy);
+            assertThatThrownBy(() -> run(campaign)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Legacy execution ownership");
+            assertThat(db().queryForObject("SELECT STATUS FROM BATCH_JOB_EXECUTION", String.class)).isEqualTo(status.name());
+            assertThat(owner(campaign)).isNull();
+        }
+        assertRows(0);
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM BATCH_JOB_EXECUTION", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void unknownExecutionRecoveryIsAtomicAndPreservesCommittedCheckpoint() throws Exception {
+        var campaign = requested(7);
+        root("CREATE TRIGGER fail_target BEFORE INSERT ON campaign_target FOR EACH ROW BEGIN IF NEW.target_ordinal = 5 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test failure'; END IF; END");
+        var failed = run(campaign);
+        root("DROP TRIGGER fail_target");
+        assertRows(3);
+        // Model an uncertain commit result recorded by the framework after loss of the original session.
+        db().update("UPDATE BATCH_JOB_EXECUTION SET STATUS='UNKNOWN', END_TIME=NULL");
+        db().update("UPDATE BATCH_STEP_EXECUTION SET STATUS='UNKNOWN', END_TIME=NULL");
+        var before = db().queryForList("SELECT * FROM BATCH_STEP_EXECUTION");
+        root("CREATE TRIGGER fail_recovery BEFORE UPDATE ON BATCH_JOB_EXECUTION FOR EACH ROW BEGIN IF NEW.STATUS = 'FAILED' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'recovery storage failure'; END IF; END");
+        try {
+            assertThatThrownBy(() -> run(campaign)).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThat(db().queryForList("SELECT * FROM BATCH_STEP_EXECUTION")).isEqualTo(before);
+            assertThat(db().queryForObject("SELECT STATUS FROM BATCH_JOB_EXECUTION", String.class)).isEqualTo("UNKNOWN");
+            assertRows(3);
+            assertThat(owner(campaign)).isNull();
+        } finally { root("DROP TRIGGER fail_recovery"); }
+        var resumed = run(campaign);
+        assertThat(resumed.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(resumed.getJobInstance().getId()).isEqualTo(failed.getJobInstance().getId());
+        assertThat(resumed.getStepExecutions()).allSatisfy(step -> assertThat(step.getReadCount()).isEqualTo(4));
+        assertRows(7);
+    }
+
+    @Test
+    void reconnectingConnectionIsRejectedBeforeCreatingExecution() throws Exception {
+        var properties = new org.springframework.boot.autoconfigure.jdbc.DataSourceProperties();
+        properties.setUrl(url + "&autoReconnect=true");
+        properties.setUsername(MYSQL.getUsername());
+        properties.setPassword(MYSQL.getPassword());
+        var campaign = requested(1);
+        assertThatThrownBy(() -> CampaignBatchSession.open(properties, db().getDataSource(), campaign.campaignId()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("without reconnect");
+        assertThat(owner(campaign)).isNull();
+        assertRows(0);
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM BATCH_JOB_EXECUTION", Integer.class)).isZero();
+    }
+
+    @Test
+    void executionParameterFailureCannotCommitPartialInstanceOrExecution() throws Exception {
+        var campaign = requested(2);
+        root("CREATE TRIGGER fail_parameters BEFORE INSERT ON BATCH_JOB_EXECUTION_PARAMS FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'parameter storage failure'");
+        try {
+            assertThatThrownBy(() -> run(campaign)).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            for (String table : List.of("BATCH_JOB_INSTANCE", "BATCH_JOB_EXECUTION", "BATCH_JOB_EXECUTION_PARAMS", "BATCH_JOB_EXECUTION_CONTEXT")) {
+                assertThat(db().queryForObject("SELECT COUNT(*) FROM " + table, Integer.class)).as(table).isZero();
+            }
+            assertRows(0);
+            assertThat(owner(campaign)).isNull();
+        } finally { root("DROP TRIGGER fail_parameters"); }
+        assertThat(run(campaign).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertRows(2);
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM BATCH_JOB_INSTANCE", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void differentCampaignSessionsCanRunConcurrentlyWithoutSharingOwnership() throws Exception {
+        var first = requested(6);
+        var second = requested(6);
+        var other = application(false);
+        root("CREATE TRIGGER slow_target BEFORE INSERT ON campaign_target FOR EACH ROW DO SLEEP(0.2)");
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var firstRun = executor.submit(() -> run(first));
+            await().atMost(Duration.ofSeconds(5)).until(() -> owner(first) != null);
+            var secondRun = executor.submit(() -> other.getBean(CampaignBatchService.class).execute(second.campaignId()));
+            assertThat(firstRun.get(15, TimeUnit.SECONDS).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+            assertThat(secondRun.get(15, TimeUnit.SECONDS).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        } finally { root("DROP TRIGGER slow_target"); }
+        assertRows(12);
+        assertIdentities(first);
+        assertIdentities(second);
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM BATCH_JOB_INSTANCE", Integer.class)).isEqualTo(2);
+        assertThat(owner(first)).isNull();
+        assertThat(owner(second)).isNull();
+    }
+
+    private List<Map<String, Object>> snapshot(String table) {
+        var rows = db().queryForList("SELECT * FROM " + table);
+        // JDBC returns a fresh byte[] for VARBINARY on each read; compare its bytes, not object identity.
+        rows.forEach(row -> row.replaceAll((key, value) -> value instanceof byte[] bytes
+                ? java.util.HexFormat.of().formatHex(bytes) : value));
+        return rows;
+    }
+
+    private void awaitFirstChunk() {
+        await().atMost(Duration.ofSeconds(40)).until(() ->
+                db().queryForObject("SELECT COUNT(*) FROM campaign_target", Integer.class) == 3);
+    }
+
+    private Long owner(Campaign campaign) {
+        return db().queryForObject("SELECT IS_USED_LOCK(?)", Long.class,
+                CampaignBatchSession.lockName(db().queryForObject("SELECT DATABASE()", String.class), campaign.campaignId()));
+    }
+
+    private void signal(Process process, String signal) throws Exception {
+        var command = new ProcessBuilder("kill", signal, Long.toString(process.pid())).start();
+        assertThat(command.waitFor(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(command.exitValue()).isZero();
+    }
+
     private int command(UUID id) throws Exception {
         Path output = Files.createTempFile("campaign-command-", ".log");
-        var builder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
-                "-cp", System.getProperty("notificationLab.testClasspath"), CampaignBatchCommand.class.getName(), id.toString());
-        builder.environment().putAll(Map.of("SPRING_DATASOURCE_URL", url, "SPRING_DATASOURCE_USERNAME", MYSQL.getUsername(),
-                "SPRING_DATASOURCE_PASSWORD", MYSQL.getPassword(), "SPRING_KAFKA_BOOTSTRAP_SERVERS", KAFKA.getBootstrapServers(),
-                "APP_ASYNC_TOPIC", topic, "APP_ASYNC_GROUP", topic, "LOGGING_LEVEL_ROOT", "WARN", "SPRING_MAIN_BANNER_MODE", "off"));
-        builder.redirectErrorStream(true).redirectOutput(output.toFile());
-        Process process = builder.start();
+        Process process = startCommand(id, output);
         try {
             assertThat(process.waitFor(40, TimeUnit.SECONDS)).as("campaign command exited; log %s", output).isTrue();
             assertThat(Files.readString(output)).contains("CAMPAIGN_BATCH");
@@ -281,6 +477,16 @@ class CampaignBatchTest {
             if (process.isAlive()) { process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); }
             Files.deleteIfExists(output);
         }
+    }
+
+    private Process startCommand(UUID id, Path output) throws Exception {
+        var builder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-cp", System.getProperty("notificationLab.testClasspath"), CampaignBatchCommand.class.getName(), id.toString());
+        builder.environment().putAll(Map.of("SPRING_DATASOURCE_URL", url, "SPRING_DATASOURCE_USERNAME", MYSQL.getUsername(),
+                "SPRING_DATASOURCE_PASSWORD", MYSQL.getPassword(), "SPRING_KAFKA_BOOTSTRAP_SERVERS", KAFKA.getBootstrapServers(),
+                "APP_ASYNC_TOPIC", topic, "APP_ASYNC_GROUP", topic, "LOGGING_LEVEL_ROOT", "WARN", "SPRING_MAIN_BANNER_MODE", "off", "APP_CAMPAIGN_BATCH_CHUNK_SIZE", "3"));
+        builder.redirectErrorStream(true).redirectOutput(output.toFile());
+        return builder.start();
     }
 
     private Campaign requested(int count) {

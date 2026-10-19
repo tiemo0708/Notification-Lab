@@ -250,6 +250,7 @@ CAMPAIGN 역할의 비동기 앱에서 `POST /campaigns`로 정의를 저장하�
 가상 집합을 규칙으로 계산한다. 시작 요청 후 `./gradlew campaignBatch --args='캠페인_UUID'`로
 해당 캠페인의 대상별 알림/발송 작업/Outbox와 checkpoint를 chunk 단위로 함께 저장한다.
 FAILED 실행은 같은 명령으로 마지막 커밋에서 재시작하며, 완료 재요청은 기존 결과를 반환한다.
+강제 종료된 새 버전 실행도 MySQL 세션 소유권을 확인한 뒤 재개한다. [복구 조건과 한계](docs/S7_CAMPAIGN_RECOVERY.md)를 참고한다.
 **Batch COMPLETED는 DB 인계 완료이며 발송 완료가 아니다.** 별도 CAMPAIGN Relay/Worker가 기존 발송 경로를 수행한다.
 [실행·checkpoint·ACK 경계·복구 한계](docs/S7_CAMPAIGN_BATCH.md)를 참고한다.
 명령은 Relay/Worker를 끄고 종료하지만, 다른 앱에서 이미 실행 중이면 커밋된 Outbox가 처리될 수 있다.
@@ -258,7 +259,7 @@ FAILED 실행은 같은 명령으로 마지막 커밋에서 재시작하며, 완
 ## 테스트와 빌드
 
 테스트가 격리된 MySQL/Kafka/Redis 컨테이너를 생성·삭제하므로 `.env`와 Compose 사전 실행은 필요 없다.
-Docker가 없으면 실패하며 자동 스킵하지 않는다.
+Docker가 없으면 실패하며 자동 스킵하지 않는다. Batch JVM 정지/재개 테스트는 macOS/Linux의 POSIX 신호를 사용한다.
 
 ```bash
 ./gradlew test
@@ -314,7 +315,7 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-자동 Redis failover, 실제 회원 DB 대상자 조회, 강제 종료된 Batch의 안전한 소유권 복구, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+자동 Redis failover, 실제 회원 DB 대상자 조회, 다중 DB/failover 환경의 Batch 복구, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건

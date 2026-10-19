@@ -1,6 +1,6 @@
 # S7: Spring Batch checkpoint와 Outbox 인계
 
-2026-10-19. 특정 START_REQUESTED 캠페인 한 개를 명시적으로 실행해 가상 대상별 알림·발송 작업·Outbox를 만든다.
+2026-10-20. 특정 START_REQUESTED 캠페인 한 개를 명시적으로 실행해 가상 대상별 알림·발송 작업·Outbox를 만든다.
 Spring Batch COMPLETED는 **모든 대상을 DB Outbox에 인계했다는 뜻**이다. Kafka 발행 완료, 공급자 수락,
 단말 도착을 뜻하지 않는다. 기존 캠페인 상태는 시작 의도인 START_REQUESTED를 유지한다.
 
@@ -89,7 +89,7 @@ Outbox 상태, Kafka lag를 구분해 조회한다. ExecutionContext는 Spring B
 Job 이름은 `campaign-expand-v1`, 식별 JobParameter는 campaignId 하나다. 시간/run.id를 붙여 새 인스턴스로 우회하지 않는다.
 재시작 때 대상 정의/ID 규칙과 발송 정책 설정을 유지한다. 직접 DB 정의 수정이나 실행 중 코드 교체는 지원 범위가 아니다.
 프로세스당 실행 슬롯은 1개이며 추가 호출을 메모리 대기열에 쌓지 않는다. 서로 다른 프로세스의 같은 캠페인은
-JobRepository의 실행 상태/트랜잭션/유니크 제약으로 조율한다. 실행 중인 동일 인스턴스는 거절한다.
+MySQL 세션 소유권과 JobRepository의 실행 상태/트랜잭션/유니크 제약으로 조율한다. 살아 있는 소유자가 있으면 거절한다.
 
 대상별 고정 ID의 입력은 UTF-8 `notification-lab:campaign:v1:<campaignId>:<ordinal>:<kind>`이며,
 Java UUID.nameUUIDFromBytes를 사용한다. kind는 notification/task/event로 나눠 이름 공간을 분리한다.
@@ -108,12 +108,11 @@ chunk를 실패/롤백시킨다. 기존 매핑·정의가 맞으면 그대로 �
 | 완료 후 동일 명령 | 기존 COMPLETED 실행 반환. 대상/작업/Outbox 추가 없음 |
 | Kafka ACK 확인 전 | Outbox는 PUBLISHED가 아님. Batch checkpoint는 DB 인계 기준이라 이미 앞설 수 있음 |
 | Kafka 수락 후 ACK 결과 유실 | Relay가 재발행할 수 있음. 같은 알림/작업 ID를 유지해 Worker의 기존 중복 처리 적용 |
-| JVM 강제 종료/DB 결과 불확실성 | STARTED/UNKNOWN이 남을 수 있음. 자동으로 FAILED로 바꾸거나 새 JobInstance로 우회하지 않음 |
+| JVM 강제 종료/DB 결과 불확실성 | 이 버전의 실행은 세션 소유권을 얻은 뒤 STARTED/UNKNOWN을 정리하고 같은 인스턴스에서 재개 |
 
-FAILED/STOPPED로 확인된 실행의 재시작을 이번에 연결했다. **강제 종료로 남은 STARTED/UNKNOWN의
-안전한 복구 명령은 아직 제공하지 않는다.** 이전 실행이 정말 종료됐는지, 다른 호스트에서 쓰고 있지 않은지
-확인하는 소유권/차단 절차 없이 상태를 바꾸면 중복 실행될 수 있다. 이 경우 메타데이터를 임의 수정하지 말고,
-다음 단계에서 프로세스 종료·소유권 확인·안전한 재시작을 별도로 검증한다.
+FAILED/STOPPED는 기존 checkpoint에서 재시작한다. 강제 종료된 실행은
+[세션 소유권·이전 쓰기 차단·복구 절차](S7_CAMPAIGN_RECOVERY.md)에 따라 같은 명령으로 복구한다.
+구버전이 남긴 STARTED/UNKNOWN은 소유권을 증명할 수 없어 거절한다. 실행 상태를 임의 수정하지 않는다.
 
 ## 검증 범위
 

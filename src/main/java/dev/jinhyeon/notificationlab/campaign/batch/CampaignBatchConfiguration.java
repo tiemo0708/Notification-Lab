@@ -2,19 +2,17 @@ package dev.jinhyeon.notificationlab.campaign.batch;
 
 import dev.jinhyeon.notificationlab.campaign.CampaignStore;
 import dev.jinhyeon.notificationlab.config.DeliveryProperties;
-import javax.sql.DataSource;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import javax.sql.DataSource;
 import org.springframework.batch.core.configuration.support.DefaultBatchConfiguration;
-import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
@@ -44,11 +42,10 @@ public class CampaignBatchConfiguration extends DefaultBatchConfiguration {
     protected PlatformTransactionManager getTransactionManager() { return transactionManager; }
 
     @Bean
-    CampaignBatchService campaignBatchService(CampaignStore campaigns, JobRepository repository,
-                                             JobLauncher launcher, JdbcTemplate jdbc,
+    CampaignBatchService campaignBatchService(CampaignStore campaigns, DataSourceProperties database,
                                              DeliveryProperties delivery, Environment environment) {
         int chunkSize = environment.getProperty("app.campaign.batch.chunk-size", Integer.class, 100);
-        return new CampaignBatchService(campaigns, repository, launcher, transactionManager, jdbc,
+        return new CampaignBatchService(campaigns, database, dataSource,
                 delivery.maxAttempts(), chunkSize);
     }
 }
