@@ -61,6 +61,11 @@ spring:
     clean-disabled: true
 
 app:
+  campaign:
+    batch:
+      # Only the explicit campaignBatch command opts in; no startup/scheduled job launch.
+      enabled: false
+      chunk-size: 100
   traffic:
     # Run one lane per process. CAMPAIGN requires split-enabled + Redis quota + pause.
     lane: REALTIME

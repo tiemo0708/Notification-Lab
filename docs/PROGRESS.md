@@ -1355,3 +1355,66 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   재시작 검증은 앱 context 재생성이다. 실제 캠페인 프로세스 강제 종료 실험은 후속 Batch 연결 시 필요하다.
 - 사용자 로컬 DB/Redis 예산/.env/IntelliJ는 변경하지 않았다. 신규 migration이나 대상자 전체 seed도 없다.
 - 다음은 Spring Batch chunk checkpoint와 작업 인계/ACK, 재시작 시 동일 범위 중복 처리 검증이다.
+
+## 2026-10-19: S7 세 번째 단계 — Batch checkpoint·Outbox 인계와 실패 재시작
+
+### 문제와 구현
+
+- chunk 일부만 저장되거나 checkpoint가 작업보다 앞서 커밋되면 재시작 때 누락/중복이 생길 수 있다.
+  [학습 문서](S7_CAMPAIGN_BATCH.md)에 직접 Kafka 발행/단건 접수 API 호출/Outbox 인계의 대안과 선택 이유를 정리했다.
+- 기존 Boot BOM의 Spring Batch 5.2.6을 사용한다. 동일 DataSource/transactionManager에 알림·발송 작업·Outbox·대상 매핑과
+  ExecutionContext의 마지막 순번을 저장한다. Reader는 고정 집합의 마지막 커밋 순번 뒤를 읽는다.
+  chunk 기본 100/상한 1,000, 실행 슬롯 1개, 대기열/skip/자동 retry는 없다.
+- campaignBatch 명령은 START_REQUESTED UUID 하나만 받아 동기 실행하고 종료한다. DRAFT/없는 캠페인은 거절한다.
+  같은 campaignId와 고정 Job 이름으로 FAILED/STOPPED 재시작, COMPLETED 재요청은 기존 실행을 반환한다.
+  시간/run.id를 추가해 새 인스턴스로 중복 실행하지 않는다. 일반 앱 자동 실행은 비활성화했다.
+- 명령은 전용 JVM을 UTC로 설정하고 Relay/Worker를 끈다. Batch 인프라 직접 활성화도 CAMPAIGN/UTC를 요구한다.
+  다른 앱에서 Relay/Worker가 실행 중이면 앞 chunk의 Outbox부터 처리될 수 있다.
+- V9는 공식 BATCH_* 메타데이터 스키마와 campaign_target을 추가한다. 기존 V1~V8/알림 이력은 변경하지 않는다.
+  공식 프레임워크 식별자는 보존하고 업무 테이블은 snake_case/PK/unique/FK 규칙을 적용했다.
+- 캠페인 ID/순번/kind로 notification/task/event ID를 고정한다. 매핑 PK와 각 ID unique가 중복을 제한한다.
+  재생 시 기존 정의/ID를 확인하고 완료된 작업/시도/발행 상태를 초기화하지 않는다.
+  DB 충돌은 조용히 무시하지 않고 chunk를 롤백한다. Writer 오류의 SQL/본문은 Batch 로그·실패 메시지에 붙이지 않는다.
+- Batch COMPLETED는 DB 인계 완료다. Kafka 발행은 기존 Relay가 맡고 publish future 성공 후 PUBLISHED를 기록한다.
+  ACK 결과 유실에 따른 Kafka 중복과 외부 발송 exactly-once 한계를 유지한다.
+- README/API/대상자 문서와 PLAN을 갱신했다. checkpoint와 고정 ID 항목을 완료했고,
+  강제 종료 후 소유권 확인·안전한 재시작 항목을 대량 부하 전에 추가했다.
+
+### 실제 검증
+
+- dependencyInsight로 Spring Batch 5.2.6 선택을 확인했다. Batch 코드 컴파일 성공.
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*CampaignBatchTest' --tests '*CampaignApiTest' --tests '*MySqlNotificationTest'`:
+  **3개 클래스/33개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(1분 5초), 종료 코드 0.
+- 실제 MySQL 8.4.8/Kafka 4.0.2/Redis 7.4.11의 격리 DB/토픽을 사용했다.
+  대상 7명/chunk 3에서 5번 매핑 INSERT 실패를 주입해 알림/작업/Outbox/매핑 각 3행과 checkpoint 3을 확인했다.
+  새 앱 context에서 같은 JobInstance/새 JobExecution으로 4건을 읽고 총 7건/checkpoint 7로 완료했다.
+- checkpoint 테이블 갱신 실패에서도 해당 chunk 업무 행이 함께 롤백됐다. 실패 원인 제거 후 같은 캠페인이 완료됐다.
+  두 번째 앱의 동일 캠페인 실행을 진행 중 거절했고 JobExecution 1개/대상 6개를 확인했다.
+- 대상 2건을 DB에 인계한 뒤 Kafka ACK future를 보류했을 때 레코드 1개/PROCESSING 1개/PUBLISHED 0개였다.
+  브로커 수락 후 ACK 불확실성 주입과 Relay 재시도로 Kafka 3레코드/Outbox PUBLISHED 2건을 확인했다.
+  실제 Worker의 공급자 시도는 2회였고 offset 합계 3이었다. 완료 후 Writer 재생에서도 시도/작업/발행 상태가 유지됐다.
+- 별도 JVM 명령 실행과 완료 재실행은 종료 코드 0, DRAFT 거절은 1이었다.
+  Batch 명령의 Relay/Worker 비활성화로 명령만 실행한 토픽 레코드는 0이었다.
+- UTC 메타데이터와 고정 ID 기준값/checkpoint/실행 조건 단위 검증을 보강했다.
+  `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*CampaignBatchTest' --tests '*CampaignCheckpointTest'`:
+  **2개 클래스/11개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(30초), 종료 코드 0.
+  command JVM의 저장 CREATE_TIME이 UTC 현재 시각과 일치하는 범위인지 확인했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **31개 클래스/251개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(11분 31초), 종료 코드 0.
+  XML 합계를 대조했다. 일반 캠페인 앱에 JobRepository가 없고 자동 생성 JobInstance가 0개인 것도 확인했다.
+  기존 비교 프로필/비동기/리밸런스/종료/Redis/회로/역할 분리 회귀를 포함한다.
+- 실행 JAR의 Batch class·V9 바이트 일치, Batch 5.2.6 의존성, 기존 HTTP main 유지,
+  테스트/별도 Mock 서버 클래스 제외를 확인했다. 문서 링크/코드 블록/`git diff --check`도 확인했다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444를 확인했다.
+  기존 main 위에 로컬 커밋하며 푸시하지 않는다. 테스트 컨테이너와 Java/caffeinate가 종료됐고 기존 MySQL은 healthy다.
+
+### 한계와 다음 단계
+
+- FAILED 뒤 새 앱 context에서 같은 인스턴스를 재시작하는 경로와 별도 JVM의 정상 명령을 검증했다.
+  Batch JVM을 강제 종료해 STARTED/UNKNOWN이 남은 상태의 안전한 복구는 아직 구현/검증하지 않았다.
+  진행 중으로 남은 실행을 자동 FAILED로 바꾸거나 새 인스턴스로 우회하지 않는다.
+- 다음은 강제 종료 후 실제 소유권 종료 확인/안전한 재시작 절차다. 이후 10만→100만 영속 인계/발송 부하를 진행한다.
+- 새 대량 부하/별도 1만 건 정합성/운영 성능/원격 CI/패키징 JAR 기동 smoke는 이번에 실행하지 않았다.
+  Batch 명령은 테스트 런타임 classpath의 별도 JVM으로 실행했다.
+- 사용자 로컬 DB/Redis 예산/.env/IntelliJ는 변경하지 않았다. V9은 다음 새 앱 실행 시 적용된다.
+  모든 검증은 가상 데이터와 격리된 Testcontainers DB/토픽/예산만 사용했다.

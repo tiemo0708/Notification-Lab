@@ -94,7 +94,7 @@ S5에서 Kafka 중단·복구와 ACK 후 Outbox 기록 전 Relay 프로세스 �
 Worker DB 완료 후 offset 커밋 전 종료와 재소비도 검증했다.
 Relay/Worker 재시작, 처리 중 합류와 작업 완료 후 이탈에 따른 리밸런스도 검증했다.
 SIGTERM 정상 종료와 유예 초과 복구까지 검증했다.
-S6에서는 별도 HTTP Mock, HTTP 어댑터의 timeout/연결 풀 상한, Worker 동시성/유한 FIFO 대기열과 Redis 공유 제한기를 추가했다. 최초 발송/재시도의 quota와 정상 한도 부족의 소비 pause/resume를 연결했다. 프로세스별 Circuit Breaker/half-open 복구까지 연결했다. Redis 장애/예산 유실에는 fail-closed와 명시적 빈 초기화를 적용했다. 역할별 자원 분리와 8:2 고정 예약 예산까지 추가했다. S7 첫 단계로 캠페인 생성/시작/조회와 중복 시작 방지를 추가했다. 고정 가상 대상자와 keyset 조회도 추가했다. 다음은 Batch checkpoint와 작업 인계/재처리다.
+S6에서는 별도 HTTP Mock, HTTP 어댑터의 timeout/연결 풀 상한, Worker 동시성/유한 FIFO 대기열과 Redis 공유 제한기를 추가했다. 최초 발송/재시도의 quota와 정상 한도 부족의 소비 pause/resume를 연결했다. 프로세스별 Circuit Breaker/half-open 복구까지 연결했다. Redis 장애/예산 유실에는 fail-closed와 명시적 빈 초기화를 적용했다. 역할별 자원 분리와 8:2 고정 예약 예산까지 추가했다. S7 첫 단계로 캠페인 생성/시작/조회와 중복 시작 방지를 추가했다. 고정 가상 대상자와 keyset 조회도 추가했다. Batch checkpoint와 Outbox 인계/실패 재시작을 추가했다. 다음은 강제 종료 후 안전한 Batch 복구다.
 실제 검증 결과는 docs/PROGRESS.md에 기록한다.
 
 ### S5. 장애·배포 실험
@@ -162,7 +162,7 @@ Worker 수락 후 DB 미기록 종료에서는 UNKNOWN과 실제 공급자 재�
 전체 222개 실행의 220개 통과와 V7 기대값 2개 수정 후 MySQL 16개 재검증 통과를 확인했다.
 기능 코드는 전체 실행 이후 동일하며 최종 build 성공이다. 단일 전체 실행에서 222개 모두 통과했다고 기록하지 않는다.
 S6는 정의한 로컬 실험 범위에서 완료했다. 동적 예산 차용·운영 성능·공유 인프라 장애 격리를 입증한 것은 아니다.
-S7 첫 API 단계를 구현했다. 고정 가상 대상자와 keyset 조회도 추가했다. 다음은 Batch checkpoint와 작업 인계/재처리다.
+S7 첫 API 단계를 구현했다. 고정 가상 대상자와 keyset 조회도 추가했다. Batch checkpoint와 Outbox 인계/실패 재시작을 추가했다. 다음은 강제 종료 후 안전한 Batch 복구다.
 
 완료 조건: 워커를 늘려도 제한 정책을 유지하고 공급자 장애가 메모리 폭증으로 이어지지 않는다.
 실험용 공급자 한도는 실제 FCM/APNs의 보장/쿼터로 제시하지 않는다.
@@ -172,16 +172,21 @@ S7 첫 API 단계를 구현했다. 고정 가상 대상자와 keyset 조회도 �
 ### S7. 캠페인과 Spring Batch
 - [x] 캠페인 생성/시작/조회 API와 중복 시작 방지
 - [x] 고정된 테스트 대상자 집합과 keyset pagination
-- [ ] chunk checkpoint, Kafka publish ACK와 재시작 시 중복 처리 검증
-- [ ] 대상자별 결정적 작업 ID, 실패 후 동일 범위 재처리
+- [x] chunk checkpoint, Kafka publish ACK와 재시작 시 중복 처리 검증
+- [x] 대상자별 결정적 작업 ID, 실패 후 동일 범위 재처리
+- [ ] Batch 강제 종료 후 소유권 확인과 안전한 재시작
 - [ ] 10만 -> 100만 건 단계적 부하 테스트
 
 [S7 첫 API 단계](docs/S7_CAMPAIGN_API.md)는 CAMPAIGN 앱의 정의 저장과 `DRAFT → START_REQUESTED` 수락까지다.
 생성 키의 유니크 제약/정확한 정의 비교와 시작 조건부 UPDATE로 두 앱의 동시 요청을 처리한다.
-START_REQUESTED는 영속 시작 의도이며 현재 자동 실행되지 않는다. 대상자 확장/Batch/Kafka 발행은 후속 단계다.
+START_REQUESTED는 영속 시작 의도이며 현재 자동 실행되지 않는다. 명시적 campaignBatch 명령으로 한 캠페인을 확장한다.
 [고정 가상 집합](docs/S7_CAMPAIGN_AUDIENCE.md)은 SYNTHETIC_V1/targetCount로 대상 번호를 재현하고,
 마지막 번호 뒤를 최대 1,000명씩 읽는다. 10만/100만 열거의 순서·총수·고정 해시를 대조했다.
 실제 회원 테이블의 SQL keyset 성능이나 100만 건 발송 부하를 검증한 것은 아니다.
+[Batch 인계/재시작](docs/S7_CAMPAIGN_BATCH.md)은 동일 MySQL 트랜잭션에 알림/작업/Outbox/checkpoint를 커밋한다.
+Kafka ACK는 별도 Relay 경계이며 Batch COMPLETED는 DB 인계 완료다. 대상별 고정 ID와 DB 유니크 제약을 함께 적용했다.
+FAILED 후 새 앱 재시작, checkpoint 실패 롤백, 두 앱 중복 실행 거절, ACK 불확실성 뒤 중복 소비를 검증했다.
+강제 종료로 STARTED/UNKNOWN이 남은 실행은 자동 변경하지 않는다. 소유권 확인과 안전한 복구를 부하 테스트보다 먼저 검증한다.
 실제 검증 명령과 결과는 [PROGRESS](docs/PROGRESS.md)의 S7 기록을 따른다.
 
 ### S8. 성능 실험

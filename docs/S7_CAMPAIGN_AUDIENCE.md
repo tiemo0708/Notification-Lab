@@ -42,7 +42,8 @@ N은 1~1,000,000이고 캠페인 생성 뒤 정의를 수정하는 API는 없다
 
 **nextAfter는 읽기 위치이며 발송 완료 checkpoint가 아니다.** 후속 Batch에서는 작업 인계/ACK와
 checkpoint 저장 순서를 함께 설계해야 한다. 읽자마자 진행 위치만 확정하면 미처리 대상을 건너뛸 수 있다.
-현재 API는 진행 위치를 저장하거나 캠페인 상태를 바꾸지 않는다.
+현재 조회 API는 진행 위치를 저장하거나 캠페인 상태를 바꾸지 않는다.
+후속 [Batch 명령](S7_CAMPAIGN_BATCH.md)은 이 Reader 규칙을 사용해 Outbox 인계와 checkpoint를 함께 커밋한다.
 
 ## 조회 API
 
@@ -110,5 +111,5 @@ curl 'http://127.0.0.1:8082/campaigns/응답_UUID/audience?after=0&limit=2'
 ```
 
 실행 결과는 [PROGRESS](PROGRESS.md)에 기록한다. 100만 건 순회는 **가상 대상 열거의 정합성 검사**이며
-100만 건 DB 처리·Kafka 발행·공급자 발송 부하 테스트가 아니다. START_REQUESTED는 계속 대기 상태다.
-다음은 Spring Batch chunk checkpoint와 작업 인계, 실패 후 동일 범위 재처리를 연결하는 단계다.
+100만 건 DB 처리·Kafka 발행·공급자 발송 부하 테스트가 아니다. 조회만으로 START_REQUESTED를 실행하지 않는다.
+후속 [Batch checkpoint/작업 인계](S7_CAMPAIGN_BATCH.md)를 연결했다. 다음은 강제 종료 후 안전한 Batch 복구다.

@@ -124,7 +124,7 @@ DLQ는 자동 소비/재발송하지 않는다. 선택한 PUBLISHED DLQ는 사�
 같은 DLQ는 한 번, 원본 기준 계보 전체는 최대 3회 재발행한다.
 [선택 재발행 API](docs/S4_DLQ_REDRIVE.md)와 [토픽·DLQ 정책](docs/S4_RETRY_TOPICS_DLQ.md)을 참고한다.
 [작업/복구 정책](docs/S4_DELIVERY_TASKS.md)과 [재시도 정책](docs/S4_RETRY_POLICY.md)을 참고한다.
-기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V8 DB를 사용하며 실시간/캠페인 역할을 모르는 이전 앱·Relay와 혼합 실행하지 않는다. 기존 행은 REALTIME으로 보존한다.
+기존 앱을 모두 종료한 뒤 새 버전을 실행한다. V9 DB를 사용하며 실시간/캠페인 역할을 모르는 이전 앱·Relay와 혼합 실행하지 않는다. 기존 행은 REALTIME으로 보존한다.
 
 기본 Mock 지연은 100ms(허용 0~5000ms), SUCCESS다. 앱 재시작으로 설정한다.
 
@@ -234,7 +234,7 @@ CLOSED → OPEN → HALF_OPEN으로 전환하며, HALF_OPEN에서는 앱당 한 
 
 개별 캠페인 알림은 역할별 `/notifications`로 가상 대상 한 명씩 접수한다. API 본문으로 역할을 바꾸지 않는다.
 재시도/DLQ/선택 재발행은 원래 역할을 보존하며 다른 역할의 redrive는 409다.
-S7에서 캠페인 정의와 시작 요청 API를 추가했다. 대상자 확장/Spring Batch는 후속 범위다. MySQL/Kafka/Redis 서버와 호스트 자원은 공유한다.
+S7에서 캠페인 정의와 시작 요청 API를 추가했다. 명시적 Batch 명령으로 대상별 Outbox 인계도 지원한다. MySQL/Kafka/Redis 서버와 호스트 자원은 공유한다.
 
 ## 캠페인 생성·시작·조회와 가상 대상자 (S7)
 
@@ -243,11 +243,16 @@ CAMPAIGN 역할의 비동기 앱에서 `POST /campaigns`로 정의를 저장하�
 생성에는 `Idempotency-Key`가 필수다. 같은 키/같은 정의는 기존 캠페인을 반환하고 다른 정의는 409다.
 최초 시작은 202, 중복 시작은 200이며 DB에 최초 요청 시각을 한 번 저장한다.
 
-현재 상태는 `DRAFT → START_REQUESTED`까지다. **시작 요청을 저장해도 실제 발송은 실행하지 않는다.**
+캠페인 상태는 `DRAFT → START_REQUESTED`이며 시작 의도를 나타낸다. **시작 요청 저장만으로 Batch를 자동 실행하지 않는다.**
 가상 대상 수 1~100만을 정의에 기록한다. `GET /campaigns/{id}/audience?after=0&limit=100`으로
 고정 가상 대상자를 최대 1,000명씩 읽고, 응답의 nextAfter로 이어 읽는다.
 [집합 고정·keyset·재시작 계약](docs/S7_CAMPAIGN_AUDIENCE.md)을 참고한다.
-가상 집합을 규칙으로 계산하며 실제 회원 DB 조회나 발송 작업 생성·Spring Batch 실행은 아직 연결하지 않았다.
+가상 집합을 규칙으로 계산한다. 시작 요청 후 `./gradlew campaignBatch --args='캠페인_UUID'`로
+해당 캠페인의 대상별 알림/발송 작업/Outbox와 checkpoint를 chunk 단위로 함께 저장한다.
+FAILED 실행은 같은 명령으로 마지막 커밋에서 재시작하며, 완료 재요청은 기존 결과를 반환한다.
+**Batch COMPLETED는 DB 인계 완료이며 발송 완료가 아니다.** 별도 CAMPAIGN Relay/Worker가 기존 발송 경로를 수행한다.
+[실행·checkpoint·ACK 경계·복구 한계](docs/S7_CAMPAIGN_BATCH.md)를 참고한다.
+명령은 Relay/Worker를 끄고 종료하지만, 다른 앱에서 이미 실행 중이면 커밋된 Outbox가 처리될 수 있다.
 [요청 예제·트랜잭션·동시성·실패 정책·검증](docs/S7_CAMPAIGN_API.md)을 참고한다.
 
 ## 테스트와 빌드
@@ -309,7 +314,7 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 
 ## 한계와 문서
 
-자동 Redis failover, 캠페인 대상자 확장/Batch, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+자동 Redis failover, 실제 회원 DB 대상자 조회, 강제 종료된 Batch의 안전한 소유권 복구, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건

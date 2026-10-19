@@ -1,7 +1,7 @@
 # S7: 캠페인 생성과 영속 시작 요청
 
 2026-10-18 첫 단계 구현 범위. 캠페인 정의를 저장하고 시작 요청을 한 번 수락하는 단계다.
-실제 대상자 확장, Spring Batch Job 실행, Kafka 발행과 공급자 호출은 아직 연결하지 않았다.
+후속 [Batch 단계](S7_CAMPAIGN_BATCH.md)에서 별도 명령의 대상자 확장과 Outbox 인계를 연결했다. 이 API 자체는 시작 의도 저장까지만 수행한다.
 
 ## 문제와 선택
 
@@ -56,7 +56,7 @@ DB에 대상자 행을 적재하거나 실제 회원 스냅샷을 만든 것은 
 ## 실행 예
 
 [S6 역할별 실행 및 v2/v3 예산 전환](S6_TRAFFIC_ISOLATION.md)을 먼저 따른다.
-8082의 CAMPAIGN 앱에서 실행한다. 기존 앱을 새 JAR로 시작하면 Flyway V8이 campaign 테이블을 추가한다.
+8082의 CAMPAIGN 앱에서 실행한다. 기존 앱을 새 JAR로 시작하면 Flyway가 V8 campaign 테이블과 V9 Batch 메타데이터/대상 매핑을 적용한다.
 V8은 기존 notification/Outbox/작업 이력을 변경하지 않는다.
 
 ```bash
@@ -112,4 +112,5 @@ DB CHECK, 입력 오류, REALTIME 엔드포인트 부재를 검증한다.
 실행 결과와 최초 실패를 포함한 이력은 [PROGRESS](PROGRESS.md)에 기록한다.
 별도 OS 프로세스 강제 종료, 운영 처리량, 대량 데이터, 실제 FCM/APNs는 이번 검증 범위가 아니다.
 [고정 가상 대상자와 keyset pagination](S7_CAMPAIGN_AUDIENCE.md)을 후속 단계로 추가했다.
-다음은 Batch checkpoint, 결정적 대상자 작업 ID, 실패 후 재처리를 연결한다.
+[Batch checkpoint와 고정 작업 ID, 실패 후 재처리](S7_CAMPAIGN_BATCH.md)도 별도 명령으로 연결했다.
+다음은 강제 종료 후 소유권 확인과 안전한 Batch 재시작이다.

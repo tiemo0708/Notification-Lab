@@ -22,6 +22,7 @@ dependencies {
     implementation enforcedPlatform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
 
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.batch:spring-batch-core'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -100,3 +101,14 @@ tasks.register('mockServerJar', org.springframework.boot.gradle.tasks.bundling.B
     classpath = sourceSets.mockServer.runtimeClasspath
 }
 tasks.named('assemble') { dependsOn tasks.named('mockServerJar') }
+
+// Explicit single-campaign expansion; bootRun never launches a campaign job automatically.
+tasks.register('campaignBatch', JavaExec) {
+    group = 'application'
+    description = 'Expand one START_REQUESTED campaign into durable Outbox work'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.jinhyeon.notificationlab.campaign.batch.CampaignBatchCommand'
+}
+springBoot {
+    mainClass = 'dev.jinhyeon.notificationlab.NotificationLabApplication'
+}

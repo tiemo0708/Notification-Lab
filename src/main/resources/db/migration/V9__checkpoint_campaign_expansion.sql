@@ -1,0 +1,117 @@
+-- Spring Batch 5.2.6 schema-mysql.sql (Apache-2.0), shipped by spring-batch-core.
+-- Framework-required BATCH_* identifiers are retained; business tables remain snake_case.
+-- https://github.com/spring-projects/spring-batch/blob/v5.2.6/spring-batch-core/src/main/resources/org/springframework/batch/core/schema-mysql.sql
+
+CREATE TABLE BATCH_JOB_INSTANCE  (
+    JOB_INSTANCE_ID BIGINT  NOT NULL PRIMARY KEY ,
+    VERSION BIGINT ,
+    JOB_NAME VARCHAR(100) NOT NULL,
+    JOB_KEY VARCHAR(32) NOT NULL,
+    constraint JOB_INST_UN unique (JOB_NAME, JOB_KEY)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_JOB_EXECUTION  (
+    JOB_EXECUTION_ID BIGINT  NOT NULL PRIMARY KEY ,
+    VERSION BIGINT  ,
+    JOB_INSTANCE_ID BIGINT NOT NULL,
+    CREATE_TIME DATETIME(6) NOT NULL,
+    START_TIME DATETIME(6) DEFAULT NULL ,
+    END_TIME DATETIME(6) DEFAULT NULL ,
+    STATUS VARCHAR(10) ,
+    EXIT_CODE VARCHAR(2500) ,
+    EXIT_MESSAGE VARCHAR(2500) ,
+    LAST_UPDATED DATETIME(6),
+    constraint JOB_INST_EXEC_FK foreign key (JOB_INSTANCE_ID)
+    references BATCH_JOB_INSTANCE(JOB_INSTANCE_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_JOB_EXECUTION_PARAMS  (
+    JOB_EXECUTION_ID BIGINT NOT NULL ,
+    PARAMETER_NAME VARCHAR(100) NOT NULL ,
+    PARAMETER_TYPE VARCHAR(100) NOT NULL ,
+    PARAMETER_VALUE VARCHAR(2500) ,
+    IDENTIFYING CHAR(1) NOT NULL ,
+    constraint JOB_EXEC_PARAMS_FK foreign key (JOB_EXECUTION_ID)
+    references BATCH_JOB_EXECUTION(JOB_EXECUTION_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_STEP_EXECUTION  (
+    STEP_EXECUTION_ID BIGINT  NOT NULL PRIMARY KEY ,
+    VERSION BIGINT NOT NULL,
+    STEP_NAME VARCHAR(100) NOT NULL,
+    JOB_EXECUTION_ID BIGINT NOT NULL,
+    CREATE_TIME DATETIME(6) NOT NULL,
+    START_TIME DATETIME(6) DEFAULT NULL ,
+    END_TIME DATETIME(6) DEFAULT NULL ,
+    STATUS VARCHAR(10) ,
+    COMMIT_COUNT BIGINT ,
+    READ_COUNT BIGINT ,
+    FILTER_COUNT BIGINT ,
+    WRITE_COUNT BIGINT ,
+    READ_SKIP_COUNT BIGINT ,
+    WRITE_SKIP_COUNT BIGINT ,
+    PROCESS_SKIP_COUNT BIGINT ,
+    ROLLBACK_COUNT BIGINT ,
+    EXIT_CODE VARCHAR(2500) ,
+    EXIT_MESSAGE VARCHAR(2500) ,
+    LAST_UPDATED DATETIME(6),
+    constraint JOB_EXEC_STEP_FK foreign key (JOB_EXECUTION_ID)
+    references BATCH_JOB_EXECUTION(JOB_EXECUTION_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_STEP_EXECUTION_CONTEXT  (
+    STEP_EXECUTION_ID BIGINT NOT NULL PRIMARY KEY,
+    SHORT_CONTEXT VARCHAR(2500) NOT NULL,
+    SERIALIZED_CONTEXT TEXT ,
+    constraint STEP_EXEC_CTX_FK foreign key (STEP_EXECUTION_ID)
+    references BATCH_STEP_EXECUTION(STEP_EXECUTION_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_JOB_EXECUTION_CONTEXT  (
+    JOB_EXECUTION_ID BIGINT NOT NULL PRIMARY KEY,
+    SHORT_CONTEXT VARCHAR(2500) NOT NULL,
+    SERIALIZED_CONTEXT TEXT ,
+    constraint JOB_EXEC_CTX_FK foreign key (JOB_EXECUTION_ID)
+    references BATCH_JOB_EXECUTION(JOB_EXECUTION_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_STEP_EXECUTION_SEQ (
+    ID BIGINT NOT NULL,
+    UNIQUE_KEY CHAR(1) NOT NULL,
+    constraint UNIQUE_KEY_UN unique (UNIQUE_KEY)
+) ENGINE=InnoDB;
+
+INSERT INTO BATCH_STEP_EXECUTION_SEQ (ID, UNIQUE_KEY) select * from (select 0 as ID, '0' as UNIQUE_KEY) as tmp where not exists(select * from BATCH_STEP_EXECUTION_SEQ);
+
+CREATE TABLE BATCH_JOB_EXECUTION_SEQ (
+    ID BIGINT NOT NULL,
+    UNIQUE_KEY CHAR(1) NOT NULL,
+    constraint UNIQUE_KEY_UN unique (UNIQUE_KEY)
+) ENGINE=InnoDB;
+
+INSERT INTO BATCH_JOB_EXECUTION_SEQ (ID, UNIQUE_KEY) select * from (select 0 as ID, '0' as UNIQUE_KEY) as tmp where not exists(select * from BATCH_JOB_EXECUTION_SEQ);
+
+CREATE TABLE BATCH_JOB_SEQ (
+    ID BIGINT NOT NULL,
+    UNIQUE_KEY CHAR(1) NOT NULL,
+    constraint UNIQUE_KEY_UN unique (UNIQUE_KEY)
+) ENGINE=InnoDB;
+
+INSERT INTO BATCH_JOB_SEQ (ID, UNIQUE_KEY) select * from (select 0 as ID, '0' as UNIQUE_KEY) as tmp where not exists(select * from BATCH_JOB_SEQ);
+
+CREATE TABLE campaign_target (
+    campaign_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    target_ordinal INT NOT NULL,
+    notification_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    task_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    event_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    PRIMARY KEY (campaign_id, target_ordinal),
+    CONSTRAINT uk_campaign_target_notification UNIQUE (notification_id),
+    CONSTRAINT uk_campaign_target_task UNIQUE (task_id),
+    CONSTRAINT uk_campaign_target_event UNIQUE (event_id),
+    CONSTRAINT fk_campaign_target_campaign FOREIGN KEY (campaign_id) REFERENCES campaign(campaign_id),
+    CONSTRAINT fk_campaign_target_notification FOREIGN KEY (notification_id) REFERENCES notification(notification_id),
+    CONSTRAINT fk_campaign_target_task FOREIGN KEY (task_id) REFERENCES delivery_task(task_id),
+    CONSTRAINT fk_campaign_target_event FOREIGN KEY (event_id) REFERENCES outbox_event(event_id),
+    CONSTRAINT chk_campaign_target_ordinal CHECK (target_ordinal BETWEEN 1 AND 1000000)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

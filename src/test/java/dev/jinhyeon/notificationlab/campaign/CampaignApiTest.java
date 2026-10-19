@@ -99,6 +99,8 @@ class CampaignApiTest {
 
     @Test
     void createStartAndRestartPreserveDurableIntentWithoutSendingAnything() throws Exception {
+        assertThat(first.getBeansOfType(org.springframework.batch.core.repository.JobRepository.class)).isEmpty();
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM BATCH_JOB_INSTANCE", Integer.class)).isZero();
         String key = UUID.randomUUID().toString();
         var created = call(first, "POST", "/campaigns", PAYLOAD, key);
         assertThat(created.statusCode()).isEqualTo(201);
