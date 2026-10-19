@@ -1473,3 +1473,80 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 강제 정지/재개 검증은 macOS/Linux POSIX 신호를 사용한다. Windows에서 같은 테스트를 직접 수행하는 경로는 검증하지 않았다.
 - 다음 단계는 10만→100만 건 영속 인계/발송 부하 실험이다. 이번에는 대량 부하/별도 1만 건 정합성/운영 성능/원격 CI를 실행하지 않았다.
   명령 검증은 테스트 런타임 classpath의 별도 JVM이며 패키징 JAR 기동 smoke와 구분한다.
+
+## 2026-10-20 — S7 캠페인 대량 DB 인계 실험
+
+### 범위와 변경
+
+- 기존 CAMPAIGN 발송 예산은 2건/초다. 100만 건 호출에는 약 5.8일이 필요하므로 이번 단계는
+  실제 Batch가 MySQL Outbox까지 인계하는 10만→100만 부하를 분리했다. HTTP Mock 발송 전체 경로는 별도 미완료 항목이다.
+- 운영 Writer/트랜잭션/소유권/발송 정책을 변경하지 않고, 별도 `campaignLoadTest` Gradle task와 campaign-load 태그를 추가했다.
+  기본 회귀 테스트에는 대량 실험이 포함되지 않는다. 명시적으로 실행할 때마다 새 JVM/컨테이너로 재측정한다.
+- chunk 100, Writer 1개, JVM heap 512 MiB, MySQL 2 CPU/2 GiB/buffer pool 512 MiB, Hikari 4개로 고정한다.
+  전용 Batch 연결은 별도 1개다. 내구성 옵션은 flush_log_at_trx_commit=1/sync_binlog=1로 실제 값을 확인한다.
+  Kafka 4.0.2는 1 CPU/1 GiB, heap 256~512 MiB다. Relay/Worker는 끄고 Redis는 사용하지 않는다.
+- 5초 간격으로 마지막 커밋 순번, JVM heap/RSS/CPU/GC/스레드, MySQL cgroup 메모리/CPU를 기록한다.
+  기존 PipelineMetrics 수집은 유지했다. 관측 최댓값을 순간 최대나 운영 성능 보장으로 표현하지 않는다.
+- 네 업무 테이블 N행과 QUEUED/PENDING=N, 발송 시도 0, read/write/checkpoint=N을 검증한다.
+  1,000행 keyset으로 모든 매핑의 연속 순번/결정적 ID/참조를 대조한다. 완료 재요청 후 같은 실행과 행 수를 다시 확인한다.
+- 원본 JSON에는 결과/설정/주기별 자원 샘플을 저장한다. 실험 전용 가상 데이터이고 수신자/본문/비밀정보를 결과에 넣지 않는다.
+  [학습 문서](S7_CAMPAIGN_LOAD.md)에 측정 경계, 재현 명령, 선택 이유와 한계를 정리한다.
+
+### 실제 검증
+
+- 환경: macOS 15.7.7 arm64, Java Amazon Corretto 21.0.6, Gradle 8.14.5, 호스트 10 logical CPU/16 GiB,
+  Docker Desktop 10 CPU/약 7.65 GiB. 기존 로컬 MySQL/IDE와 호스트를 공유한다. 전용 성능 측정 서버가 아니다.
+- `./gradlew --no-daemon --console=plain campaignLoadTest -PcampaignTargets=1000`:
+  사전 검증 1개 통과, BUILD SUCCESSFUL(24초), 종료 코드 0. 이 실행은 대량 실행 JVM의 warmup이 아니다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain campaignLoadTest -PcampaignTargets=100000`:
+  **1개 테스트 통과**, BUILD SUCCESSFUL(4분 10초), 종료 코드 0.
+  DB 인계 198.029초/초당 504.976건, 전체 매핑 대조 34.994초, 완료 재요청 0.046초.
+  checkpoint 100000, commit 1001, rollback 0, 네 업무 테이블 각각 100000행, Kafka 레코드/공급자 시도 0.
+  자원 샘플 41개/샘플 오류 0, 관측 최대 heap 63.46 MiB/RSS 262.33 MiB/MySQL cgroup 메모리 712.94 MiB.
+  [원본 JSON](experiments/s7-campaign-handoff-2026-10-20-100k.json)을 보존했다.
+- 최초 100만 건 실행은 **실패**했다(BUILD FAILED, 48분 9초, 종료 코드 1).
+  Batch는 COMPLETED/read·write·checkpoint 1000000, commit 10001/rollback 0으로 종료했고 인계 시간은 2779.705초였다.
+  그러나 후속 전체 매핑 JOIN 조회가 JDBC socket timeout으로 실패하여 전체 정합성/완료 재요청 통과로 인정하지 않는다.
+  [실패 원본 JSON](experiments/s7-campaign-handoff-2026-10-20-1m-verification-timeout.json)을 별도로 보존했다.
+- 검증 SQL을 최대 1,000개 매핑을 먼저 읽는 derived keyset page와 기본 키 조회로 변경했다.
+  소규모 재현의 EXPLAIN에서는 JOIN 대상 행 수 추정이 1이고 hash join/full scan이 선택됐다.
+  최초 100만 건 실패 시 실행 계획을 수집하지 않았으므로 그 실행의 정확한 옵티마이저 선택은 단정하지 않는다.
+  최종 검증 쿼리는 STRAIGHT_JOIN/FORCE INDEX(PRIMARY)/NO_BNL로 기본 키 lookup을 요구하고,
+  실제 EXPLAIN의 n/t/o가 모두 eq_ref/PRIMARY인지 검사하여 계획이 달라지면 실패한다. 운영 SQL은 변경하지 않았다.
+- 중간 derived-page 검증 smoke 1개도 시간 초과로 실패했다. 다른 smoke를 이전 종료 전에 시작해 JUnit XML 쓰기 충돌까지 발생했다.
+  두 실행의 종료와 격리 컨테이너 정리를 확인하고 이후 실행은 순차 수행한다. 이 중간 smoke는 성능 비교에 사용하지 않는다.
+- 최종 검증 SQL의 1,000건 smoke: **1개 통과**, BUILD SUCCESSFUL(26초), 종료 코드 0.
+  세 테이블의 eq_ref/PRIMARY와 모든 1,000개 매핑/완료 재요청을 확인했다.
+- 최종 검증 SQL의 10만 건 재실행: **1개 통과**, BUILD SUCCESSFUL(3분 20초), 종료 코드 0.
+  DB 인계 180.395초/초당 554.339건, 전체 정합성 검증 1.654초, 완료 재요청 0.057초.
+  checkpoint 100000/commit 1001/rollback 0, 100000개 매핑 전체 대조와 세 JOIN의 eq_ref/PRIMARY를 확인했다.
+  [재실행 원본 JSON](experiments/s7-campaign-handoff-2026-10-20-100k-v3.json)을 별도로 보존했다.
+  인계 시간 차이는 운영 코드 최적화 결과가 아니며, 실행 간 변동으로 취급한다.
+- 최종 검증 SQL의 100만 건 재실행: **1개 통과**, BUILD SUCCESSFUL(44분 1초), 종료 코드 0.
+  DB 인계 2545.391초/초당 392.867건, 전체 정합성 검증 67.739초, 완료 재요청 0.076초.
+  read/write/checkpoint 1000000, commit 10001/rollback 0, 네 업무 테이블 각각 1000000행과 전체 매핑을 확인했다.
+  완료 재요청 후 실행 1개/업무 N행이 유지됐고 Kafka 레코드/공급자 시도는 0이었다.
+  세 JOIN의 eq_ref/PRIMARY를 확인했다. [통과 원본 JSON](experiments/s7-campaign-handoff-2026-10-20-1m-v3.json)을 별도로 보존했다.
+- 최종 10만/100만 자원 샘플은 37/502개, 오류·unavailable은 모두 0이다.
+  관측 최대 heap 63.97/64.03 MiB, RSS 271.47/269.34 MiB, MySQL cgroup 메모리 711.19/2047.95 MiB였다.
+  100만 실행에서 MySQL은 2 GiB 상한에 근접했다. 두 실행의 대상 수는 10배, 시간은 약 14.11배다.
+  가상 대상/단일 개발 호스트/소수 실행이며 운영 성능이나 병목 원인을 확정하는 결과가 아니다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **31개 클래스/258개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(11분 57초), 종료 코드 0.
+  JUnit XML 합계와 콘솔 출력을 대조했다. 대량 실험은 별도 task이며 기본 회귀 합계에 포함하지 않는다.
+  운영 소스/의존성은 동일하여 실행 JAR 생성 task는 UP-TO-DATE였고 전체 build는 성공했다.
+- 새 실험 Java/Gradle 설정, 문서와 원본 JSON 4개를 검토했다. 문서 링크/코드 블록/JSON 파싱/`git diff --check`를 확인했다.
+  최초 실패와 중간 검증 문제를 숨기지 않고 기록했으며, HTTP Mock 발송 부하 항목은 미완료로 유지한다.
+- 모든 테스트 JVM/격리 컨테이너가 종료됐고 기존 notification-lab-mysql-1은 healthy였다.
+  Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444를 읽기 전용으로 확인했다.
+  기존 main 이력을 유지해 로컬 커밋하며, 사용자 검토 전 푸시하지 않는다.
+
+### 한계와 다음 단계
+
+- 이번 완료 항목은 Batch DB 인계 부하다. HTTP Mock 발송 경로의 10만→100만 부하 항목은 계속 미완료다.
+  S7 전체 완료나 100만 건 공급자 수락/단말 도착을 주장하지 않는다.
+- 최종 검증 SQL의 각 크기 실행은 1회이며, 이전 쿼리의 성공/실패 실행도 별도로 보존했다.
+  JVM/DB 시작을 새로 하더라도 호스트 캐시·IDE·로컬 MySQL 등의 영향은 완전히 통제하지 못한다.
+- 다음은 별도 HTTP Mock과 명시적인 실험 예산을 사용한 발송 경로 부하 설계/검증이다.
+  기존 사용자 Redis 예산을 자동 상향하지 않는다. 공급자 수락·lag·완료 지연·REALTIME 간섭을 측정한다.
+- 사용자 로컬 DB/.env/IntelliJ 설정을 변경하지 않았으며, 원격 CI/클라우드/실제 FCM/APNs는 실행하지 않았다.

@@ -266,12 +266,17 @@ Docker가 없으면 실패하며 자동 스킵하지 않는다. Batch JVM 정지
 ./gradlew build
 # 별도 1만 건 HTTP → MySQL → Kafka → Worker 정합성 실험
 ./gradlew reconciliationTest
+# 별도 캠페인 DB 인계 부하 (발송하지 않음)
+./gradlew campaignLoadTest -PcampaignTargets=100000
 # 실행 JAR
 java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 ```
 
 `build`는 일반 테스트와 알림 앱/HTTP Mock의 실행 JAR 생성을 포함한다. 1만 건 실험은 별도 명령이며 성능 벤치마크가 아니다.
-각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`에 저장된다.
+캠페인 대량 DB 인계도 별도 task로 실행한다. 10만/100만 건의 저장·전체 매핑·완료 재요청을 검증했다.
+최종 100만 건 DB 인계는 약 42분 25초였고, HTTP Mock 발송 부하는 다음 단계다.
+[측정 범위·설정·실패와 재실행 결과](docs/S7_CAMPAIGN_LOAD.md)를 참고한다.
+각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`에 저장된다.
 코드를 바꾸지 않고 JAR만 다시 만들려면 `./gradlew bootJar`를 사용한다.
 
 ## 이전 단계 비교
