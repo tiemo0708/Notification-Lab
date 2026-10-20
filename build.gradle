@@ -50,7 +50,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load' }
+    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot' }
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
@@ -125,6 +125,21 @@ tasks.register('campaignLoadTest', Test) {
     timeout = Duration.ofHours(2)
     systemProperty 'campaign.load.targets', providers.gradleProperty('campaignTargets').getOrElse('100000')
     systemProperty 'campaign.load.output', layout.buildDirectory.dir('reports/campaign-load').get().asFile.absolutePath
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+// Bounded end-to-end calibration before the larger delivery experiments.
+tasks.register('campaignDeliveryPilot', Test) {
+    description = 'Calibrate campaign HTTP delivery and concurrent realtime probes (1,000..10,000 targets)'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'campaign-delivery-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(25)
+    systemProperty 'campaign.delivery.targets', providers.gradleProperty('deliveryTargets').getOrElse('10000')
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }

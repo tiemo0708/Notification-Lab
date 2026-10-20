@@ -1,0 +1,75 @@
+{
+  "startedAtUtc" : "2026-10-20T12:08:03.586495Z",
+  "scope" : "preloaded campaign HTTP delivery pilot; same JVM independent app contexts",
+  "targets" : 1000,
+  "settings" : {
+    "totalBurst" : 100,
+    "workersPerLane" : 3,
+    "campaignRate" : 200,
+    "totalRate" : 1000,
+    "httpConnectionsPerLane" : 3,
+    "mockDelayMillis" : 1,
+    "campaignBurst" : 20,
+    "probeDelayMillis" : 200,
+    "baselineProbes" : 50
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "availableProcessors" : 10,
+  "infra" : {
+    "mysql" : "8.4.8",
+    "redisMemoryMiB" : 256,
+    "kafkaCpu" : 1,
+    "kafkaMemoryMiB" : 1024,
+    "mysqlCpu" : 2,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlMemoryMiB" : 2048,
+    "redis" : "7.4.11",
+    "kafka" : "4.0.2"
+  },
+  "preloadSeconds" : 2.049358583,
+  "baselineSeconds" : 11.484118292,
+  "baselineLatencyMs" : {
+    "max" : 724.63,
+    "p99" : 724.63,
+    "p50" : 195.675,
+    "count" : 50,
+    "p95" : 543.019
+  },
+  "samples" : [ {
+    "seconds" : 0.510387,
+    "campaignCompleted" : 1.0,
+    "heapUsedBytes" : 76622112,
+    "processCpuNanos" : 16419488000,
+    "gcMillis" : 117,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.8178,
+      "outbox.sample.age.seconds" : 0.122216042,
+      "notification.consumer.sample.age.seconds" : 0.09567725,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.051770375,
+      "notification.consumer.sample.age.seconds" : 2.023072291,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 406278144
+  } ],
+  "campaignStopDiagnostics" : {
+    "quotaUnavailable" : 1.0,
+    "quotaRejectedUnavailable" : 1.0,
+    "admissionFull" : 0.0
+  },
+  "result" : "FAIL",
+  "failureType" : "IllegalStateException",
+  "finishedAtUtc" : "2026-10-20T12:08:34.350450Z"
+}

@@ -1,0 +1,1563 @@
+{
+  "startedAtUtc" : "2026-10-20T12:10:48.079786Z",
+  "scope" : "preloaded campaign HTTP delivery pilot; same JVM independent app contexts",
+  "targets" : 10000,
+  "redisConnectionsPerLane" : 3,
+  "settings" : {
+    "campaignRate" : 200,
+    "totalRate" : 1000,
+    "httpConnectionsPerLane" : 3,
+    "mockDelayMillis" : 1,
+    "campaignBurst" : 20,
+    "probeDelayMillis" : 200,
+    "baselineProbes" : 50,
+    "totalBurst" : 100,
+    "workersPerLane" : 3
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "availableProcessors" : 10,
+  "infra" : {
+    "mysql" : "8.4.8",
+    "redisMemoryMiB" : 256,
+    "kafkaCpu" : 1,
+    "kafkaMemoryMiB" : 1024,
+    "mysqlCpu" : 2,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlMemoryMiB" : 2048,
+    "redis" : "7.4.11",
+    "kafka" : "4.0.2"
+  },
+  "preloadSeconds" : 16.18366375,
+  "baselineSeconds" : 11.534501083,
+  "baselineLatencyMs" : {
+    "max" : 631.212,
+    "p99" : 631.212,
+    "p50" : 259.53,
+    "count" : 50,
+    "p95" : 479.459
+  },
+  "samples" : [ {
+    "seconds" : 0.586371333,
+    "campaignCompleted" : 1.0,
+    "heapUsedBytes" : 90294464,
+    "processCpuNanos" : 20411452000,
+    "gcMillis" : 199,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 29.2253,
+      "outbox.sample.age.seconds" : 0.092831583,
+      "notification.consumer.sample.age.seconds" : 0.079932625,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.195413625,
+      "notification.consumer.sample.age.seconds" : 2.17645075,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 440115200
+  }, {
+    "seconds" : 2.847121125,
+    "campaignCompleted" : 138.0,
+    "heapUsedBytes" : 70174208,
+    "processCpuNanos" : 22744424000,
+    "gcMillis" : 208,
+    "threads" : 98,
+    "campaign" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 29.2253,
+      "outbox.sample.age.seconds" : 2.352650583,
+      "notification.consumer.sample.age.seconds" : 2.339741833,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.455175209,
+      "notification.consumer.sample.age.seconds" : 4.436201791,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 441634816
+  }, {
+    "seconds" : 5.069950792,
+    "campaignCompleted" : 274.0,
+    "heapUsedBytes" : 100551968,
+    "processCpuNanos" : 24351235000,
+    "gcMillis" : 211,
+    "threads" : 98,
+    "campaign" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 29.2253,
+      "outbox.sample.age.seconds" : 4.576155458,
+      "notification.consumer.sample.age.seconds" : 4.5632715,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.654931375,
+      "notification.consumer.sample.age.seconds" : 1.643143916,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 442847232
+  }, {
+    "seconds" : 7.3051345,
+    "campaignCompleted" : 459.0,
+    "heapUsedBytes" : 73012840,
+    "processCpuNanos" : 25756515000,
+    "gcMillis" : 243,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 77.0,
+      "outbox.unpublished" : 9615.0,
+      "outbox.oldest.age.seconds" : 33.4228,
+      "outbox.sample.age.seconds" : 1.789674541,
+      "notification.consumer.sample.age.seconds" : 1.780899,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.888973916,
+      "notification.consumer.sample.age.seconds" : 3.877168916,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 446042112
+  }, {
+    "seconds" : 9.492269,
+    "campaignCompleted" : 669.0,
+    "heapUsedBytes" : 85898152,
+    "processCpuNanos" : 27098066000,
+    "gcMillis" : 250,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 77.0,
+      "outbox.unpublished" : 9615.0,
+      "outbox.oldest.age.seconds" : 33.4228,
+      "outbox.sample.age.seconds" : 3.9768955,
+      "notification.consumer.sample.age.seconds" : 3.968121,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.060795,
+      "notification.consumer.sample.age.seconds" : 1.054743333,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 446517248
+  }, {
+    "seconds" : 11.67589275,
+    "campaignCompleted" : 872.0,
+    "heapUsedBytes" : 98852072,
+    "processCpuNanos" : 28478560000,
+    "gcMillis" : 255,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 130.0,
+      "outbox.unpublished" : 9122.0,
+      "outbox.oldest.age.seconds" : 37.4528,
+      "outbox.sample.age.seconds" : 1.148459708,
+      "notification.consumer.sample.age.seconds" : 1.140492667,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.244242042,
+      "notification.consumer.sample.age.seconds" : 3.238191541,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 447578112
+  }, {
+    "seconds" : 13.807345125,
+    "campaignCompleted" : 1080.0,
+    "heapUsedBytes" : 68963000,
+    "processCpuNanos" : 29520411000,
+    "gcMillis" : 262,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 130.0,
+      "outbox.unpublished" : 9122.0,
+      "outbox.oldest.age.seconds" : 37.4528,
+      "outbox.sample.age.seconds" : 3.280157375,
+      "notification.consumer.sample.age.seconds" : 3.272191958,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0506,
+      "outbox.sample.age.seconds" : 0.36917775,
+      "notification.consumer.sample.age.seconds" : 0.363415167,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 448958464
+  }, {
+    "seconds" : 16.022763292,
+    "campaignCompleted" : 1239.0,
+    "heapUsedBytes" : 97391608,
+    "processCpuNanos" : 30648807000,
+    "gcMillis" : 270,
+    "threads" : 98,
+    "campaign" : {
+      "notification.consumer.lag" : 133.0,
+      "outbox.unpublished" : 8650.0,
+      "outbox.oldest.age.seconds" : 41.6966,
+      "outbox.sample.age.seconds" : 0.482896875,
+      "notification.consumer.sample.age.seconds" : 0.464575625,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0506,
+      "outbox.sample.age.seconds" : 2.584604875,
+      "notification.consumer.sample.age.seconds" : 2.578839334,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 451756032
+  }, {
+    "seconds" : 18.212034667,
+    "campaignCompleted" : 1432.0,
+    "heapUsedBytes" : 103115168,
+    "processCpuNanos" : 31709582000,
+    "gcMillis" : 276,
+    "threads" : 98,
+    "campaign" : {
+      "notification.consumer.lag" : 133.0,
+      "outbox.unpublished" : 8650.0,
+      "outbox.oldest.age.seconds" : 41.6966,
+      "outbox.sample.age.seconds" : 2.67197625,
+      "notification.consumer.sample.age.seconds" : 2.653654541,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0506,
+      "outbox.sample.age.seconds" : 4.773680208,
+      "notification.consumer.sample.age.seconds" : 4.7679125,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 452960256
+  }, {
+    "seconds" : 20.376991083,
+    "campaignCompleted" : 1664.0,
+    "heapUsedBytes" : 77807512,
+    "processCpuNanos" : 33019954000,
+    "gcMillis" : 287,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 133.0,
+      "outbox.unpublished" : 8650.0,
+      "outbox.oldest.age.seconds" : 41.6966,
+      "outbox.sample.age.seconds" : 4.837004458,
+      "notification.consumer.sample.age.seconds" : 4.818683,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.930190792,
+      "notification.consumer.sample.age.seconds" : 1.915420209,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 453554176
+  }, {
+    "seconds" : 22.5777845,
+    "campaignCompleted" : 1893.0,
+    "heapUsedBytes" : 94795176,
+    "processCpuNanos" : 34122545000,
+    "gcMillis" : 293,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 134.0,
+      "outbox.unpublished" : 8189.0,
+      "outbox.oldest.age.seconds" : 45.9001,
+      "outbox.sample.age.seconds" : 2.0120035,
+      "notification.consumer.sample.age.seconds" : 2.003692958,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.130830125,
+      "notification.consumer.sample.age.seconds" : 4.116058667,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 454692864
+  }, {
+    "seconds" : 24.737388375,
+    "campaignCompleted" : 2095.0,
+    "heapUsedBytes" : 100596560,
+    "processCpuNanos" : 35323042000,
+    "gcMillis" : 316,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 134.0,
+      "outbox.unpublished" : 8189.0,
+      "outbox.oldest.age.seconds" : 45.9001,
+      "outbox.sample.age.seconds" : 4.171638333,
+      "notification.consumer.sample.age.seconds" : 4.163328,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.269581,
+      "notification.consumer.sample.age.seconds" : 1.247882875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 455720960
+  }, {
+    "seconds" : 26.939824792,
+    "campaignCompleted" : 2317.0,
+    "heapUsedBytes" : 70998784,
+    "processCpuNanos" : 36271063000,
+    "gcMillis" : 329,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 156.0,
+      "outbox.unpublished" : 7675.0,
+      "outbox.oldest.age.seconds" : 50.0049,
+      "outbox.sample.age.seconds" : 1.361190791,
+      "notification.consumer.sample.age.seconds" : 1.356149458,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.471942625,
+      "notification.consumer.sample.age.seconds" : 3.450244583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 457347072
+  }, {
+    "seconds" : 29.064389625,
+    "campaignCompleted" : 2560.0,
+    "heapUsedBytes" : 92789584,
+    "processCpuNanos" : 37446706000,
+    "gcMillis" : 331,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 156.0,
+      "outbox.unpublished" : 7675.0,
+      "outbox.oldest.age.seconds" : 50.0049,
+      "outbox.sample.age.seconds" : 3.485760625,
+      "notification.consumer.sample.age.seconds" : 3.480719458,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.57083725,
+      "notification.consumer.sample.age.seconds" : 0.561586583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 458489856
+  }, {
+    "seconds" : 31.193194792,
+    "campaignCompleted" : 2796.0,
+    "heapUsedBytes" : 68627576,
+    "processCpuNanos" : 38422430000,
+    "gcMillis" : 338,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 173.0,
+      "outbox.unpublished" : 7100.0,
+      "outbox.oldest.age.seconds" : 54.1235,
+      "outbox.sample.age.seconds" : 0.6059345,
+      "notification.consumer.sample.age.seconds" : 0.60031075,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.699657959,
+      "notification.consumer.sample.age.seconds" : 2.69039975,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 460623872
+  }, {
+    "seconds" : 33.36699525,
+    "campaignCompleted" : 3048.0,
+    "heapUsedBytes" : 92869480,
+    "processCpuNanos" : 39339080000,
+    "gcMillis" : 346,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 173.0,
+      "outbox.unpublished" : 7100.0,
+      "outbox.oldest.age.seconds" : 54.1235,
+      "outbox.sample.age.seconds" : 2.779879416,
+      "notification.consumer.sample.age.seconds" : 2.774262792,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.873730792,
+      "notification.consumer.sample.age.seconds" : 4.864490625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 461975552
+  }, {
+    "seconds" : 35.491964708,
+    "campaignCompleted" : 3306.0,
+    "heapUsedBytes" : 76957544,
+    "processCpuNanos" : 40335827000,
+    "gcMillis" : 354,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 173.0,
+      "outbox.unpublished" : 7100.0,
+      "outbox.oldest.age.seconds" : 54.1235,
+      "outbox.sample.age.seconds" : 4.904598791,
+      "notification.consumer.sample.age.seconds" : 4.898974709,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.985862291,
+      "notification.consumer.sample.age.seconds" : 1.982002042,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 462544896
+  }, {
+    "seconds" : 37.628426542,
+    "campaignCompleted" : 3551.0,
+    "heapUsedBytes" : 96777504,
+    "processCpuNanos" : 41167136000,
+    "gcMillis" : 367,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 179.0,
+      "outbox.unpublished" : 6500.0,
+      "outbox.oldest.age.seconds" : 58.2628,
+      "outbox.sample.age.seconds" : 2.03097875,
+      "notification.consumer.sample.age.seconds" : 2.023524709,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.122337958,
+      "notification.consumer.sample.age.seconds" : 4.118477834,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 465866752
+  }, {
+    "seconds" : 39.796016625,
+    "campaignCompleted" : 3779.0,
+    "heapUsedBytes" : 64350072,
+    "processCpuNanos" : 41916045000,
+    "gcMillis" : 371,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 179.0,
+      "outbox.unpublished" : 6500.0,
+      "outbox.oldest.age.seconds" : 58.2628,
+      "outbox.sample.age.seconds" : 4.198951459,
+      "notification.consumer.sample.age.seconds" : 4.191499834,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.284980167,
+      "notification.consumer.sample.age.seconds" : 1.27801025,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 467111936
+  }, {
+    "seconds" : 42.016704208,
+    "campaignCompleted" : 3996.0,
+    "heapUsedBytes" : 72592336,
+    "processCpuNanos" : 42843820000,
+    "gcMillis" : 388,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 178.0,
+      "outbox.unpublished" : 5973.0,
+      "outbox.oldest.age.seconds" : 62.4061,
+      "outbox.sample.age.seconds" : 1.4087575,
+      "notification.consumer.sample.age.seconds" : 1.396083041,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.505503167,
+      "notification.consumer.sample.age.seconds" : 3.4985315,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 468164608
+  }, {
+    "seconds" : 44.168485583,
+    "campaignCompleted" : 4239.0,
+    "heapUsedBytes" : 92544656,
+    "processCpuNanos" : 43651951000,
+    "gcMillis" : 394,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 178.0,
+      "outbox.unpublished" : 5973.0,
+      "outbox.oldest.age.seconds" : 62.4061,
+      "outbox.sample.age.seconds" : 3.560278917,
+      "notification.consumer.sample.age.seconds" : 3.547603958,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.647110542,
+      "notification.consumer.sample.age.seconds" : 0.64059725,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 469069824
+  }, {
+    "seconds" : 46.396504958,
+    "campaignCompleted" : 4409.0,
+    "heapUsedBytes" : 81989104,
+    "processCpuNanos" : 44661415000,
+    "gcMillis" : 405,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 175.0,
+      "outbox.unpublished" : 5491.0,
+      "outbox.oldest.age.seconds" : 66.6527,
+      "outbox.sample.age.seconds" : 0.767452041,
+      "notification.consumer.sample.age.seconds" : 0.758988667,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.875211042,
+      "notification.consumer.sample.age.seconds" : 2.868697667,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 470175744
+  }, {
+    "seconds" : 48.67951475,
+    "campaignCompleted" : 4599.0,
+    "heapUsedBytes" : 82953936,
+    "processCpuNanos" : 45435752000,
+    "gcMillis" : 409,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 175.0,
+      "outbox.unpublished" : 5491.0,
+      "outbox.oldest.age.seconds" : 66.6527,
+      "outbox.sample.age.seconds" : 3.050496458,
+      "notification.consumer.sample.age.seconds" : 3.042033542,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.147165417,
+      "notification.consumer.sample.age.seconds" : 0.14032925,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 471105536
+  }, {
+    "seconds" : 50.880721917,
+    "campaignCompleted" : 4769.0,
+    "heapUsedBytes" : 72845296,
+    "processCpuNanos" : 46660541000,
+    "gcMillis" : 430,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 155.0,
+      "outbox.unpublished" : 5090.0,
+      "outbox.oldest.age.seconds" : 71.1013,
+      "outbox.sample.age.seconds" : 0.236734709,
+      "notification.consumer.sample.age.seconds" : 0.231659458,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.348136375,
+      "notification.consumer.sample.age.seconds" : 2.341300167,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 471818240
+  }, {
+    "seconds" : 53.105892208,
+    "campaignCompleted" : 4993.0,
+    "heapUsedBytes" : 81083904,
+    "processCpuNanos" : 48493182000,
+    "gcMillis" : 437,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 155.0,
+      "outbox.unpublished" : 5090.0,
+      "outbox.oldest.age.seconds" : 71.1013,
+      "outbox.sample.age.seconds" : 2.46190775,
+      "notification.consumer.sample.age.seconds" : 2.456832458,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.573308458,
+      "notification.consumer.sample.age.seconds" : 4.566472417,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 473088000
+  }, {
+    "seconds" : 55.24614275,
+    "campaignCompleted" : 5217.0,
+    "heapUsedBytes" : 90475296,
+    "processCpuNanos" : 49954796000,
+    "gcMillis" : 439,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 155.0,
+      "outbox.unpublished" : 5090.0,
+      "outbox.oldest.age.seconds" : 71.1013,
+      "outbox.sample.age.seconds" : 4.602101375,
+      "notification.consumer.sample.age.seconds" : 4.59702575,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.705973167,
+      "notification.consumer.sample.age.seconds" : 1.700352583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 474140672
+  }, {
+    "seconds" : 57.376148667,
+    "campaignCompleted" : 5442.0,
+    "heapUsedBytes" : 103124008,
+    "processCpuNanos" : 51024622000,
+    "gcMillis" : 446,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 160.0,
+      "outbox.unpublished" : 4576.0,
+      "outbox.oldest.age.seconds" : 75.3437,
+      "outbox.sample.age.seconds" : 1.719906917,
+      "notification.consumer.sample.age.seconds" : 1.714460625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.836022167,
+      "notification.consumer.sample.age.seconds" : 3.830401458,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 475664384
+  }, {
+    "seconds" : 59.517793875,
+    "campaignCompleted" : 5684.0,
+    "heapUsedBytes" : 77893456,
+    "processCpuNanos" : 51739013000,
+    "gcMillis" : 457,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 160.0,
+      "outbox.unpublished" : 4576.0,
+      "outbox.oldest.age.seconds" : 75.3437,
+      "outbox.sample.age.seconds" : 3.861761917,
+      "notification.consumer.sample.age.seconds" : 3.856316166,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.9682265,
+      "notification.consumer.sample.age.seconds" : 0.962322458,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 476692480
+  }, {
+    "seconds" : 61.755168667,
+    "campaignCompleted" : 5938.0,
+    "heapUsedBytes" : 101126624,
+    "processCpuNanos" : 52713247000,
+    "gcMillis" : 469,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 162.0,
+      "outbox.unpublished" : 4000.0,
+      "outbox.oldest.age.seconds" : 79.4426,
+      "outbox.sample.age.seconds" : 1.089828584,
+      "notification.consumer.sample.age.seconds" : 1.082761375,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.20542325,
+      "notification.consumer.sample.age.seconds" : 3.199517833,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 477736960
+  }, {
+    "seconds" : 63.938983583,
+    "campaignCompleted" : 6161.0,
+    "heapUsedBytes" : 65472352,
+    "processCpuNanos" : 54068662000,
+    "gcMillis" : 479,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 162.0,
+      "outbox.unpublished" : 4000.0,
+      "outbox.oldest.age.seconds" : 79.4426,
+      "outbox.sample.age.seconds" : 3.273897875,
+      "notification.consumer.sample.age.seconds" : 3.266830542,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0634,
+      "outbox.sample.age.seconds" : 0.377549667,
+      "notification.consumer.sample.age.seconds" : 0.368091333,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 478756864
+  }, {
+    "seconds" : 66.194421375,
+    "campaignCompleted" : 6336.0,
+    "heapUsedBytes" : 97986528,
+    "processCpuNanos" : 54901240000,
+    "gcMillis" : 482,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 136.0,
+      "outbox.unpublished" : 3572.0,
+      "outbox.oldest.age.seconds" : 83.8198,
+      "outbox.sample.age.seconds" : 0.517294208,
+      "notification.consumer.sample.age.seconds" : 0.507431666,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0634,
+      "outbox.sample.age.seconds" : 2.633146125,
+      "notification.consumer.sample.age.seconds" : 2.623689583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 481742848
+  }, {
+    "seconds" : 68.405749958,
+    "campaignCompleted" : 6537.0,
+    "heapUsedBytes" : 98988792,
+    "processCpuNanos" : 55750339000,
+    "gcMillis" : 518,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 136.0,
+      "outbox.unpublished" : 3572.0,
+      "outbox.oldest.age.seconds" : 83.8198,
+      "outbox.sample.age.seconds" : 2.728196375,
+      "notification.consumer.sample.age.seconds" : 2.718331291,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0634,
+      "outbox.sample.age.seconds" : 4.844008208,
+      "notification.consumer.sample.age.seconds" : 4.834552333,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 483385344
+  }, {
+    "seconds" : 70.550015208,
+    "campaignCompleted" : 6735.0,
+    "heapUsedBytes" : 102033888,
+    "processCpuNanos" : 56266893000,
+    "gcMillis" : 521,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 136.0,
+      "outbox.unpublished" : 3572.0,
+      "outbox.oldest.age.seconds" : 83.8198,
+      "outbox.sample.age.seconds" : 4.872762542,
+      "notification.consumer.sample.age.seconds" : 4.862897083,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.977854125,
+      "notification.consumer.sample.age.seconds" : 1.968677917,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 483917824
+  }, {
+    "seconds" : 72.708061542,
+    "campaignCompleted" : 6948.0,
+    "heapUsedBytes" : 107340872,
+    "processCpuNanos" : 56919971000,
+    "gcMillis" : 526,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 153.0,
+      "outbox.unpublished" : 3100.0,
+      "outbox.oldest.age.seconds" : 88.1601,
+      "outbox.sample.age.seconds" : 2.0153985,
+      "notification.consumer.sample.age.seconds" : 2.007441042,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.135589875,
+      "notification.consumer.sample.age.seconds" : 4.1264135,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 484679680
+  }, {
+    "seconds" : 74.974954542,
+    "campaignCompleted" : 7120.0,
+    "heapUsedBytes" : 94662936,
+    "processCpuNanos" : 57714442000,
+    "gcMillis" : 557,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 153.0,
+      "outbox.unpublished" : 3100.0,
+      "outbox.oldest.age.seconds" : 88.1601,
+      "outbox.sample.age.seconds" : 4.28363075,
+      "notification.consumer.sample.age.seconds" : 4.27570375,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.393054292,
+      "notification.consumer.sample.age.seconds" : 1.382447125,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 485998592
+  }, {
+    "seconds" : 77.456325417,
+    "campaignCompleted" : 7288.0,
+    "heapUsedBytes" : 81062184,
+    "processCpuNanos" : 58668411000,
+    "gcMillis" : 594,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 134.0,
+      "outbox.unpublished" : 2700.0,
+      "outbox.oldest.age.seconds" : 92.6005,
+      "outbox.sample.age.seconds" : 1.74882225,
+      "notification.consumer.sample.age.seconds" : 1.731971167,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.872749083,
+      "notification.consumer.sample.age.seconds" : 3.86219625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 487124992
+  }, {
+    "seconds" : 79.649661667,
+    "campaignCompleted" : 7440.0,
+    "heapUsedBytes" : 102103808,
+    "processCpuNanos" : 59280354000,
+    "gcMillis" : 596,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 134.0,
+      "outbox.unpublished" : 2700.0,
+      "outbox.oldest.age.seconds" : 92.6005,
+      "outbox.sample.age.seconds" : 3.942485667,
+      "notification.consumer.sample.age.seconds" : 3.925652084,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0457,
+      "outbox.sample.age.seconds" : 1.054791583,
+      "notification.consumer.sample.age.seconds" : 1.039181291,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 487481344
+  }, {
+    "seconds" : 81.969609708,
+    "campaignCompleted" : 7567.0,
+    "heapUsedBytes" : 73726848,
+    "processCpuNanos" : 60152323000,
+    "gcMillis" : 635,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 89.0,
+      "outbox.unpublished" : 2427.0,
+      "outbox.oldest.age.seconds" : 97.2114,
+      "outbox.sample.age.seconds" : 1.229863917,
+      "notification.consumer.sample.age.seconds" : 1.2123135,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0457,
+      "outbox.sample.age.seconds" : 3.374078291,
+      "notification.consumer.sample.age.seconds" : 3.3582825,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 488099840
+  }, {
+    "seconds" : 84.251599083,
+    "campaignCompleted" : 7685.0,
+    "heapUsedBytes" : 85142264,
+    "processCpuNanos" : 60797956000,
+    "gcMillis" : 655,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 89.0,
+      "outbox.unpublished" : 2427.0,
+      "outbox.oldest.age.seconds" : 97.2114,
+      "outbox.sample.age.seconds" : 3.511876292,
+      "notification.consumer.sample.age.seconds" : 3.494324167,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0127,
+      "outbox.sample.age.seconds" : 0.632541083,
+      "notification.consumer.sample.age.seconds" : 0.595646167,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 488181760
+  }, {
+    "seconds" : 86.530378875,
+    "campaignCompleted" : 7857.0,
+    "heapUsedBytes" : 74614528,
+    "processCpuNanos" : 61544914000,
+    "gcMillis" : 677,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 98.0,
+      "outbox.unpublished" : 2111.0,
+      "outbox.oldest.age.seconds" : 101.7481,
+      "outbox.sample.age.seconds" : 0.764287917,
+      "notification.consumer.sample.age.seconds" : 0.755829208,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0127,
+      "outbox.sample.age.seconds" : 2.911269958,
+      "notification.consumer.sample.age.seconds" : 2.874391584,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 489291776
+  }, {
+    "seconds" : 88.842330458,
+    "campaignCompleted" : 8035.0,
+    "heapUsedBytes" : 106071424,
+    "processCpuNanos" : 62091703000,
+    "gcMillis" : 689,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 98.0,
+      "outbox.unpublished" : 2111.0,
+      "outbox.oldest.age.seconds" : 101.7481,
+      "outbox.sample.age.seconds" : 3.076278667,
+      "notification.consumer.sample.age.seconds" : 3.067820208,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0373,
+      "outbox.sample.age.seconds" : 0.180733959,
+      "notification.consumer.sample.age.seconds" : 0.173246,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 489963520
+  }, {
+    "seconds" : 90.975055792,
+    "campaignCompleted" : 8151.0,
+    "heapUsedBytes" : 72593480,
+    "processCpuNanos" : 62773008000,
+    "gcMillis" : 710,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 33.0,
+      "outbox.unpublished" : 1817.0,
+      "outbox.oldest.age.seconds" : 106.301,
+      "outbox.sample.age.seconds" : 0.188667875,
+      "notification.consumer.sample.age.seconds" : 0.009436667,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0373,
+      "outbox.sample.age.seconds" : 2.314486334,
+      "notification.consumer.sample.age.seconds" : 2.307023958,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 490582016
+  }, {
+    "seconds" : 93.278045,
+    "campaignCompleted" : 8315.0,
+    "heapUsedBytes" : 106181760,
+    "processCpuNanos" : 63662713000,
+    "gcMillis" : 726,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 33.0,
+      "outbox.unpublished" : 1817.0,
+      "outbox.oldest.age.seconds" : 106.301,
+      "outbox.sample.age.seconds" : 2.491346875,
+      "notification.consumer.sample.age.seconds" : 2.312113333,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0373,
+      "outbox.sample.age.seconds" : 4.616459792,
+      "notification.consumer.sample.age.seconds" : 4.608971583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 491495424
+  }, {
+    "seconds" : 95.51767325,
+    "campaignCompleted" : 8442.0,
+    "heapUsedBytes" : 76857496,
+    "processCpuNanos" : 64215447000,
+    "gcMillis" : 737,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 33.0,
+      "outbox.unpublished" : 1817.0,
+      "outbox.oldest.age.seconds" : 106.301,
+      "outbox.sample.age.seconds" : 4.731018709,
+      "notification.consumer.sample.age.seconds" : 4.551784417,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.845433458,
+      "notification.consumer.sample.age.seconds" : 1.834620292,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 492572672
+  }, {
+    "seconds" : 97.793204583,
+    "campaignCompleted" : 8609.0,
+    "heapUsedBytes" : 65400696,
+    "processCpuNanos" : 64908826000,
+    "gcMillis" : 748,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 72.0,
+      "outbox.unpublished" : 1453.0,
+      "outbox.oldest.age.seconds" : 110.8726,
+      "outbox.sample.age.seconds" : 1.815135875,
+      "notification.consumer.sample.age.seconds" : 1.799358709,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.12101075,
+      "notification.consumer.sample.age.seconds" : 4.11021325,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 493056000
+  }, {
+    "seconds" : 99.967880333,
+    "campaignCompleted" : 8777.0,
+    "heapUsedBytes" : 94716320,
+    "processCpuNanos" : 65611560000,
+    "gcMillis" : 753,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 72.0,
+      "outbox.unpublished" : 1453.0,
+      "outbox.oldest.age.seconds" : 110.8726,
+      "outbox.sample.age.seconds" : 3.990031542,
+      "notification.consumer.sample.age.seconds" : 3.974251084,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.282449667,
+      "notification.consumer.sample.age.seconds" : 1.27533525,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 493596672
+  }, {
+    "seconds" : 102.319434917,
+    "campaignCompleted" : 8968.0,
+    "heapUsedBytes" : 93699304,
+    "processCpuNanos" : 66365680000,
+    "gcMillis" : 774,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 73.0,
+      "outbox.unpublished" : 1056.0,
+      "outbox.oldest.age.seconds" : 115.303,
+      "outbox.sample.age.seconds" : 1.320217334,
+      "notification.consumer.sample.age.seconds" : 1.313949208,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.634093584,
+      "notification.consumer.sample.age.seconds" : 3.626990416,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 494551040
+  }, {
+    "seconds" : 104.484510583,
+    "campaignCompleted" : 9156.0,
+    "heapUsedBytes" : 89421000,
+    "processCpuNanos" : 67409763000,
+    "gcMillis" : 788,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 73.0,
+      "outbox.unpublished" : 1056.0,
+      "outbox.oldest.age.seconds" : 115.303,
+      "outbox.sample.age.seconds" : 3.48537375,
+      "notification.consumer.sample.age.seconds" : 3.479095791,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.787023625,
+      "notification.consumer.sample.age.seconds" : 0.771122083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 497897472
+  }, {
+    "seconds" : 106.705024167,
+    "campaignCompleted" : 9338.0,
+    "heapUsedBytes" : 79953560,
+    "processCpuNanos" : 68176038000,
+    "gcMillis" : 797,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 66.0,
+      "outbox.unpublished" : 665.0,
+      "outbox.oldest.age.seconds" : 119.6982,
+      "outbox.sample.age.seconds" : 0.684774708,
+      "notification.consumer.sample.age.seconds" : 0.678774167,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.007334042,
+      "notification.consumer.sample.age.seconds" : 2.991424458,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 500285440
+  }, {
+    "seconds" : 109.109887,
+    "campaignCompleted" : 9529.0,
+    "heapUsedBytes" : 78937000,
+    "processCpuNanos" : 69036247000,
+    "gcMillis" : 814,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 66.0,
+      "outbox.unpublished" : 665.0,
+      "outbox.oldest.age.seconds" : 119.6982,
+      "outbox.sample.age.seconds" : 3.089534875,
+      "notification.consumer.sample.age.seconds" : 3.08352275,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.393449583,
+      "notification.consumer.sample.age.seconds" : 0.38800775,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 500600832
+  }, {
+    "seconds" : 111.430859958,
+    "campaignCompleted" : 9698.0,
+    "heapUsedBytes" : 66340448,
+    "processCpuNanos" : 69768171000,
+    "gcMillis" : 827,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 57.0,
+      "outbox.unpublished" : 278.0,
+      "outbox.oldest.age.seconds" : 124.1337,
+      "outbox.sample.age.seconds" : 0.399512125,
+      "notification.consumer.sample.age.seconds" : 0.390090584,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.714285041,
+      "notification.consumer.sample.age.seconds" : 2.708843542,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 501141504
+  }, {
+    "seconds" : 113.729169042,
+    "campaignCompleted" : 9879.0,
+    "heapUsedBytes" : 103104584,
+    "processCpuNanos" : 70374767000,
+    "gcMillis" : 828,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 57.0,
+      "outbox.unpublished" : 278.0,
+      "outbox.oldest.age.seconds" : 124.1337,
+      "outbox.sample.age.seconds" : 2.698009208,
+      "notification.consumer.sample.age.seconds" : 2.688595875,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.005461291,
+      "notification.consumer.sample.age.seconds" : 5.007527083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 502280192
+  }, {
+    "seconds" : 115.39444475,
+    "campaignCompleted" : 10000.0,
+    "heapUsedBytes" : 67501456,
+    "processCpuNanos" : 70912066000,
+    "gcMillis" : 850,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 57.0,
+      "outbox.unpublished" : 278.0,
+      "outbox.oldest.age.seconds" : 124.1337,
+      "outbox.sample.age.seconds" : 4.363238542,
+      "notification.consumer.sample.age.seconds" : 4.353816959,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.670530541,
+      "notification.consumer.sample.age.seconds" : 1.664474791,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 502411264
+  } ],
+  "campaignDrainSeconds" : 115.39441575,
+  "campaignPerSecond" : 86.65929107730231,
+  "mixedProbes" : 514,
+  "mixedLatencyMs" : {
+    "max" : 642.492,
+    "p99" : 571.243,
+    "p50" : 184.111,
+    "count" : 514,
+    "p95" : 485.969
+  },
+  "campaignCreatedToCompletedMs" : {
+    "max" : 128073.919,
+    "p99" : 126917.279,
+    "p50" : 73499.9,
+    "count" : 10000,
+    "p95" : 121864.943
+  },
+  "httpAudit" : {
+    "uniqueRealtime" : 564,
+    "uniqueCampaign" : 10000,
+    "duplicates" : 0,
+    "invalid" : 0
+  },
+  "baselineApiLatencyMs" : {
+    "max" : 172.56004099999998,
+    "p99" : 172.56004099999998,
+    "p50" : 12.344583,
+    "count" : 50,
+    "p95" : 25.187708
+  },
+  "mixedApiLatencyMs" : {
+    "max" : 249.113833,
+    "p99" : 89.306,
+    "p50" : 8.027542,
+    "count" : 514,
+    "p95" : 25.244458
+  },
+  "campaignOffsets" : [ {
+    "committed" : 3259,
+    "end" : 3259,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "committed" : 3338,
+    "end" : 3338,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "committed" : 3403,
+    "end" : 3403,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  } ],
+  "realtimeOffsets" : [ {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "committed" : 178,
+    "end" : 178,
+    "partition" : 2,
+    "topic" : "notification.requested.v1"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.dlq"
+  }, {
+    "committed" : 195,
+    "end" : 195,
+    "partition" : 1,
+    "topic" : "notification.requested.v1"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.dlq"
+  }, {
+    "committed" : 191,
+    "end" : 191,
+    "partition" : 0,
+    "topic" : "notification.requested.v1"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.dlq"
+  } ],
+  "mockStats" : {
+    "requests" : 10564,
+    "accepted" : 10564,
+    "rateLimited" : 0,
+    "serverErrors" : 0,
+    "permanentFailures" : 0,
+    "busy" : 0,
+    "active" : 0,
+    "maxActive" : 4
+  },
+  "campaignAllowed" : 10000.0,
+  "realtimeAllowed" : 564.0,
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-10-20T12:13:27.627740Z"
+}

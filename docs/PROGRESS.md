@@ -1550,3 +1550,69 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 다음은 별도 HTTP Mock과 명시적인 실험 예산을 사용한 발송 경로 부하 설계/검증이다.
   기존 사용자 Redis 예산을 자동 상향하지 않는다. 공급자 수락·lag·완료 지연·REALTIME 간섭을 측정한다.
 - 사용자 로컬 DB/.env/IntelliJ 설정을 변경하지 않았으며, 원격 CI/클라우드/실제 FCM/APNs는 실행하지 않았다.
+
+## 2026-10-20 — S7 HTTP 발송 사전 실험과 실시간 지연 측정
+
+### 범위와 변경
+
+- 10만→100만 발송 부하 전에 정상 경로/측정/전수 대조 도구를 확인하는 1천/1만 건 pilot을 추가했다.
+  PLAN에는 사전 실험만 완료 표시하고 10만→100만 HTTP 발송 부하는 계속 미완료로 유지한다.
+- `campaignDeliveryPilot` Gradle task와 별도 태그를 추가했다. 기본 build/test에서는 제외하고 명시적 실행마다 새 JVM/인프라로 실행한다.
+  허용 대상 수 1000..10000, 기본 10000, JVM heap 512 MiB, 발송 15분/테스트 20분/task 25분 상한이다.
+- 실제 Batch로 캠페인을 사전 저장한다. REALTIME 단독 50개를 완료한 뒤 CAMPAIGN 앱을 시작하고,
+  캠페인이 처리되는 동안 단일 생성기가 실시간 HTTP 202 응답 뒤 200ms씩 대기하며 요청한다.
+  전체 실시간 요청 상한은 5000개이며 무제한 제출 큐/재시도/자동 catch-up을 만들지 않는다.
+- 실제 loopback HTTP Mock 앱을 사용한다. 테스트 전용 감사 필터는 bounded body와 BitSet/ID 배열로
+  캠페인 번호/결정적 ID와 실시간 API 반환 ID를 대조한다. 결과에는 수신자·본문·ID를 저장하지 않는다.
+- 정상 SUCCESS 시나리오에서 고유 HTTP 수신=수락=DB 완료=작업당 성공 이력 1회,
+  모든 파티션의 end/committed offset, 역할별 quota 허가 수를 대조한다.
+- 격리된 실험 quota는 전체 1000/s·burst100, 캠페인 200/s·burst20, 실시간 800/s·burst80이다.
+  두 앱은 각 Worker3/HTTP3/Redis3/Hikari4, Worker 대기열0을 사용한다. Mock은 지연1ms/동시8/10000요청·초 창이다.
+  운영 기본 예산이나 사용자 Redis 키/DB/.env/IntelliJ는 변경하지 않았다.
+- MySQL 8.4.8(2CPU/2GiB/buffer pool512MiB), Kafka4.0.2(1CPU/1GiB), Redis7.4.11(1CPU/256MiB/maxmemory128MiB)을 사용했다.
+  기존 앱·Mock·생성기·감사는 한 JVM에서 실행되며, 역할별 독립 context/풀을 사용한다. 별도 OS 프로세스 실험은 아니다.
+- [학습/실험 문서](S7_DELIVERY_PILOT.md)에 선택 이유, 측정 경계, 실시간 표본의 순차 생성 한계, 실패/통과 원본을 정리했다.
+
+### 실제 실행과 결과
+
+- 환경: macOS15.7.7 arm64, Amazon Corretto21.0.6, Gradle8.14.5, 호스트10 logical CPU/16GiB,
+  Docker Desktop10CPU/약7.65GiB. IDE와 기존 로컬 MySQL이 있는 공유 개발 환경이다.
+- 최초 1천 건 smoke: **실패**, BUILD FAILED(38초). 캠페인 Worker 중지를 발견했다.
+  진단 지표를 추가한 재현: **실패**, BUILD FAILED(35초).
+  quotaUnavailable=1/quotaRejectedUnavailable=1/admissionFull=0을 확인했다.
+  [실패 JSON](experiments/s7-delivery-pilot-2026-10-20-1000-pool-failure.json)은 FAIL로 보존했다.
+  두 실행에서 소비자는3개, Redis 연결은 기본2개였다. 기본값을 그대로 조합한 실험 설정 문제를 수정했다.
+- 실험용 Redis 연결 상한만3개로 맞춰 fail-closed 동작을 유지했다.
+  도구 보완 중 실제 Gauge 이름에 맞게 샘플러를 수정하고, HTTP 감사의 ObjectMapper를 재사용하도록 했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryPilot -PdeliveryTargets=1000`:
+  **1개 테스트 통과**, BUILD SUCCESSFUL(46초), 종료 코드0.
+  사전 인계2.483초, 발송 구간12.467초/80.211건·초, 실시간 단독50/혼합55건.
+  HTTP1105건과 DB/offset/허가 수 일치, 중복·잘못된 매핑0.
+  [통과 JSON](experiments/s7-delivery-pilot-2026-10-20-1000.json)을 보존했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryPilot`:
+  **1개 테스트 통과**, BUILD SUCCESSFUL(2분43초), 종료 코드0.
+  사전 인계16.184초, 발송 구간115.394초/86.659건·초, 실시간 단독50/혼합514건.
+  캠페인10000명+실시간564명=HTTP10564건의 고유 수락과 DB/각 파티션offset/역할별허가 수가 일치했다.
+  Mock429/500/busy/영구실패·중복·잘못된매핑0, 최대 동시HTTP4.
+  [1만 JSON](experiments/s7-delivery-pilot-2026-10-20-10000.json)을 보존했다.
+- 1만 실행의 실시간 DB 완료 p95는 단독479.459ms/혼합485.969ms, p99는631.212ms/571.243ms다.
+  단독50개는 p99=최대이고 순차 실행/warmup 차이가 있어 개선 효과나 지연 SLO를 주장하지 않는다.
+- 53개 자원 샘플의 null/NaN은0, JVM heap 관측 최대102.37MiB, MySQL cgroup479.14MiB, 스레드98개였다.
+  샘플 구간 GC651ms, JVM 평균CPU약0.440코어 상당이며 두 앱/Mock/도구를 합친 값이다.
+  캠페인 lag 최대179/미발행Outbox10000, 실시간1/1을 관측했다. lag만으로 전체 적체를 판단할 수 없다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **31개 클래스/258개 테스트 통과, 실패·오류·스킵 0**, BUILD SUCCESSFUL(13분27초), 종료 코드0.
+  종료 후 JUnit XML과 콘솔258개 PASSED를 대조했다. pilot은 이 합계에 포함하지 않는 별도 실행이다.
+  운영 소스/의존성 변경이 없어 JAR 생성 task는 UP-TO-DATE였고 전체 build는 성공했다.
+- 모든 테스트 JVM/격리 컨테이너가 정리됐고, 기존 notification-lab-mysql-1은 healthy였다.
+  문서 링크/코드 블록/원본 JSON 파싱/`git diff --check`를 확인했다.
+- Git 작성자 JinHyeon / tiemo0708@naver.com, GitHub tiemo0708 인증과 원격 main/HEAD c95a444를 읽기 전용으로 확인했다.
+  기존 main 이력에 실험과 문서를 로컬 커밋하고 사용자 검토 전 푸시하지 않는다.
+
+### 한계와 다음 단계
+
+- 1천/1만 정상 발송 pilot이며 10만/100만 발송, 단말 도착, exactly-once, 운영 성능, 원격 CI를 검증한 결과가 아니다.
+- Batch와 발송을 동시에 실행하지 않는다. 캠페인 created→completed 지연에는 사전 저장과 단독 구간 대기가 포함된다.
+- 실시간은 응답 후 대기하는 순차 생성기라 제출률이 응답 속도에 의존한다. 일정 도착률/과부하 검증은 별도다.
+- 다음은 10만 건으로 확대할 때 전수 대조의 메모리/조회 비용·시간 상한을 확정하고 실행하는 단계다.
+  그 결과를 확인한 뒤100만으로 확대한다. 사용자 기존 Redis 예산을 자동 상향하지 않는다.
