@@ -272,6 +272,9 @@ Docker가 없으면 실패하며 자동 스킵하지 않는다. Batch JVM 정지
 ./gradlew campaignDeliveryPilot
 # 별도 10만 건 HTTP 발송 실험 (최대 task 90분)
 ./gradlew campaignDeliveryLoad
+# 100만 건 장시간 실험: 도구 준비만 완료, 실제 발송 미실행 (최대 task 12시간)
+# 별도 실행하기로 결정한 경우에만 다음 명령 사용
+# ./gradlew campaignDeliveryMillion
 # 실행 JAR
 java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 ```
@@ -282,10 +285,12 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 [HTTP 발송 사전 실험](docs/S7_DELIVERY_PILOT.md)은 1만 건을 약 115초에 처리하고 실시간 564건도 함께 대조했다.
 [10만 건 HTTP 발송](docs/S7_DELIVERY_LOAD.md)은 캠페인100000+실시간5342건을 전수 대조했다.
 발송 구간은 약22분27초/초당74.239건이었다. 혼합 실시간p95는918.136ms로 단독553.657ms보다 증가했다.
-100만 건 HTTP 발송은 다음 단계이며 운영 성능/실시간 SLO 보장과 구분한다.
+[100만 건 실험 도구](docs/S7_DELIVERY_MILLION.md)는 준비했으며 실제100만 건 HTTP 발송은 미실행이다.
+장시간 실행은 사용자 선택에 따라 따로 진행한다. 운영 성능/실시간 SLO 보장과 구분한다.
 [DB 인계 측정 범위·설정·실패와 재실행 결과](docs/S7_CAMPAIGN_LOAD.md)를 참고한다.
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
+100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.
 코드를 바꾸지 않고 JAR만 다시 만들려면 `./gradlew bootJar`를 사용한다.
 
 ## 이전 단계 비교

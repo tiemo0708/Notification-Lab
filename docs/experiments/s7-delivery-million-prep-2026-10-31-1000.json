@@ -1,0 +1,353 @@
+{
+  "startedAtUtc" : "2026-10-31T12:23:31.338231Z",
+  "scope" : "preloaded campaign HTTP delivery pilot; same JVM independent app contexts",
+  "targets" : 1000,
+  "bounds" : {
+    "latencyArrayBytes" : 40000,
+    "queryPageRows" : 1000,
+    "maxResourceSamples" : 452,
+    "maxRealtimeProbes" : 5000,
+    "campaignAuditBytes" : 128,
+    "drainLimitSeconds" : 900
+  },
+  "verificationVersion" : "paged-latency-and-target-mapping-v2",
+  "redisConnectionsPerLane" : 3,
+  "settings" : {
+    "httpConnectionsPerLane" : 3,
+    "mockDelayMillis" : 1,
+    "campaignBurst" : 20,
+    "probeDelayMillis" : 200,
+    "baselineProbes" : 50,
+    "totalBurst" : 100,
+    "workersPerLane" : 3,
+    "campaignRate" : 200,
+    "totalRate" : 1000
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "availableProcessors" : 10,
+  "infra" : {
+    "kafkaMemoryMiB" : 1024,
+    "mysqlCpu" : 2,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlMemoryMiB" : 2048,
+    "redis" : "7.4.11",
+    "kafka" : "4.0.2",
+    "mysql" : "8.4.8",
+    "redisMemoryMiB" : 256,
+    "kafkaCpu" : 1
+  },
+  "preloadSeconds" : 1.901661834,
+  "baselineSeconds" : 11.38719475,
+  "baselineLatencyMs" : {
+    "p50" : 171.36,
+    "count" : 50,
+    "p95" : 483.35,
+    "max" : 548.931,
+    "p99" : 548.931
+  },
+  "samples" : [ {
+    "seconds" : 0.381502583,
+    "campaignCompleted" : 4.0,
+    "heapUsedBytes" : 78493880,
+    "processCpuNanos" : 15413424000,
+    "gcMillis" : 112,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.8124,
+      "outbox.sample.age.seconds" : 0.107885334,
+      "notification.consumer.sample.age.seconds" : 0.090750875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.781386916,
+      "notification.consumer.sample.age.seconds" : 1.775070083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 403243008
+  }, {
+    "seconds" : 2.520293917,
+    "campaignCompleted" : 164.0,
+    "heapUsedBytes" : 101535936,
+    "processCpuNanos" : 17518105000,
+    "gcMillis" : 114,
+    "threads" : 98,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.8124,
+      "outbox.sample.age.seconds" : 2.245643042,
+      "notification.consumer.sample.age.seconds" : 2.228508208,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.919122375,
+      "notification.consumer.sample.age.seconds" : 3.912806166,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 407527424
+  }, {
+    "seconds" : 4.647129542,
+    "campaignCompleted" : 396.0,
+    "heapUsedBytes" : 95296504,
+    "processCpuNanos" : 19243063000,
+    "gcMillis" : 121,
+    "threads" : 98,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.8124,
+      "outbox.sample.age.seconds" : 4.37253825,
+      "notification.consumer.sample.age.seconds" : 4.355405292,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0063,
+      "outbox.sample.age.seconds" : 1.035519959,
+      "notification.consumer.sample.age.seconds" : 1.024929375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 411254784
+  }, {
+    "seconds" : 6.769998417,
+    "campaignCompleted" : 619.0,
+    "heapUsedBytes" : 81108544,
+    "processCpuNanos" : 20396736000,
+    "gcMillis" : 127,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 104.0,
+      "outbox.unpublished" : 450.0,
+      "outbox.oldest.age.seconds" : 18.803,
+      "outbox.sample.age.seconds" : 1.4748535,
+      "notification.consumer.sample.age.seconds" : 1.4689435,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0063,
+      "outbox.sample.age.seconds" : 3.158162209,
+      "notification.consumer.sample.age.seconds" : 3.147556958,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 413614080
+  }, {
+    "seconds" : 8.935566417,
+    "campaignCompleted" : 865.0,
+    "heapUsedBytes" : 73164504,
+    "processCpuNanos" : 21836183000,
+    "gcMillis" : 134,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 104.0,
+      "outbox.unpublished" : 450.0,
+      "outbox.oldest.age.seconds" : 18.803,
+      "outbox.sample.age.seconds" : 3.640451584,
+      "notification.consumer.sample.age.seconds" : 3.634540583,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.3115955,
+      "notification.consumer.sample.age.seconds" : 0.3034375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 415125504
+  }, {
+    "seconds" : 10.642430458,
+    "campaignCompleted" : 1000.0,
+    "heapUsedBytes" : 85886792,
+    "processCpuNanos" : 22437237000,
+    "gcMillis" : 138,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 3.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.335536417,
+      "notification.consumer.sample.age.seconds" : 0.3264785,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.018658625,
+      "notification.consumer.sample.age.seconds" : 2.010511375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "mysqlCgroupMemoryBytes" : 414998528
+  } ],
+  "campaignDrainSeconds" : 10.6424135,
+  "campaignPerSecond" : 93.96364837731592,
+  "mixedProbes" : 48,
+  "mixedLatencyMs" : {
+    "p50" : 137.282,
+    "count" : 48,
+    "p95" : 446.808,
+    "max" : 528.488,
+    "p99" : 528.488
+  },
+  "campaignCreatedToCompletedMs" : {
+    "p50" : 19340.4,
+    "count" : 1000,
+    "p95" : 22354.442,
+    "max" : 23296.168,
+    "p99" : 22693.896
+  },
+  "verifiedTargetMappings" : 1000,
+  "mappingJoinPlan" : "eq_ref/PRIMARY for n,t,o,a",
+  "httpAudit" : {
+    "uniqueCampaign" : 1000,
+    "duplicates" : 0,
+    "invalid" : 0,
+    "uniqueRealtime" : 98
+  },
+  "baselineApiLatencyMs" : {
+    "p50" : 13.962833,
+    "count" : 50,
+    "p95" : 28.961167,
+    "max" : 86.969084,
+    "p99" : 86.969084
+  },
+  "mixedApiLatencyMs" : {
+    "p50" : 5.7735,
+    "count" : 48,
+    "p95" : 13.637458,
+    "max" : 20.95025,
+    "p99" : 20.95025
+  },
+  "verificationSeconds" : 0.16961575,
+  "campaignOffsets" : [ {
+    "end" : 346,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 346
+  }, {
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0
+  }, {
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0
+  }, {
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0
+  }, {
+    "end" : 314,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 314
+  }, {
+    "end" : 340,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 340
+  }, {
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0
+  }, {
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0
+  }, {
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0
+  } ],
+  "realtimeOffsets" : [ {
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0
+  }, {
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0
+  }, {
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0
+  }, {
+    "end" : 30,
+    "partition" : 2,
+    "topic" : "notification.requested.v1",
+    "committed" : 30
+  }, {
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0
+  }, {
+    "end" : 32,
+    "partition" : 1,
+    "topic" : "notification.requested.v1",
+    "committed" : 32
+  }, {
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0
+  }, {
+    "end" : 36,
+    "partition" : 0,
+    "topic" : "notification.requested.v1",
+    "committed" : 36
+  }, {
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0
+  } ],
+  "mockStats" : {
+    "requests" : 1098,
+    "accepted" : 1098,
+    "rateLimited" : 0,
+    "serverErrors" : 0,
+    "permanentFailures" : 0,
+    "busy" : 0,
+    "active" : 0,
+    "maxActive" : 4
+  },
+  "campaignAllowed" : 1000.0,
+  "realtimeAllowed" : 98.0,
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-10-31T12:24:09.235380Z"
+}

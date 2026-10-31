@@ -40,7 +40,6 @@ import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
@@ -64,7 +63,7 @@ import redis.clients.jedis.Jedis;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-/** Shared bounded harness for the pilot and the explicit 100k delivery experiment. */
+/** Shared bounded harness for the pilot and the explicit 100k/1m delivery experiments. */
 @Tag("campaign-delivery-pilot")
 class CampaignDeliveryPilotTest {
     private static final int BASELINE_PROBES = 50;
@@ -77,23 +76,20 @@ class CampaignDeliveryPilotTest {
     private int maxProbes;
 
     @Test
-    @Timeout(value = 80, unit = TimeUnit.MINUTES)
     void reconcilesHttpDeliveryAndComparesRealtimeLatencyDuringCampaignDrain() throws Exception {
         boolean load = Boolean.getBoolean("campaign.delivery.load");
         int targets = Integer.getInteger("campaign.delivery.targets", 10_000);
-        if (load ? targets != 100_000 : targets < 1000 || targets > 10_000) {
-            throw new IllegalArgumentException("Pilot targets must be 1000..10000; load targets must be exactly 100000");
-        }
-        maxProbes = load ? 20_000 : 5000;
-        int drainLimitSeconds = load ? 3600 : 900;
+        var bounds = CampaignDeliveryBounds.forRun(load, targets);
+        maxProbes = bounds.maxRealtimeProbes();
+        int drainLimitSeconds = bounds.drainLimitSeconds();
         var originalZone = TimeZone.getDefault();
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         report.put("startedAtUtc", Instant.now().toString());
-        report.put("scope", "preloaded campaign HTTP delivery " + (load ? "100k load" : "pilot") + "; same JVM independent app contexts");
+        report.put("scope", "preloaded campaign HTTP delivery " + (load ? targets + " target load" : "pilot") + "; same JVM independent app contexts");
         report.put("targets", targets);
         report.put("bounds", Map.of("maxRealtimeProbes", maxProbes, "drainLimitSeconds", drainLimitSeconds,
-                "queryPageRows", QUERY_PAGE, "campaignAuditBytes", ((targets + 64L) / 64) * Long.BYTES,
-                "latencyArrayBytes", (long) Math.max(targets, maxProbes) * Double.BYTES));
+                "queryPageRows", QUERY_PAGE, "campaignAuditBytes", bounds.campaignAuditBytes(),
+                "latencyArrayBytes", bounds.latencyArrayBytes(), "maxResourceSamples", bounds.maxResourceSamples()));
         report.put("verificationVersion", "paged-latency-and-target-mapping-v2");
         report.put("redisConnectionsPerLane", 3);
         report.put("settings", Map.of("totalRate", 1000, "totalBurst", 100, "campaignRate", 200,
@@ -171,6 +167,7 @@ class CampaignDeliveryPilotTest {
                             checkRunning(realtime, "realtime");
                             probe(http, realtime, "MIXED");
                             if (System.nanoTime() >= nextSample) {
+                                if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
                                 samples.add(sample(mysql, campaign, realtime, drainStart));
                                 nextSample = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
                                 System.out.printf("DELIVERY_PILOT targets=%d completed=%.0f realtimeProbes=%d elapsedSeconds=%.3f%n",
@@ -181,6 +178,7 @@ class CampaignDeliveryPilotTest {
                         double drainSeconds = seconds(drainStart);
                         report.put("campaignDrainSeconds", drainSeconds);
                         report.put("campaignPerSecond", targets / drainSeconds);
+                        if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
                         samples.add(sample(mysql, campaign, realtime, drainStart));
                         int mixed = probes.size() - BASELINE_PROBES;
                         assertThat(mixed).as("overlapping realtime observations").isGreaterThanOrEqualTo(10);
@@ -267,7 +265,7 @@ class CampaignDeliveryPilotTest {
         assertThat(mock.stats().accepted()).isEqualTo(total);
         assertThat(mock.stats().active()).isZero();
         assertThat(mock.stats().rateLimited() + mock.stats().serverErrors() + mock.stats().busy() + mock.stats().permanentFailures()).isZero();
-        report.put("httpAudit", Map.of("uniqueCampaign", audit.campaignSeen.cardinality(), "uniqueRealtime", audit.realtimeSeen.cardinality(), "duplicates", audit.duplicates, "invalid", audit.invalid));
+        report.put("httpAudit", audit.summary());
         report.put("baselineApiLatencyMs", percentiles(probes.subList(0, BASELINE_PROBES).stream().map(Probe::apiMillis).toList()));
         report.put("mixedApiLatencyMs", percentiles(probes.subList(BASELINE_PROBES, probes.size()).stream().map(Probe::apiMillis).toList()));
     }
@@ -453,6 +451,10 @@ class CampaignDeliveryPilotTest {
             realtimeIds = new String[maxProbes + 1];
         }
         synchronized int count() { return campaignSeen.cardinality() + realtimeSeen.cardinality() + duplicates + invalid; }
+        synchronized Map<String, Integer> summary() {
+            return Map.of("uniqueCampaign", campaignSeen.cardinality(), "uniqueRealtime", realtimeSeen.cardinality(),
+                    "duplicates", duplicates, "invalid", invalid);
+        }
         synchronized void observe(byte[] body, int status) {
             try {
                 var value = mapper.readTree(body);

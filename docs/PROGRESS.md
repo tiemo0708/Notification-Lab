@@ -1695,3 +1695,46 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - PLAN에서10만 건 HTTP 검증만 완료하고100만 건은 미완료로 유지한다.
   다음은100만 건의 시간·자원·실시간 표본 상한을 설계하는 단계다.
   CI 보완 커밋도 아직 미푸시이므로 변경된 원격 CI 성공은 후속 검증이 필요하다.
+
+## 2026-10-31 — S7 100만 건 HTTP 발송 도구 준비
+
+### 범위와 변경
+
+- 사용자에게 동일 조건의 100만 건 실험이 약 4~6시간 걸릴 수 있음을 안내했다.
+  사용자가 **도구와 검증까지만 준비하고 장시간 실행은 따로 진행**하기로 선택했으므로 실제100만 건 발송은 시작하지 않았다.
+- 기본 test/check/build와 독립적인 `campaignDeliveryMillion` task를 추가했다.
+  기존512MiB heap/인프라/발송 예산/동시 처리/Mock 조건을 유지하며 대상만 정확히1000000명으로 설정한다.
+- `CampaignDeliveryBounds`로 pilot1000..10000과 load100000/1000000만 허용한다.
+  pilot에서 대량 크기를 지정하거나 검증되지 않은 load 크기를 지정하면 인프라를 만들기 전에 거절한다.
+- 100만 건은 실시간 최대150000개/발송8시간/자원 샘플14402개로 제한한다.
+  감사 BitSet 데이터125008바이트, 지연 배열8000000바이트, 조회 페이지1000행이다.
+  객체·문자열·연결 풀 등 전체 메모리 사용을 이 바이트 수로 보장하지 않는다.
+- JUnit 메서드 제한을 각 task의 설정으로 분리했다. pilot20분/10만80분/100만11시간이며
+  Gradle task 제한은 각각25분/90분/12시간이다. 초과 샘플을 추가하기 전에도 상한을 검사한다.
+- 경계값 테스트6개로 대량 실행 거절·정확한 load 크기·생성기 시간창과 표본 수 관계를 확인한다.
+  감사 도구에100만 번째 결정적 ID를 직접 넣어 검사하고 중복/잘못된 ID/HTTP 실패/범위 초과를 거절한다.
+  이 검증은 실제100만 건 HTTP 호출이나1m DB 조회 실행과 다르다.
+- [준비 문서](S7_DELIVERY_MILLION.md)에 시간 추정 근거, 조건과 상한, 별도 실행 명령/출력/통과 기준/한계를 정리했다.
+  PLAN에는 준비 항목만 완료 표시하고 실제100만 건 발송 항목은 계속 미완료로 유지한다.
+
+### 실제 검증
+
+- 최종 설정으로 `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*CampaignDeliveryBoundsTest' campaignDeliveryPilot -PdeliveryTargets=1000`:
+  **경계값6개 + 별도 HTTP 실험1개 통과**, BUILD SUCCESSFUL(42초), 종료 코드0.
+  사전 저장1.902초/발송10.642초/93.964건·초, 실시간50+48개와 HTTP1098건을 대조했다.
+  캠페인 참조1000개와 PK JOIN 계획, 각 파티션offset/quota/고유 수신이 일치했다.
+  [최종 소규모 원본 JSON](experiments/s7-delivery-million-prep-2026-10-31-1000.json)을 보존했다.
+  중간 설정의 작은 실행도 성공했으나 위 수치는 task별 시간 제한 적용 후 최종 실행의 값이다. 성능 개선을 주장하지 않는다.
+- `./gradlew --no-daemon --console=plain campaignDeliveryMillion --dry-run`:
+  BUILD SUCCESSFUL(2초), 종료 코드0. **모든 task가 SKIPPED인 실행 계획 확인**이며 실제 발송이나 테스트 통과가 아니다.
+- 실제100만 건 결과 파일 `build/reports/campaign-delivery-load/load-1000000.json`은 생성되지 않았음을 확인했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **32개 클래스/264개 테스트 통과, 실패·오류·스킵0**, BUILD SUCCESSFUL(11분27초), 종료 코드0.
+  새 경계값6개는 이264개에 포함되며 HTTP pilot1개는 별도다. JUnit XML과 콘솔 합계를 대조했다.
+  기본 build에서 campaignDeliveryMillion은 실행되지 않았다. 운영 소스/의존성이 같아 실행 JAR 생성은 UP-TO-DATE였다.
+- 문서 링크/코드 블록/원본 JSON/샘플 유효값/`git diff --check`를 확인했다.
+  실제100만 건의 HTTP 수락·DB 조회 비용·장시간 안정성과 시간 제한 발동은 미검증이다.
+  원격 CI 재확인과 실제 장시간 실험은 후속 작업이며, 이번 변경은 로컬 커밋으로만 정리한다.
+
+- 테스트 JVM과 실행 중 격리 컨테이너가 정리됐고 기존 notification-lab-mysql-1은 healthy였다.
+  사용자 로컬 DB/.env/IntelliJ 설정을 변경하지 않았다.

@@ -1,0 +1,108 @@
+# S7 — 100만 건 HTTP 발송 실험 준비
+
+## 현재 상태
+
+**2026-10-31: 실험 도구와 검증을 준비하는 단계다. 100만 건 HTTP 발송은 아직 실행하지 않았다.**
+사용자가 이번에는 도구 준비와 검증까지만 진행하고, 장시간 실행은 따로 진행하기로 선택했다.
+S7의 100만 건 HTTP 발송 완료 조건은 계속 미완료로 둔다.
+
+완료된 [10만 건 실험](S7_DELIVERY_LOAD.md)의 경로와 공급자 예산·동시 처리 조건을 재사용한다.
+실제 실행 시에는 Batch 사전 저장 → 실시간 단독 50개 → 캠페인 발송과 실시간 혼합 → 전체 대조 순서다.
+목표는 공급자 수락을 확인하는 것이며, 단말 도착이나 외부 발송 exactly-once를 의미하지 않는다.
+
+## 왜 장시간 실행을 분리했는가
+
+10만 건의 발송 구간은 1346.993초였다. 이를 단순히 10배 하면 약 3시간 44분 30초다.
+별도 100만 건 DB 인계 실험의 2545.391초(약 42분 25초)를 더하면 약 4시간 27분이다.
+실행 조건·캐시·데이터 크기·공유 호스트 영향이 달라지므로 완료 시간 예측이나 성능 보장이 아니다.
+준비 단계에서는 약 4~6시간의 예상 범위를 안내했고, 보수적인 실패 상한은 별도로 설정했다.
+
+## 조건과 자원 상한
+
+| 항목 | 설정 |
+| --- | --- |
+| 캠페인 대상 | 정확히 1,000,000명 |
+| JVM heap | 512 MiB |
+| MySQL | 8.4.8, 2 CPU / 2 GiB, buffer pool 512 MiB |
+| Kafka | 4.0.2, 1 CPU / 1 GiB |
+| Redis | 7.4.11, 1 CPU / 256 MiB, maxmemory 128 MiB / noeviction |
+| 앱별 처리 자원 | Worker 3 / HTTP 연결 3 / Redis 연결 3 / Hikari 4 / 대기열 0 |
+| Batch | chunk 100, Writer 1 |
+| 실험 전용 발송 예산 | 전체 1000/s·burst100, 캠페인 200/s·burst20, 실시간 800/s·burst80 |
+| HTTP Mock | SUCCESS, 지연 1ms, 동시 8, 10000요청·1초 창 |
+| 실시간 생성 | HTTP 응답 후 200ms 대기, 순차 생성, 단독 포함 최대 150,000개 |
+| 캠페인 발송 구간 | 최대 8시간 |
+| JUnit 테스트 메서드 | 최대 11시간, 사전 저장·후속 검증 포함 |
+| Gradle task | 최대 12시간 |
+| 자원 샘플 | 최소 약 2초 간격, 최종 샘플 포함 최대 14,402개 |
+
+기존 운영 코드·스키마·기본 발송 정책·사용자 Redis 키·로컬 DB·.env는 바꾸지 않는다.
+실험은 새 Testcontainers 인프라와 실험 전용 Redis 키를 사용한다. 컨테이너 주소는 loopback에 바인딩한다.
+같은 JVM에서 역할별 독립 context/풀을 사용하며 별도 OS 프로세스나 서버로 완전히 격리한 실험은 아니다.
+
+pilot과 10만 건 task는 각각 별도 시간 제한을 유지한다. JUnit 메서드 제한을 하나의 annotation으로 공유하지 않고
+각 task의 `junit.jupiter.execution.timeout.test.method.default`에 20m / 80m / 11h를 설정했다.
+지원 형식은 [JUnit 공식 문서](https://docs.junit.org/5.12.1/api/org.junit.jupiter.api/org/junit/jupiter/api/Timeout.html)를 참고한다.
+Gradle task 상한은 각각 25분 / 90분 / 12시간이다.
+
+## 메모리와 조회 비용
+
+- 캠페인 HTTP 감사: 1,000,001비트 용량의 BitSet, 내부 데이터 약 125,008바이트(122.08 KiB).
+- 실시간 감사: 최대 150,001칸 ID 배열과 BitSet. 범위를 검사한 다음 기록하므로 큰 ordinal이 임의로 BitSet을 키우지 못한다.
+- 실시간 요청 기록: 최대 150,000개의 Probe. 무제한 제출 큐·자동 catch-up·병렬 생성기는 만들지 않는다.
+- 지연 계산: 최대 1,000,000개 primitive double, 8,000,000바이트(약 7.63 MiB).
+- JDBC 조회: notification 기본 키 keyset 페이지당 최대 1,000행. 전체 결과를 Map 객체 목록으로 한꺼번에 가져오지 않는다.
+- 대상별 참조: campaign_target 1,000행 페이지를 먼저 읽고 notification/task/outbox/attempt를 PK로 조회한다.
+  EXPLAIN이 모두 eq_ref/PRIMARY인지 확인한다. 전수 대조 쿼리의 실행 계획이 바뀌면 실패한다.
+- 자원 샘플 수에도 명시적 상한을 두고 초과하면 실패한다. 원본 JSON에 수신자·본문·UUID를 저장하지 않는다.
+
+위 바이트 수는 특정 자료구조의 데이터 크기다. JVM 객체·문자열·연결 풀 등 전체 메모리 사용량을 뜻하지 않는다.
+실제 100만 건 실행의 heap·GC·DB 메모리·조회 시간은 아직 측정하지 않았다.
+8시간 동안 요청마다 최소 200ms를 대기하므로 혼합 요청은 최대 약 144,001개다.
+단독 50개를 더해도 150,000개 상한 안에 들어가도록 경계값 테스트로 확인한다.
+
+## 별도 실행 시 사용할 명령
+
+다음 장시간 명령은 이번 준비 단계에서 실행하지 않았다.
+
+```bash
+# 장시간 실험. 기본 test/check/build와 독립적이다.
+caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryMillion \
+  > /tmp/notification-lab-delivery-1m.log 2>&1
+
+# 진행 로그 확인
+tail -n 10 /tmp/notification-lab-delivery-1m.log
+```
+
+출력은 `build/reports/campaign-delivery-load/load-1000000.json`과
+`build/reports/tests/campaignDeliveryMillion/`이다. 같은 크기로 재실행하면 build 아래 결과를 덮어쓴다.
+성공·실패 원본은 재실행 전에 실행별 이름으로 docs/experiments에 보존한다.
+JVM 강제 종료 시 finally와 JSON 저장은 보장되지 않으므로 stdout 로그도 함께 보관한다.
+중단한 실험 전체를 자동으로 이어붙이는 도구는 아니다. 재실행은 새 격리 인프라에서 시작한다.
+
+`--dry-run`은 task 의존성만 확인하고 모든 실행을 건너뛴다. 이를 100만 건 실험 통과로 기록하지 않는다.
+동일 checkout에서 다른 부하/회귀 테스트를 동시에 실행하지 않는다.
+
+## 이번 준비 단계의 검증
+
+- 경계값 테스트: pilot의 대량 실행 거절, load 크기 제한, 생성기·메모리·샘플 상한 관계를 확인한다.
+- 100만 번째 가상 대상의 결정적 ID를 감사 도구에 넣어 검증한다. 중복·잘못된 ID·HTTP 실패·범위 초과를 거절한다.
+- 실시간 150,000번째 값은 허용하고 150,001 및 Integer.MAX_VALUE는 거절한다.
+- 작은 실제 실험: 수정한 공통 경로로 캠페인 1,000건을 실제 HTTP Mock에 발송하고 DB·참조·offset을 대조한다.
+- 전체 build: 기본 회귀와 실행 JAR 생성을 확인한다. 이 task에 장시간 실험이 포함되지 않는지 확인한다.
+
+최종 소규모 검증은 경계값 6개와 HTTP 실험 1개가 통과했고 BUILD SUCCESSFUL(42초), 종료 코드 0이었다.
+캠페인 1,000건 + 실시간 98건을 대조했다. [원본 JSON](experiments/s7-delivery-million-prep-2026-10-31-1000.json)을 보존했다.
+전체 build는 32개 클래스/264개 통과, 실패·오류·스킵 0, 11분 27초로 성공했다.
+264개에 새 경계값 6개가 포함되며 HTTP 실험은 별도 실행이다.
+100만 건 task의 dry-run은 2초로 성공했지만 모든 실행을 건너뛴 확인이다.
+실제 100만 건 결과 파일은 생성하지 않았다. 자세한 명령과 결과는 [PROGRESS](PROGRESS.md)에 기록했다.
+작은 실행과 자료구조 경계값 검증은 100만 건 DB 조회·HTTP 발송·수시간 안정성 검증을 대신하지 않는다.
+
+## 실제 실행 후 통과 기준
+
+캠페인 100만 건과 실시간 전체 요청의 고유 HTTP 수락, DB 완료, 대상별 참조·성공 시도 1회,
+각 요청/Retry/DLQ 파티션의 end=committed, 역할별 quota ALLOWED가 일치해야 한다.
+중복·잘못된 매핑·Mock429·5xx·busy·영구 실패는 0이어야 하며 Worker 중단·상한 초과는 FAIL이다.
+실시간 단독/혼합 완료 지연과 API 응답 지연을 분리해서 측정한다. 지연 증가나 실패도 그대로 기록한다.
+단독 50개, 닫힌 루프 생성기, 공유 JVM/호스트, 정상 SUCCESS 단일 실행이라는 한계도 함께 남긴다.

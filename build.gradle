@@ -139,6 +139,7 @@ tasks.register('campaignDeliveryPilot', Test) {
     maxHeapSize = '512m'
     maxParallelForks = 1
     timeout = Duration.ofMinutes(25)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '20m'
     systemProperty 'campaign.delivery.targets', providers.gradleProperty('deliveryTargets').getOrElse('10000')
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
@@ -154,8 +155,26 @@ tasks.register('campaignDeliveryLoad', Test) {
     maxHeapSize = '512m'
     maxParallelForks = 1
     timeout = Duration.ofMinutes(90)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '80m'
     systemProperty 'campaign.delivery.load', 'true'
     systemProperty 'campaign.delivery.targets', '100000'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+// Long-running, opt-in only: never a dependency of test/check/build.
+tasks.register('campaignDeliveryMillion', Test) {
+    description = 'Reconcile 1,000,000 HTTP deliveries (multi-hour experiment; not part of build)'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'campaign-delivery-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofHours(12)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '11h'
+    systemProperty 'campaign.delivery.load', 'true'
+    systemProperty 'campaign.delivery.targets', '1000000'
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
