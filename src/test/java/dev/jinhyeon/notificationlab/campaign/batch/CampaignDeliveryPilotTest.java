@@ -64,27 +64,37 @@ import redis.clients.jedis.Jedis;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-/** Bounded calibration before the 100k/1m delivery experiments. All data is synthetic. */
+/** Shared bounded harness for the pilot and the explicit 100k delivery experiment. */
 @Tag("campaign-delivery-pilot")
 class CampaignDeliveryPilotTest {
-    private static final int MAX_PROBES = 5000;
     private static final int BASELINE_PROBES = 50;
+    private static final int QUERY_PAGE = 1000;
     private final ObjectMapper mapper = new ObjectMapper();
     private final List<Probe> probes = new ArrayList<>();
     private final Map<String, Object> report = new LinkedHashMap<>();
     private final String quotaKey = "test:delivery-pilot:" + UUID.randomUUID();
     private String mockUrl;
+    private int maxProbes;
 
     @Test
-    @Timeout(value = 20, unit = TimeUnit.MINUTES)
+    @Timeout(value = 80, unit = TimeUnit.MINUTES)
     void reconcilesHttpDeliveryAndComparesRealtimeLatencyDuringCampaignDrain() throws Exception {
+        boolean load = Boolean.getBoolean("campaign.delivery.load");
         int targets = Integer.getInteger("campaign.delivery.targets", 10_000);
-        if (targets < 1000 || targets > 10_000) throw new IllegalArgumentException("Pilot targets must be 1000..10000");
+        if (load ? targets != 100_000 : targets < 1000 || targets > 10_000) {
+            throw new IllegalArgumentException("Pilot targets must be 1000..10000; load targets must be exactly 100000");
+        }
+        maxProbes = load ? 20_000 : 5000;
+        int drainLimitSeconds = load ? 3600 : 900;
         var originalZone = TimeZone.getDefault();
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         report.put("startedAtUtc", Instant.now().toString());
-        report.put("scope", "preloaded campaign HTTP delivery pilot; same JVM independent app contexts");
+        report.put("scope", "preloaded campaign HTTP delivery " + (load ? "100k load" : "pilot") + "; same JVM independent app contexts");
         report.put("targets", targets);
+        report.put("bounds", Map.of("maxRealtimeProbes", maxProbes, "drainLimitSeconds", drainLimitSeconds,
+                "queryPageRows", QUERY_PAGE, "campaignAuditBytes", ((targets + 64L) / 64) * Long.BYTES,
+                "latencyArrayBytes", (long) Math.max(targets, maxProbes) * Double.BYTES));
+        report.put("verificationVersion", "paged-latency-and-target-mapping-v2");
         report.put("redisConnectionsPerLane", 3);
         report.put("settings", Map.of("totalRate", 1000, "totalBurst", 100, "campaignRate", 200,
                 "campaignBurst", 20, "workersPerLane", 3, "httpConnectionsPerLane", 3,
@@ -127,7 +137,7 @@ class CampaignDeliveryPilotTest {
                         .getContentAsString(StandardCharsets.UTF_8), List.of(quotaKey), List.of("1000", "100", "200", "20")))
                         .isEqualTo("QUOTA_INITIALIZED_EMPTY");
             }
-            var audit = new Audit(campaignId, targets);
+            var audit = new Audit(campaignId, targets, maxProbes);
             var mockApplication = new SpringApplication(MockServerApplication.class, AuditConfiguration.class);
             mockApplication.setDefaultProperties(Map.of("spring.config.name", "mock-server"));
             mockApplication.addInitializers(context -> context.getBeanFactory().registerSingleton("pilotAudit", audit));
@@ -148,7 +158,7 @@ class CampaignDeliveryPilotTest {
                     await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == BASELINE_PROBES);
                     awaitOffsets(admin, realtime, BASELINE_PROBES);
                     report.put("baselineSeconds", seconds(baselineStart));
-                    report.put("baselineLatencyMs", latency(jdbc, "title='BASELINE' AND traffic_class='REALTIME'"));
+                    report.put("baselineLatencyMs", latency(jdbc, "title='BASELINE' AND traffic_class='REALTIME'", BASELINE_PROBES));
                     long drainStart = System.nanoTime(); // Includes campaign app startup; excludes preload and baseline.
                     var samples = new ArrayList<Map<String, Object>>();
                     report.put("samples", samples);
@@ -156,7 +166,7 @@ class CampaignDeliveryPilotTest {
                         ready(campaign);
                         long nextSample = 0;
                         while (completed(campaign) < targets) {
-                            if (seconds(drainStart) > 900) throw new IllegalStateException("Pilot drain exceeded 15 minutes");
+                            if (seconds(drainStart) > drainLimitSeconds) throw new IllegalStateException("Delivery drain exceeded " + drainLimitSeconds + " seconds");
                             checkRunning(campaign, "campaign");
                             checkRunning(realtime, "realtime");
                             probe(http, realtime, "MIXED");
@@ -168,8 +178,9 @@ class CampaignDeliveryPilotTest {
                             }
                             Thread.sleep(200);
                         }
-                        report.put("campaignDrainSeconds", seconds(drainStart));
-                        report.put("campaignPerSecond", targets / seconds(drainStart));
+                        double drainSeconds = seconds(drainStart);
+                        report.put("campaignDrainSeconds", drainSeconds);
+                        report.put("campaignPerSecond", targets / drainSeconds);
                         samples.add(sample(mysql, campaign, realtime, drainStart));
                         int mixed = probes.size() - BASELINE_PROBES;
                         assertThat(mixed).as("overlapping realtime observations").isGreaterThanOrEqualTo(10);
@@ -177,9 +188,12 @@ class CampaignDeliveryPilotTest {
                         awaitOffsets(admin, campaign, targets);
                         awaitOffsets(admin, realtime, probes.size());
                         report.put("mixedProbes", mixed);
-                        report.put("mixedLatencyMs", latency(jdbc, "title='MIXED' AND traffic_class='REALTIME'"));
-                        report.put("campaignCreatedToCompletedMs", latency(jdbc, "traffic_class='CAMPAIGN'"));
+                        long verificationStart = System.nanoTime();
+                        report.put("mixedLatencyMs", latency(jdbc, "title='MIXED' AND traffic_class='REALTIME'", mixed));
+                        report.put("campaignCreatedToCompletedMs", latency(jdbc, "traffic_class='CAMPAIGN'", targets));
+                        verifyTargetMappings(jdbc, campaignId, targets);
                         reconcile(jdbc, targets, audit, mock.getBean(MockPushEndpoint.class));
+                        report.put("verificationSeconds", seconds(verificationStart));
                         report.put("campaignOffsets", offsets(admin, campaign));
                         report.put("realtimeOffsets", offsets(admin, realtime));
                         report.put("mockStats", mock.getBean(MockPushEndpoint.class).stats());
@@ -197,9 +211,9 @@ class CampaignDeliveryPilotTest {
         } finally {
             TimeZone.setDefault(originalZone);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path directory = Path.of("build/reports/campaign-delivery-pilot");
+            Path directory = Path.of(load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve("pilot-" + targets + ".json").toFile(), report);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve((load ? "load-" : "pilot-") + targets + ".json").toFile(), report);
         }
     }
 
@@ -224,7 +238,7 @@ class CampaignDeliveryPilotTest {
 
     private void probe(HttpClient http, ConfigurableApplicationContext app, String phase) throws Exception {
         int ordinal = probes.size() + 1;
-        if (ordinal > MAX_PROBES) throw new IllegalStateException("Probe bound exceeded");
+        if (ordinal > maxProbes) throw new IllegalStateException("Probe bound exceeded");
         String body = mapper.writeValueAsString(Map.of("recipientId", "pilot-realtime-" + ordinal, "title", phase, "body", "synthetic body"));
         long start = System.nanoTime();
         var response = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + ((ServletWebServerApplicationContext) app).getWebServer().getPort() + "/notifications"))
@@ -282,8 +296,79 @@ class CampaignDeliveryPilotTest {
         return result;
     }
 
-    private Map<String, Object> latency(JdbcTemplate jdbc, String condition) {
-        return percentiles(jdbc.queryForList("SELECT TIMESTAMPDIFF(MICROSECOND,created_at,completed_at)/1000.0 FROM notification WHERE " + condition, Double.class));
+    private Map<String, Object> latency(JdbcTemplate jdbc, String condition, int expected) {
+        // Fixed-size primitive storage and at most 1,000 JDBC rows; no full result object graph.
+        double[] values = new double[expected];
+        int count = 0;
+        String after = "";
+        while (true) {
+            var rows = jdbc.queryForList("""
+                    SELECT notification_id, TIMESTAMPDIFF(MICROSECOND,created_at,completed_at)/1000.0 AS latency_ms
+                    FROM notification FORCE INDEX (PRIMARY) WHERE
+                    """ + condition + " AND notification_id>? ORDER BY notification_id LIMIT " + QUERY_PAGE, after);
+            if (rows.isEmpty()) break;
+            for (var row : rows) {
+                assertThat(count).as("latency row bound").isLessThan(expected);
+                assertThat(row.get("latency_ms")).isNotNull();
+                double value = ((Number) row.get("latency_ms")).doubleValue();
+                assertThat(Double.isFinite(value) && value >= 0).isTrue();
+                values[count++] = value;
+                after = (String) row.get("notification_id");
+            }
+        }
+        assertThat(count).isEqualTo(expected).isPositive();
+        Arrays.sort(values);
+        return Map.of("count", count, "p50", values[(int) Math.ceil(count * .50) - 1],
+                "p95", values[(int) Math.ceil(count * .95) - 1], "p99", values[(int) Math.ceil(count * .99) - 1], "max", values[count - 1]);
+    }
+
+    private void verifyTargetMappings(JdbcTemplate jdbc, UUID campaignId, int targets) {
+        // Materialized keyset page, then bounded PK lookups, as in the DB handoff verifier.
+        String query = """
+                SELECT /*+ NO_BNL(n, t, o, a) */ c.target_ordinal, c.notification_id, c.task_id, c.event_id,
+                       n.recipient_id, n.status, n.traffic_class, t.notification_id AS task_notification,
+                       t.target_id, t.attempt_count, o.notification_id AS event_notification,
+                       o.payload->>'$.taskId' AS payload_task, o.status AS event_status,
+                       a.outcome, a.completed_at
+                FROM (SELECT target_ordinal, notification_id, task_id, event_id FROM campaign_target
+                      WHERE campaign_id=? AND target_ordinal>? ORDER BY target_ordinal LIMIT 1000) c
+                STRAIGHT_JOIN notification n FORCE INDEX (PRIMARY) ON n.notification_id=c.notification_id
+                STRAIGHT_JOIN delivery_task t FORCE INDEX (PRIMARY) ON t.task_id=c.task_id
+                STRAIGHT_JOIN outbox_event o FORCE INDEX (PRIMARY) ON o.event_id=c.event_id
+                STRAIGHT_JOIN delivery_attempt a FORCE INDEX (PRIMARY) ON a.task_id=c.task_id AND a.attempt_no=1
+                ORDER BY c.target_ordinal
+                """;
+        var plan = jdbc.queryForList("EXPLAIN " + query, campaignId.toString(), 0);
+        for (String table : List.of("n", "t", "o", "a")) {
+            var lookup = plan.stream().filter(row -> table.equals(row.get("table"))).findFirst().orElseThrow();
+            assertThat(lookup.get("type")).as(table + " lookup").isEqualTo("eq_ref");
+            assertThat(lookup.get("key")).isEqualTo("PRIMARY");
+        }
+        for (int after = 0; after < targets;) {
+            var rows = jdbc.queryForList(query, campaignId.toString(), after);
+            assertThat(rows).hasSize(Math.min(QUERY_PAGE, targets - after));
+            for (var row : rows) {
+                int ordinal = ((Number) row.get("target_ordinal")).intValue();
+                assertThat(ordinal).isEqualTo(++after);
+                var ids = CampaignTargetIds.of(campaignId, ordinal);
+                assertThat(row.get("notification_id")).isEqualTo(ids.notificationId().toString());
+                assertThat(row.get("task_id")).isEqualTo(ids.taskId().toString());
+                assertThat(row.get("event_id")).isEqualTo(ids.eventId().toString());
+                assertThat(row.get("recipient_id")).isEqualTo("synthetic-v1-" + ordinal);
+                assertThat((byte[]) row.get("target_id")).isEqualTo(("synthetic-v1-" + ordinal).getBytes(StandardCharsets.UTF_8));
+                assertThat(row.get("task_notification")).isEqualTo(row.get("notification_id"));
+                assertThat(row.get("event_notification")).isEqualTo(row.get("notification_id"));
+                assertThat(row.get("payload_task")).isEqualTo(row.get("task_id"));
+                assertThat(row.get("traffic_class")).isEqualTo("CAMPAIGN");
+                assertThat(row.get("status")).isEqualTo("PROVIDER_ACCEPTED");
+                assertThat(row.get("event_status")).isEqualTo("PUBLISHED");
+                assertThat(((Number) row.get("attempt_count")).intValue()).isEqualTo(1);
+                assertThat(row.get("outcome")).isEqualTo("PROVIDER_ACCEPTED");
+                assertThat(row.get("completed_at")).isNotNull();
+            }
+        }
+        report.put("verifiedTargetMappings", targets);
+        report.put("mappingJoinPlan", "eq_ref/PRIMARY for n,t,o,a");
     }
 
     private Map<String, Object> percentiles(List<Double> values) {
@@ -355,12 +440,18 @@ class CampaignDeliveryPilotTest {
         private final ObjectMapper mapper = new ObjectMapper();
         private final UUID campaignId;
         private final int targets;
-        private final BitSet campaignSeen = new BitSet(10_001);
-        private final BitSet realtimeSeen = new BitSet(MAX_PROBES + 1);
-        private final String[] realtimeIds = new String[MAX_PROBES + 1];
+        private final int maxProbes;
+        private final BitSet campaignSeen;
+        private final BitSet realtimeSeen;
+        private final String[] realtimeIds;
         private int invalid;
         private int duplicates;
-        Audit(UUID campaignId, int targets) { this.campaignId = campaignId; this.targets = targets; }
+        Audit(UUID campaignId, int targets, int maxProbes) {
+            this.campaignId = campaignId; this.targets = targets; this.maxProbes = maxProbes;
+            campaignSeen = new BitSet(targets + 1);
+            realtimeSeen = new BitSet(maxProbes + 1);
+            realtimeIds = new String[maxProbes + 1];
+        }
         synchronized int count() { return campaignSeen.cardinality() + realtimeSeen.cardinality() + duplicates + invalid; }
         synchronized void observe(byte[] body, int status) {
             try {
@@ -370,7 +461,7 @@ class CampaignDeliveryPilotTest {
                 String prefix = campaign ? "synthetic-v1-" : "pilot-realtime-";
                 if (!recipient.startsWith(prefix) || status != 202) { invalid++; return; }
                 int ordinal = Integer.parseInt(recipient.substring(prefix.length()));
-                if (ordinal < 1 || ordinal > (campaign ? targets : MAX_PROBES)) { invalid++; return; }
+                if (ordinal < 1 || ordinal > (campaign ? targets : maxProbes)) { invalid++; return; }
                 String id = value.path("notificationId").asText();
                 if (campaign && !id.equals(CampaignTargetIds.of(campaignId, ordinal).notificationId().toString())) { invalid++; return; }
                 var seen = campaign ? campaignSeen : realtimeSeen;

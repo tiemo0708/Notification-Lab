@@ -1643,3 +1643,55 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   운영 소스/의존성 변경이 없어 실행 JAR 생성은 UP-TO-DATE였고 전체 build가 성공했다.
 - workflow 변경은 timeout 값 한 줄임을 원본과 대조했고 `git diff --check`를 통과했다.
   CI 보완은 로컬 검증/커밋이며 사용자 검토 전 재푸시하지 않는다. 변경된 원격 CI 성공은 미확인이다.
+
+## 2026-10-31 — S7 캠페인 10만 건 HTTP 발송과 실시간 간섭 검증
+
+### 변경과 완료 조건
+
+- 이전1천/1만 pilot의 정상 경로를 재사용하는 opt-in `campaignDeliveryLoad`를 추가했다.
+  대상은 정확히100000명이며 기본 회귀와 분리한다. 운영 코드/스키마/의존성/사용자 DB·Redis 예산은 바꾸지 않았다.
+- 원래pilot 대상1000..10000/실시간5000/발송15분/task25분은 유지하고, load 모드는 실시간20000/발송60분/task90분으로 제한한다.
+  공유 JUnit 메서드 상한은80분이다. 완료 지연은1000행 keyset 조회+고정 double 배열로 전수 계산한다.
+- HTTP 감사는 캠페인 BitSet12504바이트와 제한된 실시간 BitSet/ID 배열이다. 원문 수신자/본문/ID를 결과에 저장하지 않는다.
+- 완료 후 campaign_target1000행 페이지와 PK JOIN으로 결정적 ID/대상/notification-task-outbox-attempt 참조를 전수 대조한다.
+  n/t/o/a 모두eq_ref/PRIMARY인지 검사한다. 건수/상태/성공시도1회/HTTP 고유 수락/각 파티션offset/역할별quota도 함께 대조한다.
+- 새 [실험 문서](S7_DELIVERY_LOAD.md)에 상한·재현 명령·측정 경계·실패 기준·결과·한계를 작성했다.
+
+### 실제 실행과 결과
+
+- macOS15.7.7 arm64 / Amazon Corretto21.0.6 / Gradle8.14.5, 호스트10 logical CPU/16 GiB,
+  Docker Desktop10 CPU/약7.65 GiB에서 각1회 실행했다. 기존 IDE/로컬 MySQL과 호스트를 공유했다.
+- JVM heap512 MiB, MySQL8.4.8(2CPU/2GiB, buffer pool512MiB), Kafka4.0.2(1CPU/1GiB),
+  Redis7.4.11(1CPU/256MiB, maxmemory128MiB/noeviction)을 사용했다. 앱별Worker3/HTTP3/Redis3/Hikari4/대기열0이다.
+  실험 전용quota1000/s·burst100 중 캠페인200/s·burst20, 실시간800/s·burst80으로 기존pilot 조건을 유지했다.
+  Mock은SUCCESS/지연1ms/동시8/10000요청·초 창이다. 두 앱/Mock/도구는 같은 JVM의 별도context다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryPilot -PdeliveryTargets=1000`:
+  **1개 통과**, BUILD SUCCESSFUL(52초), 종료 코드0. 사전 저장2.057초/발송11.390초/87.797건·초,
+  실시간50+51개와 HTTP1101건, 전체참조1000개를 대조했다. [smoke 원본](experiments/s7-delivery-pilot-2026-10-31-1000-v2.json).
+- `caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryLoad`:
+  **1개 통과**, BUILD SUCCESSFUL(25분30초), 종료 코드0. [10만 원본](experiments/s7-delivery-load-2026-10-31-100k.json).
+  사전 저장151.762초, 발송1346.993초(약22분27초)/74.239건·초, 최종 대조2.305초였다.
+- 캠페인100000+실시간5342(단독50/혼합5292)=HTTP105342건 수락과 DB/전체참조/파티션offset/quota가 일치했다.
+  HTTP 중복/잘못된 매핑/Mock429·5xx·busy·영구실패는0이었다. 최대HTTP동시4, 모든작업의 성공시도1회였다.
+- 실시간 DB 완료 p95는 단독553.657ms/혼합918.136ms, p99는616.772ms/1213.208ms, 혼합 최대1905.362ms였다.
+  API 응답 p95도28.583ms/334.452ms였다. 혼합 지연 증가를 기록하며 완전한 자원 격리나 지연 SLO를 주장하지 않는다.
+  단독50개/순차 측정/warmup/생성률 차이로 원인·통계적 효과를 확정하지 않는다.
+- 606개 샘플의 null/비유한 값은0, heap 관측 최대116.32MiB/MySQL cgroup1307.98MiB/스레드97개였다.
+  샘플 구간 GC3680ms, JVM 평균 CPU는 약0.222코어 상당이다. 캠페인 lag 최대215/미발행 Outbox100000, 실시간2/2였다.
+  최종 offset은 캐시된 lag 대신 Admin으로 모든 요청/Retry/DLQ 파티션의 committed=end를 확인했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **31개 클래스/258개 통과, 실패·오류·스킵0**, BUILD SUCCESSFUL(11분39초), 종료 코드0.
+  JUnit XML과 콘솔258개 PASSED를 대조했다. 위 smoke/load2회는 기본258개와 별도 실행이다.
+- 문서 링크/코드 블록/JSON 파싱/샘플 유효값/`git diff --check`를 확인했다.
+  변경은 로컬 커밋으로 정리하고 사용자 검토 전 재푸시하지 않는다.
+- 모든 테스트 JVM/격리 컨테이너가 종료됐고 기존 notification-lab-mysql-1은 healthy였다.
+  사용자 로컬 DB/.env/IntelliJ 설정을 변경하지 않았다.
+
+### 한계와 다음 단계
+
+- 정상 SUCCESS의 사전 저장 후 발송1회다. 실제 FCM/APNs·단말 도착·외부 exactly-once·100만 HTTP 발송은 미검증이다.
+- 실시간은 HTTP 응답 후200ms 대기하는 닫힌 루프다. 고정 도착률/과부하 SLO/독립 OS 프로세스 격리·저장 발송 동시 실행과 다르다.
+- 공유 DB/호스트 간섭, 실시간 지연 증가와 실험별 변동을 남긴다. 운영 처리량·정확한 병목 원인을 확정하지 않는다.
+- PLAN에서10만 건 HTTP 검증만 완료하고100만 건은 미완료로 유지한다.
+  다음은100만 건의 시간·자원·실시간 표본 상한을 설계하는 단계다.
+  CI 보완 커밋도 아직 미푸시이므로 변경된 원격 CI 성공은 후속 검증이 필요하다.
