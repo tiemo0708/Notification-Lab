@@ -13,7 +13,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.clients.admin.Admin;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -85,26 +87,50 @@ class WorkerConcurrencyTest {
 
     @Test
     void admissionTimeoutLeavesNoClaimAndRecoversUncommittedRecordOnExplicitRestart() throws Exception {
-        start(3, 1, 2, 100, 1200);
-        var first = create(); var waiting = create();
-        publish(first, 0);
-        await().atMost(Duration.ofSeconds(5)).until(() -> stats().active() == 1);
-        publish(waiting, 1);
-        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            var counter = app.getBean(MeterRegistry.class).find("notification.worker.admission.rejected")
-                    .tag("reason", "timeout").counter();
-            assertThat(counter).isNotNull();
-            assertThat(counter.count()).isEqualTo(1);
+        start(3, 1, 2, 100, 0);
+        var waiting = create();
+        var occupied = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var holderFailure = new AtomicReference<Throwable>();
+        // Hold a real admission slot until rejection is observed. A timed HTTP delay can end
+        // before the second consumer is scheduled on a slower CI host, bypassing the queue.
+        var holder = Thread.ofPlatform().name("test-admission-holder").start(() -> {
+            try {
+                gate().execute(() -> {
+                    occupied.countDown();
+                    try {
+                        if (!release.await(60, TimeUnit.SECONDS)) throw new IllegalStateException("Test holder timed out");
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(interrupted);
+                    }
+                });
+            } catch (Throwable failure) { holderFailure.set(failure); }
         });
+        try {
+            assertThat(occupied.await(5, TimeUnit.SECONDS)).isTrue();
+            publish(waiting, 1);
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+                var counter = app.getBean(MeterRegistry.class).find("notification.worker.admission.rejected")
+                        .tag("reason", "timeout").counter();
+                assertThat(counter).isNotNull();
+                assertThat(counter.count()).isEqualTo(1);
+            });
+            await().atMost(Duration.ofSeconds(15)).until(() -> !container().isRunning());
+            assertThat(attempts(waiting)).isZero();
+            assertThat(status(waiting)).isEqualTo("QUEUED");
+            assertThat(offset(1)).isZero();
+            assertThat(stats().requests()).isZero();
+        } finally {
+            release.countDown();
+            holder.join(5000);
+        }
+        assertThat(holder.isAlive()).isFalse();
+        assertThat(holderFailure.get()).isNull();
         awaitStopped();
-        assertThat(attempts(waiting)).isZero();
-        assertThat(status(waiting)).isEqualTo("QUEUED");
-        assertThat(offset(1)).isZero();
-        await().atMost(Duration.ofSeconds(5)).until(() -> status(first).equals("PROVIDER_ACCEPTED"));
-        assertThat(stats().requests()).isEqualTo(1);
         container().start(); awaitAssigned();
-        awaitCompleted(List.of(first, waiting), 2);
-        assertThat(stats().requests()).isEqualTo(2);
+        awaitCompleted(List.of(waiting), 1);
+        assertThat(stats().requests()).isEqualTo(1);
         assertThat(attempts(waiting)).isEqualTo(1);
     }
 

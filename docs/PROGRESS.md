@@ -1616,3 +1616,30 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 실시간은 응답 후 대기하는 순차 생성기라 제출률이 응답 속도에 의존한다. 일정 도착률/과부하 검증은 별도다.
 - 다음은 10만 건으로 확대할 때 전수 대조의 메모리/조회 비용·시간 상한을 확정하고 실행하는 단계다.
   그 결과를 확인한 뒤100만으로 확대한다. 사용자 기존 Redis 예산을 자동 상향하지 않는다.
+
+## 2026-10-31 — 기존 완료 구간 푸시와 CI 보완
+
+- 사용자 요청으로 기존 main의27개 로컬 커밋을 일반 push했다. 원격 main을 직접 조회해
+  c95a444 → 9cf178636edc4b03a5aa1d560f9cfe3c71f36568 반영을 확인했다. 강제 push/분기/병합은 하지 않았다.
+- push 전 작업 폴더는 깨끗했고 마지막 JUnit XML은31개 클래스/258개, 실패·오류·스킵0이었다.
+  이 확인은 저장된 검증 결과 확인이며 이번 시점의 신규 재실행과 구분한다.
+- [GitHub Actions 실행](https://github.com/tiemo0708/Notification-Lab/actions/runs/41187656290)은
+  15분 제한 초과로 cancelled였다. annotation의 원문은 "The job has exceeded the maximum execution time of 15m0s"다.
+  취소 전 PASSED 로그245개와 WorkerConcurrencyTest의 admissionTimeoutLeavesNoClaimAndRecoversUncommittedRecordOnExplicitRestart
+  실패1개를 확인했다. 전체258개 통과나 CI 성공으로 기록하지 않는다.
+- 실패 위치는 timeout 거절 counter 존재 확인(기존96행)이었다. 이 테스트는 첫 HTTP 호출의1200ms 지연에 의존했다.
+  첫 호출이 끝난 뒤 다음 Consumer가 실행되면 의도한 대기열 timeout이 생기지 않을 수 있는 시간 의존성을 확인했다.
+  CI 실행의 세부 스케줄링을 직접 수집한 것은 아니므로 정확한 원인을 확정하지 않는다.
+- 테스트 전용 스레드가 실제 WorkerAdmission 슬롯을 latch로 유지하고 timeout 거절을 확인한 뒤 해제하도록 변경했다.
+  거절된 레코드의 DB 선점/offset/HTTP 호출0, 명시적 Consumer 재시작 뒤 성공1회를 검증한다.
+  latch60초/관측 대기/스레드 join에도 상한을 두며 운영 코드는 바꾸지 않았다.
+- 전체 CI 상한은15→30분으로 조정했다. 실제 원격 취소와 기존 로컬 전체 실행13분27초를 근거로 여유를 둔다.
+  개별 검증을 스킵하거나 assertion을 완화하지 않는다. 변경된 workflow의 원격 통과는 아직 확인하지 않았다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*WorkerConcurrencyTest'`:
+  **5개 통과**, BUILD SUCCESSFUL(38초), 종료 코드0. 새 슬롯 유지 방식으로 timeout/선점 전 거절/재시작을 검증했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **31개 클래스/258개 테스트 통과, 실패·오류·스킵0**, BUILD SUCCESSFUL(11분39초), 종료 코드0.
+  JUnit XML 합계와 콘솔258개 PASSED를 대조했다. 기본 build는 대량 발송/pilot을 포함하지 않는다.
+  운영 소스/의존성 변경이 없어 실행 JAR 생성은 UP-TO-DATE였고 전체 build가 성공했다.
+- workflow 변경은 timeout 값 한 줄임을 원본과 대조했고 `git diff --check`를 통과했다.
+  CI 보완은 로컬 검증/커밋이며 사용자 검토 전 재푸시하지 않는다. 변경된 원격 CI 성공은 미확인이다.
