@@ -1687,6 +1687,7 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 모든 테스트 JVM/격리 컨테이너가 종료됐고 기존 notification-lab-mysql-1은 healthy였다.
   사용자 로컬 DB/.env/IntelliJ 설정을 변경하지 않았다.
 
+
 ### 한계와 다음 단계
 
 - 정상 SUCCESS의 사전 저장 후 발송1회다. 실제 FCM/APNs·단말 도착·외부 exactly-once·100만 HTTP 발송은 미검증이다.
@@ -1738,3 +1739,63 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 
 - 테스트 JVM과 실행 중 격리 컨테이너가 정리됐고 기존 notification-lab-mysql-1은 healthy였다.
   사용자 로컬 DB/.env/IntelliJ 설정을 변경하지 않았다.
+
+## 2026-11-02 — S7 100만 건 첫 실행 실패와 진단 보강
+
+### 첫 실제 실행
+
+- 10월31일에는 준비만 했고 이번 후속 요청으로 campaignDeliveryMillion을 실행했다.
+  시작 코드는71f6406, 원격 main은9cf1786이었다. 기존3개 로컬 커밋과 사용자 DB를 보존하고 push하지 않았다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryMillion`:
+  **BUILD FAILED(2시간20분17초), 종료 코드1, 테스트1개 실패/오류·스킵0**.
+  날짜는 KST2026-11-02, 원본 시각은 UTC다. [실패 JSON](experiments/s7-delivery-million-2026-11-02-attempt-1-failure.json)을 그대로 보존했다.
+- 준비된 JVM512MiB/MySQL2CPU·2GiB/buffer pool512MiB/Kafka1CPU·1GiB/Redis1CPU·256MiB 조건을 유지했다.
+  역할별 Worker3/HTTP3/Redis3/Hikari4, 실험 quota1000/s 중 캠페인200/s·실시간800/s, Mock SUCCESS/1ms도 유지했다.
+- Batch COMPLETED와 발송 시도0 확인 후 발송 구간으로 넘어갔다. 사전 저장2631.136초(약43분51초),
+  실시간 단독50개 완료 p95는583.858ms였다. 사전 저장 진행은 격리 DB의 PRIMARY 역방향 LIMIT1 조회로 약1분마다 확인했다.
+- 직접 실패는 MIXED 실시간 접수 probe의 HttpTimeoutException이었다. 실험 클라이언트의 접수 응답 대기5초이며
+  공급자 호출 timeout/8시간 발송 상한/11시간 JUnit 상한 실패가 아니다. 원본 코드의 probe242행에서 발생했다.
+- 마지막 샘플은 발송5736.619초/캠페인 완료 카운터383801, 마지막 stdout은383805/혼합 실시간23306이었다.
+  관측 시점이 다른 숫자이며 최종 고유 수락·DB 건수·단말 도착 수로 사용하지 않는다.
+  최종 HTTP 감사/DB 참조·이력/offset/quota 전수 대조에 도달하지 못했고100만 건 통과는 미완료다.
+- 2593개 샘플에서 heap 관측 최대102.37MiB/MySQL cgroup 최대2048MiB/스레드99개였다.
+  DB 메모리가 상한99% 이상인 샘플은2333개였다. 페이지 캐시를 포함하므로 OOM이나 원인을 확정하지 않는다.
+  초기2개 샘플에 결측·비유한 값10개가 있었고0으로 바꾸지 않았다. 샘플 구간 GC 증가27.109초/평균 JVM CPU약0.273코어 상당이었다.
+- [Docker 이벤트 관측](experiments/s7-delivery-million-2026-11-02-mysql-events.json)의 최초 stdout에서는
+  종료 시각과 겹치는 kill→die137→destroy를 확인했다. 후속 조회는 빈 결과였다. 유한 이력/exit137만으로 OOM을 확정하지 않는다.
+- timeout 난 요청은 서버에서 이미 커밋했을 수도 있다. 접수 거절·유실·미발송을 확정하지 않으며 자동 재시도하지 않았다.
+  첫 도구가 timeout 순번/응답 미관측/실패 전 Hikari·cgroup 사건을 저장하지 않아 원인 판별 자료가 부족했다.
+
+### 진단 보강과 작은 검증
+
+- 운영 코드·스키마·의존성·probe5초 대기·발송 예산·자원 상한은 바꾸지 않았다. 장시간 실행을 즉시 반복하지 않았다.
+- 테스트 도구는 timeout 요청의 phase/순번/확인된202 수와 serverOutcome=UNKNOWN을 기록하고 같은 예외를 다시 던진다.
+  본문/수신자/ID/URI/인증정보와 원본 예외 메시지를 결과에 넣지 않는다.
+- 혼합 구간 실패는 context 종료 전에 시각/경과 시간, 두 앱의 Hikari active/idle/waiting·listener·지표,
+  HTTP 감사/Mock 집계/확인된 응답 수를 저장한다. 추가 DB 조회를 하지 않고 수집 오류가 원래 실패를 가리지 않게 했다.
+- 주기 샘플에도 Hikari 상태와 MySQL memory.events/cpu.stat 카운터를 추가했다.
+  첫 실패에는 이 자료가 없었으므로 뒤의 성공한 소규모 자료로 원인을 소급해 확정하지 않는다.
+- 최초 보조 테스트 컴파일은 SimpleMeterRegistry의 AutoCloseable 사용 오류로 실패했다(5초).
+  finally에서 close하도록 수정한 뒤 아래 검증을 실행했다. 이 실패를 테스트 통과로 세지 않는다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*CampaignDeliveryDiagnosticsTest' campaignDeliveryPilot -PdeliveryTargets=1000`:
+  **단위4개 + 별도 HTTP 실험1개 통과**, BUILD SUCCESSFUL(1분3초), 종료 코드0.
+  사전 저장2.658초/발송20.420초, 캠페인1000+실시간130=HTTP1130건과 DB/참조/offset/quota를 대조했다.
+  [소규모 진단 원본](experiments/s7-delivery-million-2026-11-02-diagnostics-1000.json)을 보존했다.
+  단위 timeout 검증은150ms 제한과 latch 서버이며 원래100만 건의 지연 원인을 재현한 것은 아니다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **기본 회귀33개 클래스/268개 통과, 실패·오류·스킵0**, BUILD SUCCESSFUL(12분26초), 종료 코드0.
+  새 진단 단위4개는 이268개에 포함되고 별도 HTTP pilot은 포함되지 않는다.
+  JUnit XML과 콘솔 합계를 대조했다. 별도100만 건 task의1개 실패를 기본 회귀 성공으로 덮어쓰지 않는다.
+  운영 소스/의존성 변경이 없어 실행 JAR 생성은 UP-TO-DATE였고 기본 build가 성공했다.
+- 실패 JSON이 build 원본과 동일한지 SHA-256으로 확인했다.
+  원본 해시는0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b다.
+  문서 링크/코드 블록/JSON 파싱/`git diff --check`도 확인했다.
+- 모든 테스트 JVM이 종료된 뒤 이번 저장소의 실행 로그·JUnit 자료에서 생성이 확인된 잔존 Ryuk만 정리했다.
+  기존 사용자 DB/.env/IntelliJ와 무관한 컨테이너·volume은 변경하지 않았다.
+
+### 한계와 다음 단계
+
+- 첫 실험은 실패이며 S7의100만 건 발송 완료 표시는 보류한다. 기본 회귀 통과와 별도 장시간 실험 실패를 구분한다.
+- DB 메모리 근접과 낮은 Kafka lag/큰 Outbox 적체만으로 병목이나 OOM을 확정하지 않는다.
+  다음은 Relay 발행·DB 트랜잭션·연결 풀 대기·실시간 API 지연을 좁혀 확인하고 작은 재현을 만드는 단계다.
+  원인과 재현을 검증한 뒤100만 건 재실행 여부·조건을 결정한다. 원격 CI 재확인은 별도로 남아 있다.

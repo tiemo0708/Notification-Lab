@@ -20,7 +20,6 @@ import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -91,6 +90,7 @@ class CampaignDeliveryPilotTest {
                 "queryPageRows", QUERY_PAGE, "campaignAuditBytes", bounds.campaignAuditBytes(),
                 "latencyArrayBytes", bounds.latencyArrayBytes(), "maxResourceSamples", bounds.maxResourceSamples()));
         report.put("verificationVersion", "paged-latency-and-target-mapping-v2");
+        report.put("diagnosticsVersion", "live-pools-and-cgroup-counters-v1");
         report.put("redisConnectionsPerLane", 3);
         report.put("settings", Map.of("totalRate", 1000, "totalBurst", 100, "campaignRate", 200,
                 "campaignBurst", 20, "workersPerLane", 3, "httpConnectionsPerLane", 3,
@@ -159,47 +159,60 @@ class CampaignDeliveryPilotTest {
                     var samples = new ArrayList<Map<String, Object>>();
                     report.put("samples", samples);
                     try (var campaign = application(mysql, kafka, redis, "CAMPAIGN", true)) {
-                        ready(campaign);
-                        long nextSample = 0;
-                        while (completed(campaign) < targets) {
-                            if (seconds(drainStart) > drainLimitSeconds) throw new IllegalStateException("Delivery drain exceeded " + drainLimitSeconds + " seconds");
-                            checkRunning(campaign, "campaign");
-                            checkRunning(realtime, "realtime");
-                            probe(http, realtime, "MIXED");
-                            if (System.nanoTime() >= nextSample) {
-                                if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
-                                samples.add(sample(mysql, campaign, realtime, drainStart));
-                                nextSample = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
-                                System.out.printf("DELIVERY_PILOT targets=%d completed=%.0f realtimeProbes=%d elapsedSeconds=%.3f%n",
-                                        targets, completed(campaign), probes.size() - BASELINE_PROBES, seconds(drainStart));
+                        try {
+                            ready(campaign);
+                            long nextSample = 0;
+                            while (completed(campaign) < targets) {
+                                if (seconds(drainStart) > drainLimitSeconds) throw new IllegalStateException("Delivery drain exceeded " + drainLimitSeconds + " seconds");
+                                checkRunning(campaign, "campaign");
+                                checkRunning(realtime, "realtime");
+                                probe(http, realtime, "MIXED");
+                                if (System.nanoTime() >= nextSample) {
+                                    if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
+                                    samples.add(sample(mysql, campaign, realtime, drainStart));
+                                    nextSample = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                                    System.out.printf("DELIVERY_PILOT targets=%d completed=%.0f realtimeProbes=%d elapsedSeconds=%.3f%n",
+                                            targets, completed(campaign), probes.size() - BASELINE_PROBES, seconds(drainStart));
+                                }
+                                Thread.sleep(200);
                             }
-                            Thread.sleep(200);
+                            double drainSeconds = seconds(drainStart);
+                            report.put("campaignDrainSeconds", drainSeconds);
+                            report.put("campaignPerSecond", targets / drainSeconds);
+                            if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
+                            samples.add(sample(mysql, campaign, realtime, drainStart));
+                            int mixed = probes.size() - BASELINE_PROBES;
+                            assertThat(mixed).as("overlapping realtime observations").isGreaterThanOrEqualTo(10);
+                            await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == probes.size());
+                            awaitOffsets(admin, campaign, targets);
+                            awaitOffsets(admin, realtime, probes.size());
+                            report.put("mixedProbes", mixed);
+                            long verificationStart = System.nanoTime();
+                            report.put("mixedLatencyMs", latency(jdbc, "title='MIXED' AND traffic_class='REALTIME'", mixed));
+                            report.put("campaignCreatedToCompletedMs", latency(jdbc, "traffic_class='CAMPAIGN'", targets));
+                            verifyTargetMappings(jdbc, campaignId, targets);
+                            reconcile(jdbc, targets, audit, mock.getBean(MockPushEndpoint.class));
+                            report.put("verificationSeconds", seconds(verificationStart));
+                            report.put("campaignOffsets", offsets(admin, campaign));
+                            report.put("realtimeOffsets", offsets(admin, realtime));
+                            report.put("mockStats", mock.getBean(MockPushEndpoint.class).stats());
+                            report.put("campaignAllowed", counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed"));
+                            report.put("realtimeAllowed", counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed"));
+                            assertThat(counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(targets);
+                            assertThat(counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(probes.size());
+                            report.put("result", "PASS");
+                        } catch (Exception | AssertionError failure) {
+                            try {
+                                report.put("failureSnapshot", Map.of("observedAtUtc", Instant.now().toString(),
+                                        "elapsedSeconds", seconds(drainStart), "campaign", CampaignDeliveryDiagnostics.application(campaign),
+                                        "realtime", CampaignDeliveryDiagnostics.application(realtime),
+                                        "httpAudit", audit.summary(), "mockStats", mock.getBean(MockPushEndpoint.class).stats(),
+                                        "acceptedProbeResponses", probes.size()));
+                            } catch (RuntimeException diagnosticFailure) {
+                                report.put("failureSnapshotErrorType", diagnosticFailure.getClass().getSimpleName());
+                            }
+                            throw failure;
                         }
-                        double drainSeconds = seconds(drainStart);
-                        report.put("campaignDrainSeconds", drainSeconds);
-                        report.put("campaignPerSecond", targets / drainSeconds);
-                        if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
-                        samples.add(sample(mysql, campaign, realtime, drainStart));
-                        int mixed = probes.size() - BASELINE_PROBES;
-                        assertThat(mixed).as("overlapping realtime observations").isGreaterThanOrEqualTo(10);
-                        await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == probes.size());
-                        awaitOffsets(admin, campaign, targets);
-                        awaitOffsets(admin, realtime, probes.size());
-                        report.put("mixedProbes", mixed);
-                        long verificationStart = System.nanoTime();
-                        report.put("mixedLatencyMs", latency(jdbc, "title='MIXED' AND traffic_class='REALTIME'", mixed));
-                        report.put("campaignCreatedToCompletedMs", latency(jdbc, "traffic_class='CAMPAIGN'", targets));
-                        verifyTargetMappings(jdbc, campaignId, targets);
-                        reconcile(jdbc, targets, audit, mock.getBean(MockPushEndpoint.class));
-                        report.put("verificationSeconds", seconds(verificationStart));
-                        report.put("campaignOffsets", offsets(admin, campaign));
-                        report.put("realtimeOffsets", offsets(admin, realtime));
-                        report.put("mockStats", mock.getBean(MockPushEndpoint.class).stats());
-                        report.put("campaignAllowed", counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed"));
-                        report.put("realtimeAllowed", counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed"));
-                        assertThat(counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(targets);
-                        assertThat(counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(probes.size());
-                        report.put("result", "PASS");
                     }
                 }
             }
@@ -239,8 +252,9 @@ class CampaignDeliveryPilotTest {
         if (ordinal > maxProbes) throw new IllegalStateException("Probe bound exceeded");
         String body = mapper.writeValueAsString(Map.of("recipientId", "pilot-realtime-" + ordinal, "title", phase, "body", "synthetic body"));
         long start = System.nanoTime();
-        var response = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + ((ServletWebServerApplicationContext) app).getWebServer().getPort() + "/notifications"))
-                .timeout(Duration.ofSeconds(5)).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
+        var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + ((ServletWebServerApplicationContext) app).getWebServer().getPort() + "/notifications"))
+                .timeout(Duration.ofSeconds(5)).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build();
+        var response = CampaignDeliveryDiagnostics.sendProbe(http, request, report, phase, ordinal, probes.size());
         assertThat(response.statusCode()).isEqualTo(202);
         probes.add(new Probe(mapper.readTree(response.body()).path("notificationId").asText(), seconds(start) * 1000));
     }
@@ -287,10 +301,13 @@ class CampaignDeliveryPilotTest {
                 gauges.put(name, gauge == null ? null : gauge.value());
             }
             result.put(entry.getKey(), gauges);
+            result.put(entry.getKey() + "State", CampaignDeliveryDiagnostics.application(entry.getValue()));
         }
-        var memory = mysql.execInContainer("cat", "/sys/fs/cgroup/memory.current");
+        var memory = mysql.execInContainer("cat", "/sys/fs/cgroup/memory.current", "/sys/fs/cgroup/memory.events", "/sys/fs/cgroup/cpu.stat");
         assertThat(memory.getExitCode()).isZero();
-        result.put("mysqlCgroupMemoryBytes", Long.parseLong(memory.getStdout().strip()));
+        String[] parts = memory.getStdout().strip().split("\\R", 2);
+        result.put("mysqlCgroupMemoryBytes", Long.parseLong(parts[0]));
+        result.put("mysqlCgroupCounters", CampaignDeliveryDiagnostics.cgroupCounters(parts[1]));
         return result;
     }
 

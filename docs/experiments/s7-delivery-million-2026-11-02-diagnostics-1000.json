@@ -1,0 +1,998 @@
+{
+  "startedAtUtc" : "2026-11-01T18:59:51.660523Z",
+  "scope" : "preloaded campaign HTTP delivery pilot; same JVM independent app contexts",
+  "targets" : 1000,
+  "bounds" : {
+    "drainLimitSeconds" : 900,
+    "latencyArrayBytes" : 40000,
+    "queryPageRows" : 1000,
+    "maxResourceSamples" : 452,
+    "maxRealtimeProbes" : 5000,
+    "campaignAuditBytes" : 128
+  },
+  "verificationVersion" : "paged-latency-and-target-mapping-v2",
+  "diagnosticsVersion" : "live-pools-and-cgroup-counters-v1",
+  "redisConnectionsPerLane" : 3,
+  "settings" : {
+    "probeDelayMillis" : 200,
+    "baselineProbes" : 50,
+    "totalBurst" : 100,
+    "workersPerLane" : 3,
+    "campaignRate" : 200,
+    "totalRate" : 1000,
+    "httpConnectionsPerLane" : 3,
+    "mockDelayMillis" : 1,
+    "campaignBurst" : 20
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "availableProcessors" : 10,
+  "infra" : {
+    "redis" : "7.4.11",
+    "kafka" : "4.0.2",
+    "mysql" : "8.4.8",
+    "redisMemoryMiB" : 256,
+    "kafkaCpu" : 1,
+    "kafkaMemoryMiB" : 1024,
+    "mysqlCpu" : 2,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlMemoryMiB" : 2048
+  },
+  "preloadSeconds" : 2.658358541,
+  "baselineSeconds" : 11.911272917,
+  "baselineLatencyMs" : {
+    "max" : 584.895,
+    "p99" : 584.895,
+    "p50" : 215.552,
+    "count" : 50,
+    "p95" : 560.911
+  },
+  "samples" : [ {
+    "seconds" : 1.387501791,
+    "campaignCompleted" : 1.0,
+    "heapUsedBytes" : 82593440,
+    "processCpuNanos" : 18307447000,
+    "gcMillis" : 142,
+    "threads" : 96,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0474,
+      "outbox.sample.age.seconds" : 3.3347595,
+      "notification.consumer.sample.age.seconds" : 3.312494625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0474,
+      "outbox.sample.age.seconds" : 3.335944167,
+      "notification.consumer.sample.age.seconds" : 3.313728292,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 50.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 16.8132,
+      "outbox.sample.age.seconds" : 0.260656083,
+      "notification.consumer.sample.age.seconds" : 0.148283291,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 16.8132,
+      "outbox.sample.age.seconds" : 0.262375333,
+      "notification.consumer.sample.age.seconds" : 0.148884708,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 2.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 2,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 405409792,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 9890712,
+      "user_usec" : 4716606,
+      "system_usec" : 5174106,
+      "nr_periods" : 325,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 3.819209041,
+    "campaignCompleted" : 54.0,
+    "heapUsedBytes" : 87881888,
+    "processCpuNanos" : 19892425000,
+    "gcMillis" : 152,
+    "threads" : 97,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.1332,
+      "outbox.sample.age.seconds" : 0.72793825,
+      "notification.consumer.sample.age.seconds" : 0.679193791,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.1332,
+      "outbox.sample.age.seconds" : 0.728113375,
+      "notification.consumer.sample.age.seconds" : 0.679368125,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 58.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 16.8132,
+      "outbox.sample.age.seconds" : 2.686107458,
+      "notification.consumer.sample.age.seconds" : 2.572610375,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 16.8132,
+      "outbox.sample.age.seconds" : 2.686275166,
+      "notification.consumer.sample.age.seconds" : 2.572777958,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 54.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 2,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 405905408,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 11256389,
+      "user_usec" : 5683974,
+      "system_usec" : 5572414,
+      "nr_periods" : 349,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 6.030753791,
+    "campaignCompleted" : 135.0,
+    "heapUsedBytes" : 102889768,
+    "processCpuNanos" : 21733250000,
+    "gcMillis" : 154,
+    "threads" : 97,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.1332,
+      "outbox.sample.age.seconds" : 2.939372708,
+      "notification.consumer.sample.age.seconds" : 2.890614916,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.1332,
+      "outbox.sample.age.seconds" : 2.939454125,
+      "notification.consumer.sample.age.seconds" : 2.890696416,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 67.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 16.8132,
+      "outbox.sample.age.seconds" : 4.897290916,
+      "notification.consumer.sample.age.seconds" : 4.783780791,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 16.8132,
+      "outbox.sample.age.seconds" : 4.897367,
+      "notification.consumer.sample.age.seconds" : 4.783856416,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 135.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 2,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 407453696,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 12851292,
+      "user_usec" : 6890245,
+      "system_usec" : 5961046,
+      "nr_periods" : 370,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 8.260741791,
+    "campaignCompleted" : 252.0,
+    "heapUsedBytes" : 89469840,
+    "processCpuNanos" : 23383739000,
+    "gcMillis" : 162,
+    "threads" : 97,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.119907209,
+      "notification.consumer.sample.age.seconds" : 0.107147417,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.120028209,
+      "notification.consumer.sample.age.seconds" : 0.107257833,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 78.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 38.0,
+      "outbox.unpublished" : 818.0,
+      "outbox.oldest.age.seconds" : 21.3012,
+      "outbox.sample.age.seconds" : 2.007984084,
+      "notification.consumer.sample.age.seconds" : 1.9820595,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 38.0,
+      "outbox.unpublished" : 818.0,
+      "outbox.oldest.age.seconds" : 21.3012,
+      "outbox.sample.age.seconds" : 2.008203834,
+      "notification.consumer.sample.age.seconds" : 1.982277125,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 252.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 4,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 409853952,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 14699819,
+      "user_usec" : 8235067,
+      "system_usec" : 6464751,
+      "nr_periods" : 395,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 10.639076666,
+    "campaignCompleted" : 344.0,
+    "heapUsedBytes" : 95943880,
+    "processCpuNanos" : 24663168000,
+    "gcMillis" : 169,
+    "threads" : 97,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.497814042,
+      "notification.consumer.sample.age.seconds" : 2.485045333,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.49792525,
+      "notification.consumer.sample.age.seconds" : 2.485155,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 87.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 38.0,
+      "outbox.unpublished" : 818.0,
+      "outbox.oldest.age.seconds" : 21.3012,
+      "outbox.sample.age.seconds" : 4.385740334,
+      "notification.consumer.sample.age.seconds" : 4.359799167,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 38.0,
+      "outbox.unpublished" : 818.0,
+      "outbox.oldest.age.seconds" : 21.3012,
+      "outbox.sample.age.seconds" : 4.385816667,
+      "notification.consumer.sample.age.seconds" : 4.359874959,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 344.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 410824704,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 16130391,
+      "user_usec" : 9323799,
+      "system_usec" : 6806592,
+      "nr_periods" : 417,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 12.841377041,
+    "campaignCompleted" : 433.0,
+    "heapUsedBytes" : 101213696,
+    "processCpuNanos" : 25726533000,
+    "gcMillis" : 179,
+    "threads" : 97,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.700076459,
+      "notification.consumer.sample.age.seconds" : 4.687303292,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.700142875,
+      "notification.consumer.sample.age.seconds" : 4.68736925,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 95.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 73.0,
+      "outbox.unpublished" : 555.0,
+      "outbox.oldest.age.seconds" : 25.6427,
+      "outbox.sample.age.seconds" : 1.558702417,
+      "notification.consumer.sample.age.seconds" : 1.545831417,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 73.0,
+      "outbox.unpublished" : 555.0,
+      "outbox.oldest.age.seconds" : 25.6427,
+      "outbox.sample.age.seconds" : 1.558768042,
+      "notification.consumer.sample.age.seconds" : 1.545894459,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 434.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 2,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 413581312,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 17642424,
+      "user_usec" : 10460327,
+      "system_usec" : 7182096,
+      "nr_periods" : 439,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 15.145539208,
+    "campaignCompleted" : 567.0,
+    "heapUsedBytes" : 92946848,
+    "processCpuNanos" : 27224972000,
+    "gcMillis" : 210,
+    "threads" : 97,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.980798208,
+      "notification.consumer.sample.age.seconds" : 1.962776083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.980864958,
+      "notification.consumer.sample.age.seconds" : 1.962841333,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 106.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 1,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 73.0,
+      "outbox.unpublished" : 555.0,
+      "outbox.oldest.age.seconds" : 25.6427,
+      "outbox.sample.age.seconds" : 3.862380959,
+      "notification.consumer.sample.age.seconds" : 3.84950425,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 73.0,
+      "outbox.unpublished" : 555.0,
+      "outbox.oldest.age.seconds" : 25.6427,
+      "outbox.sample.age.seconds" : 3.862435167,
+      "notification.consumer.sample.age.seconds" : 3.849557792,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 568.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 1,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 415760384,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 19119906,
+      "user_usec" : 11575507,
+      "system_usec" : 7544398,
+      "nr_periods" : 461,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 17.352208208,
+    "campaignCompleted" : 761.0,
+    "heapUsedBytes" : 103465328,
+    "processCpuNanos" : 28573717000,
+    "gcMillis" : 224,
+    "threads" : 98,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.187461875,
+      "notification.consumer.sample.age.seconds" : 4.169438541,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.187515208,
+      "notification.consumer.sample.age.seconds" : 4.16949175,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 116.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 84.0,
+      "outbox.unpublished" : 252.0,
+      "outbox.oldest.age.seconds" : 30.0569,
+      "outbox.sample.age.seconds" : 1.04632775,
+      "notification.consumer.sample.age.seconds" : 1.037219042,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 84.0,
+      "outbox.unpublished" : 252.0,
+      "outbox.oldest.age.seconds" : 30.0569,
+      "outbox.sample.age.seconds" : 1.046378667,
+      "notification.consumer.sample.age.seconds" : 1.037269375,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 761.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 1,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 3,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 416493568,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 20401066,
+      "user_usec" : 12570306,
+      "system_usec" : 7830759,
+      "nr_periods" : 483,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 19.534001,
+    "campaignCompleted" : 969.0,
+    "heapUsedBytes" : 73500656,
+    "processCpuNanos" : 30051449000,
+    "gcMillis" : 233,
+    "threads" : 98,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.344743375,
+      "notification.consumer.sample.age.seconds" : 1.337356583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.344798166,
+      "notification.consumer.sample.age.seconds" : 1.337410958,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 124.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 84.0,
+      "outbox.unpublished" : 252.0,
+      "outbox.oldest.age.seconds" : 30.0569,
+      "outbox.sample.age.seconds" : 3.228134208,
+      "notification.consumer.sample.age.seconds" : 3.219025417,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 84.0,
+      "outbox.unpublished" : 252.0,
+      "outbox.oldest.age.seconds" : 30.0569,
+      "outbox.sample.age.seconds" : 3.228183292,
+      "notification.consumer.sample.age.seconds" : 3.219079208,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 969.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 2,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 417087488,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 21559131,
+      "user_usec" : 13460973,
+      "system_usec" : 8098157,
+      "nr_periods" : 505,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 20.420386625,
+    "campaignCompleted" : 1000.0,
+    "heapUsedBytes" : 88180720,
+    "processCpuNanos" : 30292192000,
+    "gcMillis" : 233,
+    "threads" : 98,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.231334625,
+      "notification.consumer.sample.age.seconds" : 2.2239585,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.231471083,
+      "notification.consumer.sample.age.seconds" : 2.224092042,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 130.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 84.0,
+      "outbox.unpublished" : 252.0,
+      "outbox.oldest.age.seconds" : 30.0569,
+      "outbox.sample.age.seconds" : 4.114962333,
+      "notification.consumer.sample.age.seconds" : 4.105856625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 84.0,
+      "outbox.unpublished" : 252.0,
+      "outbox.oldest.age.seconds" : 30.0569,
+      "outbox.sample.age.seconds" : 4.115041917,
+      "notification.consumer.sample.age.seconds" : 4.105936,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 1000.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4,
+        "active" : 0,
+        "waiting" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 417185792,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 21698738,
+      "user_usec" : 13578711,
+      "system_usec" : 8120027,
+      "nr_periods" : 514,
+      "nr_throttled" : 1,
+      "throttled_usec" : 41611,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  } ],
+  "campaignDrainSeconds" : 20.420355416,
+  "campaignPerSecond" : 48.97074412409434,
+  "mixedProbes" : 80,
+  "mixedLatencyMs" : {
+    "max" : 624.725,
+    "p99" : 624.725,
+    "p50" : 228.436,
+    "count" : 80,
+    "p95" : 514.371
+  },
+  "campaignCreatedToCompletedMs" : {
+    "max" : 33492.144,
+    "p99" : 33030.221,
+    "p50" : 28412.584,
+    "count" : 1000,
+    "p95" : 32656.909
+  },
+  "verifiedTargetMappings" : 1000,
+  "mappingJoinPlan" : "eq_ref/PRIMARY for n,t,o,a",
+  "httpAudit" : {
+    "duplicates" : 0,
+    "invalid" : 0,
+    "uniqueRealtime" : 130,
+    "uniqueCampaign" : 1000
+  },
+  "baselineApiLatencyMs" : {
+    "max" : 313.78091600000005,
+    "p99" : 313.78091600000005,
+    "p50" : 14.055709,
+    "count" : 50,
+    "p95" : 82.834459
+  },
+  "mixedApiLatencyMs" : {
+    "max" : 205.51708299999999,
+    "p99" : 205.51708299999999,
+    "p50" : 11.415208,
+    "count" : 80,
+    "p95" : 39.148917
+  },
+  "verificationSeconds" : 0.18750375,
+  "campaignOffsets" : [ {
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 350,
+    "end" : 350,
+    "partition" : 2
+  }, {
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2
+  }, {
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 326,
+    "end" : 326,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 324,
+    "end" : 324,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2
+  } ],
+  "realtimeOffsets" : [ {
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2
+  }, {
+    "topic" : "notification.requested.v1",
+    "committed" : 42,
+    "end" : 42,
+    "partition" : 2
+  }, {
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1",
+    "committed" : 48,
+    "end" : 48,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1",
+    "committed" : 40,
+    "end" : 40,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2
+  } ],
+  "mockStats" : {
+    "requests" : 1130,
+    "accepted" : 1130,
+    "rateLimited" : 0,
+    "serverErrors" : 0,
+    "permanentFailures" : 0,
+    "busy" : 0,
+    "active" : 0,
+    "maxActive" : 4
+  },
+  "campaignAllowed" : 1000.0,
+  "realtimeAllowed" : 130.0,
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-01T19:00:48.843352Z"
+}

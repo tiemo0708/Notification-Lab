@@ -1,0 +1,30 @@
+{
+  "component": "isolated experimental MySQL",
+  "windowUtc": [
+    "2026-11-01T18:53:00Z",
+    "2026-11-01T18:55:00Z"
+  ],
+  "limitation": "Docker event history is bounded. Absence of an oom event does not prove absence of memory pressure. Exit 137 followed an explicit kill at the task cleanup/end time, which is consistent with cleanup and does not by itself prove an OOM kill.",
+  "followupQueryEvents": [],
+  "initialQueryObservedStdout": [
+    {
+      "epochSeconds": 1793559258,
+      "timeUtc": "2026-11-01T18:54:18+00:00",
+      "action": "kill",
+      "exitCode": null
+    },
+    {
+      "epochSeconds": 1793559258,
+      "timeUtc": "2026-11-01T18:54:18+00:00",
+      "action": "die",
+      "exitCode": 137
+    },
+    {
+      "epochSeconds": 1793559258,
+      "timeUtc": "2026-11-01T18:54:18+00:00",
+      "action": "destroy",
+      "exitCode": null
+    }
+  ],
+  "collectionNote": "The initial read-only command stdout was observed in this session. A later repeated query returned no events after more test activity; the initial observed lines are retained separately as observation notes, not as a fresh query result."
+}
