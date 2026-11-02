@@ -165,6 +165,26 @@ tasks.register('relayScalingPilot', Test) {
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
 
+// Observe JDBC/offset boundaries without changing application transaction or commit policies.
+tasks.register('deliveryTimingPilot', Test) {
+    description = 'Profile JDBC acquisition/SQL/commit and Kafka commitSync in a bounded delivery pilot'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'campaign-delivery-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(25)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '20m'
+    systemProperty 'campaign.delivery.targets', providers.gradleProperty('deliveryTargets').getOrElse('10000')
+    systemProperty 'campaign.delivery.scaling', 'true'
+    systemProperty 'campaign.delivery.relayInstances', providers.gradleProperty('campaignRelays').getOrElse('1')
+    systemProperty 'campaign.delivery.publishBatchSize', '10'
+    systemProperty 'campaign.delivery.fineTiming', 'true'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
 // Explicit 100,000-target run. Reuses the pilot path without changing application defaults.
 tasks.register('campaignDeliveryLoad', Test) {
     description = 'Reconcile 100,000 HTTP campaign deliveries and concurrent realtime probes'

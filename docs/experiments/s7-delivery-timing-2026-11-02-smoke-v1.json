@@ -1,0 +1,1913 @@
+{
+  "startedAtUtc" : "2026-11-02T07:43:21.151449Z",
+  "scope" : "preloaded campaign HTTP delivery pilot; same JVM independent app contexts",
+  "targets" : 1000,
+  "bounds" : {
+    "campaignAuditBytes" : 128,
+    "maxRealtimeProbes" : 5000,
+    "maxResourceSamples" : 452,
+    "queryPageRows" : 1000,
+    "latencyArrayBytes" : 40000,
+    "drainLimitSeconds" : 900
+  },
+  "verificationVersion" : "paged-latency-and-target-mapping-v2",
+  "diagnosticsVersion" : "live-pools-and-cgroup-counters-v1",
+  "redisConnectionsPerLane" : 3,
+  "settings" : {
+    "probeDelayMillis" : 200,
+    "campaignBurst" : 20,
+    "mockDelayMillis" : 1,
+    "httpConnectionsPerLane" : 3,
+    "totalRate" : 1000,
+    "campaignRate" : 200,
+    "workersPerLane" : 3,
+    "totalBurst" : 100,
+    "baselineProbes" : 50
+  },
+  "publishBatchSize" : 10,
+  "campaignRelayInstances" : 1,
+  "relayScheduling" : "test-only-fixed-delay-group-v1",
+  "fineTimingEnabled" : true,
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "availableProcessors" : 10,
+  "infra" : {
+    "redis" : "7.4.11",
+    "mysqlMemoryMiB" : 2048,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlCpu" : 2,
+    "kafkaMemoryMiB" : 1024,
+    "kafkaCpu" : 1,
+    "redisMemoryMiB" : 256,
+    "mysql" : "8.4.8",
+    "kafka" : "4.0.2"
+  },
+  "preloadSeconds" : 1.904015125,
+  "baselineSeconds" : 11.640716959,
+  "baselineLatencyMs" : {
+    "p95" : 556.063,
+    "count" : 50,
+    "p50" : 194.254,
+    "p99" : 639.297,
+    "max" : 639.297
+  },
+  "samples" : [ {
+    "seconds" : 0.406947292,
+    "campaignCompleted" : 5.0,
+    "heapUsedBytes" : 72145112,
+    "processCpuNanos" : 14559559000,
+    "gcMillis" : 87,
+    "threads" : 97,
+    "realtime" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.086409625,
+      "notification.consumer.sample.age.seconds" : 2.07276625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.086645333,
+      "notification.consumer.sample.age.seconds" : 2.073007083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 50.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 0,
+        "total" : 3,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 3
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.57,
+      "outbox.sample.age.seconds" : 0.11206125,
+      "notification.consumer.sample.age.seconds" : 0.098428875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.57,
+      "outbox.sample.age.seconds" : 0.112243375,
+      "notification.consumer.sample.age.seconds" : 0.098610917,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 5.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 1,
+        "total" : 3,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 2
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 402432000,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 4868624,
+      "user_usec" : 3375869,
+      "system_usec" : 1492754,
+      "nr_periods" : 237,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 2.577199,
+    "campaignCompleted" : 156.0,
+    "heapUsedBytes" : 96996672,
+    "processCpuNanos" : 16803828000,
+    "gcMillis" : 94,
+    "threads" : 99,
+    "realtime" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.255914667,
+      "notification.consumer.sample.age.seconds" : 4.242271083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.256147792,
+      "notification.consumer.sample.age.seconds" : 4.242503375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 60.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 0,
+        "total" : 3,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 3
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.57,
+      "outbox.sample.age.seconds" : 2.2814405,
+      "notification.consumer.sample.age.seconds" : 2.267807958,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.57,
+      "outbox.sample.age.seconds" : 2.281612208,
+      "notification.consumer.sample.age.seconds" : 2.267978542,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 156.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 4,
+        "total" : 4,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 0
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 407322624,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 5840287,
+      "user_usec" : 4154586,
+      "system_usec" : 1685700,
+      "nr_periods" : 259,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 4.7321785,
+    "campaignCompleted" : 379.0,
+    "heapUsedBytes" : 78575000,
+    "processCpuNanos" : 18669223000,
+    "gcMillis" : 100,
+    "threads" : 99,
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.388767709,
+      "notification.consumer.sample.age.seconds" : 1.381058959,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.388843625,
+      "notification.consumer.sample.age.seconds" : 1.381133917,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 70.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 0,
+        "total" : 3,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 3
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.57,
+      "outbox.sample.age.seconds" : 4.43600575,
+      "notification.consumer.sample.age.seconds" : 4.422358083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.57,
+      "outbox.sample.age.seconds" : 4.436075,
+      "notification.consumer.sample.age.seconds" : 4.422426583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 379.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 1,
+        "total" : 4,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 409911296,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 6847104,
+      "user_usec" : 4947736,
+      "system_usec" : 1899367,
+      "nr_periods" : 280,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 6.920246334,
+    "campaignCompleted" : 612.0,
+    "heapUsedBytes" : 102645072,
+    "processCpuNanos" : 19994482000,
+    "gcMillis" : 105,
+    "threads" : 98,
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.576912375,
+      "notification.consumer.sample.age.seconds" : 3.569204584,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.576993459,
+      "notification.consumer.sample.age.seconds" : 3.569284042,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 80.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 1,
+        "total" : 3,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 2
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 185.0,
+      "outbox.unpublished" : 400.0,
+      "outbox.oldest.age.seconds" : 18.5353,
+      "outbox.sample.age.seconds" : 1.608937584,
+      "notification.consumer.sample.age.seconds" : 1.603194708,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 185.0,
+      "outbox.unpublished" : 400.0,
+      "outbox.oldest.age.seconds" : 18.5353,
+      "outbox.sample.age.seconds" : 1.609011084,
+      "notification.consumer.sample.age.seconds" : 1.603267875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 612.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 1,
+        "total" : 4,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 413048832,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 7956141,
+      "user_usec" : 5816303,
+      "system_usec" : 2139837,
+      "nr_periods" : 303,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 9.157363209,
+    "campaignCompleted" : 858.0,
+    "heapUsedBytes" : 80884936,
+    "processCpuNanos" : 21227106000,
+    "gcMillis" : 119,
+    "threads" : 98,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0456,
+      "outbox.sample.age.seconds" : 0.80168075,
+      "notification.consumer.sample.age.seconds" : 0.795253,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0456,
+      "outbox.sample.age.seconds" : 0.801794042,
+      "notification.consumer.sample.age.seconds" : 0.795365125,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 90.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 0,
+        "total" : 3,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 3
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 185.0,
+      "outbox.unpublished" : 400.0,
+      "outbox.oldest.age.seconds" : 18.5353,
+      "outbox.sample.age.seconds" : 3.846039584,
+      "notification.consumer.sample.age.seconds" : 3.840296,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 185.0,
+      "outbox.unpublished" : 400.0,
+      "outbox.oldest.age.seconds" : 18.5353,
+      "outbox.sample.age.seconds" : 3.846128417,
+      "notification.consumer.sample.age.seconds" : 3.840385958,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 858.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 3,
+        "total" : 4,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 1
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 414244864,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 9087670,
+      "user_usec" : 6708196,
+      "system_usec" : 2379474,
+      "nr_periods" : 324,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 10.686863417,
+    "campaignCompleted" : 1000.0,
+    "heapUsedBytes" : 90315520,
+    "processCpuNanos" : 21818069000,
+    "gcMillis" : 120,
+    "threads" : 98,
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0456,
+      "outbox.sample.age.seconds" : 2.33106925,
+      "notification.consumer.sample.age.seconds" : 2.324639416,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0456,
+      "outbox.sample.age.seconds" : 2.331136417,
+      "notification.consumer.sample.age.seconds" : 2.324705791,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 97.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 0,
+        "total" : 3,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 3
+      }
+    },
+    "campaign" : {
+      "notification.consumer.lag" : 6.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.368548709,
+      "notification.consumer.sample.age.seconds" : 0.36385775,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 6.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.368609584,
+      "notification.consumer.sample.age.seconds" : 0.363918166,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 1000.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "waiting" : 0,
+        "active" : 0,
+        "total" : 4,
+        "available" : true,
+        "maximum" : 4,
+        "idle" : 4
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 414601216,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 9529190,
+      "user_usec" : 7065681,
+      "system_usec" : 2463508,
+      "nr_periods" : 340,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  } ],
+  "campaignDrainSeconds" : 10.6868535,
+  "campaignPerSecond" : 93.57291180233733,
+  "campaignRelayGroup" : {
+    "activeRuns" : 0,
+    "maxConcurrentRuns" : 1,
+    "queuedPeriodicTasks" : 0,
+    "terminated" : true,
+    "instances" : 1,
+    "invocationsPerInstance" : [ 43 ]
+  },
+  "mixedProbes" : 47,
+  "mixedLatencyMs" : {
+    "p95" : 490.756,
+    "count" : 47,
+    "p50" : 134.239,
+    "p99" : 571.083,
+    "max" : 571.083
+  },
+  "campaignCreatedToCompletedMs" : {
+    "p95" : 22567.032,
+    "count" : 1000,
+    "p50" : 19273.487,
+    "p99" : 22816.299,
+    "max" : 23266.146
+  },
+  "verifiedTargetMappings" : 1000,
+  "mappingJoinPlan" : "eq_ref/PRIMARY for n,t,o,a",
+  "httpAudit" : {
+    "uniqueCampaign" : 1000,
+    "uniqueRealtime" : 97,
+    "invalid" : 0,
+    "duplicates" : 0
+  },
+  "baselineApiLatencyMs" : {
+    "p95" : 24.053833,
+    "count" : 50,
+    "p50" : 13.530458000000001,
+    "p99" : 84.9585,
+    "max" : 84.9585
+  },
+  "mixedApiLatencyMs" : {
+    "p95" : 9.962625,
+    "count" : 47,
+    "p50" : 6.454833,
+    "p99" : 74.60425,
+    "max" : 74.60425
+  },
+  "verificationSeconds" : 0.164138292,
+  "campaignOffsets" : [ {
+    "partition" : 2,
+    "end" : 337,
+    "committed" : 337,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "partition" : 1,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "partition" : 0,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "partition" : 2,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "partition" : 1,
+    "end" : 333,
+    "committed" : 333,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "partition" : 0,
+    "end" : 330,
+    "committed" : 330,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "partition" : 0,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  }, {
+    "partition" : 1,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  }, {
+    "partition" : 2,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  } ],
+  "realtimeOffsets" : [ {
+    "partition" : 1,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "partition" : 0,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "partition" : 2,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "partition" : 2,
+    "end" : 34,
+    "committed" : 34,
+    "topic" : "notification.requested.v1"
+  }, {
+    "partition" : 0,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.dlq"
+  }, {
+    "partition" : 1,
+    "end" : 41,
+    "committed" : 41,
+    "topic" : "notification.requested.v1"
+  }, {
+    "partition" : 1,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.dlq"
+  }, {
+    "partition" : 0,
+    "end" : 22,
+    "committed" : 22,
+    "topic" : "notification.requested.v1"
+  }, {
+    "partition" : 2,
+    "end" : 0,
+    "committed" : 0,
+    "topic" : "notification.requested.v1.dlq"
+  } ],
+  "mockStats" : {
+    "requests" : 1097,
+    "accepted" : 1097,
+    "rateLimited" : 0,
+    "serverErrors" : 0,
+    "permanentFailures" : 0,
+    "busy" : 0,
+    "active" : 0,
+    "maxActive" : 4
+  },
+  "campaignAllowed" : 1000.0,
+  "realtimeAllowed" : 97.0,
+  "stageTimingVersion" : "caller-side-transaction-and-ack-v1",
+  "campaignStageTimings" : {
+    "relay.claim" : {
+      "count" : 1023,
+      "meanMillis" : 4.495485283479961,
+      "totalMillis" : 4598.881445
+    },
+    "relay.ack" : {
+      "count" : 1000,
+      "meanMillis" : 1.119356969,
+      "totalMillis" : 1119.356969
+    },
+    "relay.mark.published" : {
+      "count" : 101,
+      "meanMillis" : 6.7771897227722775,
+      "totalMillis" : 684.496162
+    },
+    "relay.run" : {
+      "count" : 43,
+      "meanMillis" : 149.08097972093023,
+      "totalMillis" : 6410.482128
+    },
+    "worker.handler" : {
+      "count" : 1000,
+      "meanMillis" : 17.26417528,
+      "totalMillis" : 17264.17528
+    },
+    "worker.claim.initial" : {
+      "count" : 1000,
+      "meanMillis" : 3.4474793,
+      "totalMillis" : 3447.4793
+    },
+    "worker.claim.admitted" : {
+      "count" : 1000,
+      "meanMillis" : 6.293213966000001,
+      "totalMillis" : 6293.213966
+    },
+    "worker.provider" : {
+      "count" : 1000,
+      "meanMillis" : 2.079692665,
+      "totalMillis" : 2079.692665
+    },
+    "worker.complete" : {
+      "count" : 1000,
+      "meanMillis" : 4.735795447,
+      "totalMillis" : 4735.795447
+    }
+  },
+  "realtimeStageTimings" : {
+    "relay.claim" : {
+      "count" : 290,
+      "meanMillis" : 6.324471948275862,
+      "totalMillis" : 1834.096865
+    },
+    "relay.ack" : {
+      "count" : 97,
+      "meanMillis" : 4.130758113402062,
+      "totalMillis" : 400.683537
+    },
+    "relay.mark.published" : {
+      "count" : 97,
+      "meanMillis" : 4.258549865979382,
+      "totalMillis" : 413.079337
+    },
+    "relay.run" : {
+      "count" : 193,
+      "meanMillis" : 13.75138518134715,
+      "totalMillis" : 2654.01734
+    },
+    "worker.handler" : {
+      "count" : 97,
+      "meanMillis" : 22.36445531958763,
+      "totalMillis" : 2169.352166
+    },
+    "worker.claim.initial" : {
+      "count" : 97,
+      "meanMillis" : 5.253104360824742,
+      "totalMillis" : 509.551123
+    },
+    "worker.claim.admitted" : {
+      "count" : 97,
+      "meanMillis" : 7.663689855670103,
+      "totalMillis" : 743.377916
+    },
+    "worker.provider" : {
+      "count" : 97,
+      "meanMillis" : 3.568389164948454,
+      "totalMillis" : 346.133749
+    },
+    "worker.complete" : {
+      "count" : 97,
+      "meanMillis" : 4.880011628865979,
+      "totalMillis" : 473.361128
+    }
+  },
+  "result" : "PASS",
+  "fineTimings" : {
+    "REALTIME" : {
+      "wrappedConsumers" : 3,
+      "phases" : {
+        "OUTBOX_CLAIM" : {
+          "STORE_CALL" : {
+            "maxMillis" : 31.143833,
+            "count" : 293,
+            "totalMillis" : 1848.745205,
+            "failures" : 0,
+            "meanMillis" : 6.309710597269625
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 4.915542,
+            "count" : 293,
+            "totalMillis" : 11.119532,
+            "failures" : 0,
+            "meanMillis" : 0.03795062116040956
+          },
+          "PREPARE" : {
+            "maxMillis" : 6.3915,
+            "count" : 683,
+            "totalMillis" : 35.51427,
+            "failures" : 0,
+            "meanMillis" : 0.05199746705710103
+          },
+          "EXECUTE" : {
+            "maxMillis" : 4.870625,
+            "count" : 683,
+            "totalMillis" : 605.116315,
+            "failures" : 0,
+            "meanMillis" : 0.8859682503660322
+          },
+          "COMMIT" : {
+            "maxMillis" : 13.519542,
+            "count" : 293,
+            "totalMillis" : 299.976331,
+            "failures" : 0,
+            "meanMillis" : 1.0238100034129693
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 10.820292,
+            "count" : 1758,
+            "totalMillis" : 820.342373,
+            "failures" : 0,
+            "meanMillis" : 0.4666338868031854
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.1225,
+            "count" : 293,
+            "totalMillis" : 4.363832,
+            "failures" : 0,
+            "meanMillis" : 0.01489362457337884
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.087375,
+            "count" : 683,
+            "totalMillis" : 4.754845,
+            "failures" : 0,
+            "meanMillis" : 0.006961705710102489
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "OUTBOX_PUBLISHED" : {
+          "STORE_CALL" : {
+            "maxMillis" : 15.049209,
+            "count" : 97,
+            "totalMillis" : 410.685668,
+            "failures" : 0,
+            "meanMillis" : 4.233872865979381
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 0.08175,
+            "count" : 97,
+            "totalMillis" : 1.44062,
+            "failures" : 0,
+            "meanMillis" : 0.014851752577319587
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.131292,
+            "count" : 97,
+            "totalMillis" : 3.20783,
+            "failures" : 0,
+            "meanMillis" : 0.03307041237113402
+          },
+          "EXECUTE" : {
+            "maxMillis" : 3.601792,
+            "count" : 97,
+            "totalMillis" : 98.780498,
+            "failures" : 0,
+            "meanMillis" : 1.018355649484536
+          },
+          "COMMIT" : {
+            "maxMillis" : 8.719541,
+            "count" : 97,
+            "totalMillis" : 185.152665,
+            "failures" : 0,
+            "meanMillis" : 1.9087903608247423
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 4.245958,
+            "count" : 291,
+            "totalMillis" : 105.100375,
+            "failures" : 0,
+            "meanMillis" : 0.3611696735395189
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.062792,
+            "count" : 97,
+            "totalMillis" : 1.398246,
+            "failures" : 0,
+            "meanMillis" : 0.014414907216494846
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.071333,
+            "count" : 97,
+            "totalMillis" : 1.480334,
+            "failures" : 0,
+            "meanMillis" : 0.015261175257731959
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "OUTBOX_FAILED" : {
+          "STORE_CALL" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "EXECUTE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "WORKER_INITIAL" : {
+          "STORE_CALL" : {
+            "maxMillis" : 13.039958,
+            "count" : 97,
+            "totalMillis" : 508.088036,
+            "failures" : 0,
+            "meanMillis" : 5.238020989690722
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 1.834958,
+            "count" : 97,
+            "totalMillis" : 5.954706,
+            "failures" : 0,
+            "meanMillis" : 0.061388721649484536
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.171708,
+            "count" : 388,
+            "totalMillis" : 9.587469,
+            "failures" : 0,
+            "meanMillis" : 0.024709971649484536
+          },
+          "EXECUTE" : {
+            "maxMillis" : 3.117625,
+            "count" : 388,
+            "totalMillis" : 296.411041,
+            "failures" : 0,
+            "meanMillis" : 0.763945981958763
+          },
+          "COMMIT" : {
+            "maxMillis" : 1.370959,
+            "count" : 97,
+            "totalMillis" : 44.999296,
+            "failures" : 0,
+            "meanMillis" : 0.46391026804123714
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 2.949334,
+            "count" : 291,
+            "totalMillis" : 115.579878,
+            "failures" : 0,
+            "meanMillis" : 0.3971817113402062
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.055458,
+            "count" : 97,
+            "totalMillis" : 1.172626,
+            "failures" : 0,
+            "meanMillis" : 0.012088927835051546
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.16075,
+            "count" : 388,
+            "totalMillis" : 1.955631,
+            "failures" : 0,
+            "meanMillis" : 0.005040286082474227
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "WORKER_ADMITTED" : {
+          "STORE_CALL" : {
+            "maxMillis" : 19.082541,
+            "count" : 97,
+            "totalMillis" : 742.145791,
+            "failures" : 0,
+            "meanMillis" : 7.650987536082474
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 3.838583,
+            "count" : 97,
+            "totalMillis" : 7.401457,
+            "failures" : 0,
+            "meanMillis" : 0.07630368041237114
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.130542,
+            "count" : 776,
+            "totalMillis" : 12.04633,
+            "failures" : 0,
+            "meanMillis" : 0.015523621134020617
+          },
+          "EXECUTE" : {
+            "maxMillis" : 3.216958,
+            "count" : 776,
+            "totalMillis" : 459.482614,
+            "failures" : 0,
+            "meanMillis" : 0.5921167706185567
+          },
+          "COMMIT" : {
+            "maxMillis" : 5.499417,
+            "count" : 97,
+            "totalMillis" : 151.801421,
+            "failures" : 0,
+            "meanMillis" : 1.5649631030927835
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 1.7425,
+            "count" : 291,
+            "totalMillis" : 75.787374,
+            "failures" : 0,
+            "meanMillis" : 0.26043771134020616
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.444125,
+            "count" : 97,
+            "totalMillis" : 1.473453,
+            "failures" : 0,
+            "meanMillis" : 0.01519023711340206
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.0365,
+            "count" : 776,
+            "totalMillis" : 2.589756,
+            "failures" : 0,
+            "meanMillis" : 0.0033373144329896906
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "WORKER_COMPLETE" : {
+          "STORE_CALL" : {
+            "maxMillis" : 10.826125,
+            "count" : 97,
+            "totalMillis" : 472.177294,
+            "failures" : 0,
+            "meanMillis" : 4.867807154639175
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 0.04075,
+            "count" : 97,
+            "totalMillis" : 0.907122,
+            "failures" : 0,
+            "meanMillis" : 0.009351773195876288
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.105042,
+            "count" : 388,
+            "totalMillis" : 6.899801,
+            "failures" : 0,
+            "meanMillis" : 0.017782992268041236
+          },
+          "EXECUTE" : {
+            "maxMillis" : 4.236792,
+            "count" : 388,
+            "totalMillis" : 224.806576,
+            "failures" : 0,
+            "meanMillis" : 0.5793983917525773
+          },
+          "COMMIT" : {
+            "maxMillis" : 2.898292,
+            "count" : 97,
+            "totalMillis" : 130.212706,
+            "failures" : 0,
+            "meanMillis" : 1.342399030927835
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 1.910417,
+            "count" : 679,
+            "totalMillis" : 79.940841,
+            "failures" : 0,
+            "meanMillis" : 0.11773319734904272
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.041,
+            "count" : 97,
+            "totalMillis" : 0.9305,
+            "failures" : 0,
+            "meanMillis" : 0.00959278350515464
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.046,
+            "count" : 388,
+            "totalMillis" : 1.711335,
+            "failures" : 0,
+            "meanMillis" : 0.004410657216494846
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "CONSUMER" : {
+          "STORE_CALL" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "EXECUTE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 14.068417,
+            "count" : 97,
+            "totalMillis" : 760.049332,
+            "failures" : 0,
+            "meanMillis" : 7.835560123711341
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        }
+      },
+      "activeCalls" : 0,
+      "pools" : 1,
+      "version" : "jdbc-consumer-boundaries-v1",
+      "scope" : "live app lifecycle including baseline, idle and shutdown; preload excluded",
+      "poolsClosed" : true
+    },
+    "CAMPAIGN" : {
+      "wrappedConsumers" : 3,
+      "phases" : {
+        "OUTBOX_CLAIM" : {
+          "STORE_CALL" : {
+            "maxMillis" : 83.312792,
+            "count" : 1023,
+            "totalMillis" : 4593.009854,
+            "failures" : 0,
+            "meanMillis" : 4.489745702834799
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 1.584125,
+            "count" : 1023,
+            "totalMillis" : 4.489089,
+            "failures" : 0,
+            "meanMillis" : 0.004388161290322581
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.137542,
+            "count" : 3046,
+            "totalMillis" : 37.515232,
+            "failures" : 0,
+            "meanMillis" : 0.012316228496388706
+          },
+          "EXECUTE" : {
+            "maxMillis" : 19.364291,
+            "count" : 3046,
+            "totalMillis" : 1465.273576,
+            "failures" : 0,
+            "meanMillis" : 0.4810484491135916
+          },
+          "COMMIT" : {
+            "maxMillis" : 24.07475,
+            "count" : 1023,
+            "totalMillis" : 1287.820711,
+            "failures" : 0,
+            "meanMillis" : 1.2588667751710656
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 19.93775,
+            "count" : 6138,
+            "totalMillis" : 1720.518992,
+            "failures" : 0,
+            "meanMillis" : 0.28030612447051156
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.063042,
+            "count" : 1023,
+            "totalMillis" : 3.067579,
+            "failures" : 0,
+            "meanMillis" : 0.002998610948191593
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.206791,
+            "count" : 3046,
+            "totalMillis" : 4.056519,
+            "failures" : 0,
+            "meanMillis" : 0.001331752790544977
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "OUTBOX_PUBLISHED" : {
+          "STORE_CALL" : {
+            "maxMillis" : 14.668542,
+            "count" : 101,
+            "totalMillis" : 683.63784,
+            "failures" : 0,
+            "meanMillis" : 6.768691485148515
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 0.012208,
+            "count" : 101,
+            "totalMillis" : 0.263788,
+            "failures" : 0,
+            "meanMillis" : 0.002611762376237624
+          },
+          "PREPARE" : {
+            "maxMillis" : 1.251708,
+            "count" : 1000,
+            "totalMillis" : 6.960171,
+            "failures" : 0,
+            "meanMillis" : 0.006960171
+          },
+          "EXECUTE" : {
+            "maxMillis" : 3.959209,
+            "count" : 1000,
+            "totalMillis" : 463.863061,
+            "failures" : 0,
+            "meanMillis" : 0.463863061
+          },
+          "COMMIT" : {
+            "maxMillis" : 6.536667,
+            "count" : 101,
+            "totalMillis" : 143.056332,
+            "failures" : 0,
+            "meanMillis" : 1.4163993267326733
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 1.858666,
+            "count" : 303,
+            "totalMillis" : 58.930004,
+            "failures" : 0,
+            "meanMillis" : 0.1944884620462046
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.049667,
+            "count" : 101,
+            "totalMillis" : 0.353962,
+            "failures" : 0,
+            "meanMillis" : 0.0035045742574257425
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.037625,
+            "count" : 1000,
+            "totalMillis" : 2.029704,
+            "failures" : 0,
+            "meanMillis" : 0.0020297040000000002
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "OUTBOX_FAILED" : {
+          "STORE_CALL" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "EXECUTE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "WORKER_INITIAL" : {
+          "STORE_CALL" : {
+            "maxMillis" : 74.561334,
+            "count" : 1000,
+            "totalMillis" : 3442.814068,
+            "failures" : 0,
+            "meanMillis" : 3.442814068
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 4.305125,
+            "count" : 1000,
+            "totalMillis" : 15.971455,
+            "failures" : 0,
+            "meanMillis" : 0.015971455
+          },
+          "PREPARE" : {
+            "maxMillis" : 1.497667,
+            "count" : 4000,
+            "totalMillis" : 31.656197,
+            "failures" : 0,
+            "meanMillis" : 0.00791404925
+          },
+          "EXECUTE" : {
+            "maxMillis" : 18.622292,
+            "count" : 4000,
+            "totalMillis" : 2070.979897,
+            "failures" : 0,
+            "meanMillis" : 0.51774497425
+          },
+          "COMMIT" : {
+            "maxMillis" : 5.509083,
+            "count" : 1000,
+            "totalMillis" : 384.943043,
+            "failures" : 0,
+            "meanMillis" : 0.384943043
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 19.903292,
+            "count" : 3000,
+            "totalMillis" : 863.679126,
+            "failures" : 0,
+            "meanMillis" : 0.287893042
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.066084,
+            "count" : 1000,
+            "totalMillis" : 2.762861,
+            "failures" : 0,
+            "meanMillis" : 0.002762861
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.027042,
+            "count" : 4000,
+            "totalMillis" : 2.587232,
+            "failures" : 0,
+            "meanMillis" : 6.46808E-4
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "WORKER_ADMITTED" : {
+          "STORE_CALL" : {
+            "maxMillis" : 41.39725,
+            "count" : 1000,
+            "totalMillis" : 6288.81217,
+            "failures" : 0,
+            "meanMillis" : 6.28881217
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 3.433584,
+            "count" : 1000,
+            "totalMillis" : 6.896719,
+            "failures" : 0,
+            "meanMillis" : 0.006896719
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.099375,
+            "count" : 8000,
+            "totalMillis" : 50.002635,
+            "failures" : 0,
+            "meanMillis" : 0.006250329375
+          },
+          "EXECUTE" : {
+            "maxMillis" : 6.899667,
+            "count" : 8000,
+            "totalMillis" : 3871.202271,
+            "failures" : 0,
+            "meanMillis" : 0.483900283875
+          },
+          "COMMIT" : {
+            "maxMillis" : 15.596417,
+            "count" : 1000,
+            "totalMillis" : 1483.479786,
+            "failures" : 0,
+            "meanMillis" : 1.4834797860000002
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 22.43175,
+            "count" : 3000,
+            "totalMillis" : 780.955722,
+            "failures" : 0,
+            "meanMillis" : 0.260318574
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.03725,
+            "count" : 1000,
+            "totalMillis" : 2.469449,
+            "failures" : 0,
+            "meanMillis" : 0.002469449
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.057541,
+            "count" : 8000,
+            "totalMillis" : 7.581698,
+            "failures" : 0,
+            "meanMillis" : 9.4771225E-4
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "WORKER_COMPLETE" : {
+          "STORE_CALL" : {
+            "maxMillis" : 62.339833,
+            "count" : 1000,
+            "totalMillis" : 4731.663603,
+            "failures" : 0,
+            "meanMillis" : 4.731663603
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 0.147959,
+            "count" : 1000,
+            "totalMillis" : 2.340913,
+            "failures" : 0,
+            "meanMillis" : 0.002340913
+          },
+          "PREPARE" : {
+            "maxMillis" : 1.261125,
+            "count" : 4000,
+            "totalMillis" : 30.058934,
+            "failures" : 0,
+            "meanMillis" : 0.007514733500000001
+          },
+          "EXECUTE" : {
+            "maxMillis" : 17.044375,
+            "count" : 4000,
+            "totalMillis" : 2139.706041,
+            "failures" : 0,
+            "meanMillis" : 0.5349265102499999
+          },
+          "COMMIT" : {
+            "maxMillis" : 24.1745,
+            "count" : 1000,
+            "totalMillis" : 1642.185723,
+            "failures" : 0,
+            "meanMillis" : 1.642185723
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 11.981875,
+            "count" : 7000,
+            "totalMillis" : 812.634979,
+            "failures" : 0,
+            "meanMillis" : 0.1160907112857143
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.031875,
+            "count" : 1000,
+            "totalMillis" : 2.510665,
+            "failures" : 0,
+            "meanMillis" : 0.002510665
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.02925,
+            "count" : 4000,
+            "totalMillis" : 4.882341,
+            "failures" : 0,
+            "meanMillis" : 0.00122058525
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        },
+        "CONSUMER" : {
+          "STORE_CALL" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "ACQUIRE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "PREPARE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "EXECUTE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "ROLLBACK" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "CONNECTION_STATE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "RELEASE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "STATEMENT_CLOSE" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          },
+          "COMMIT_SYNC" : {
+            "maxMillis" : 36.2245,
+            "count" : 1000,
+            "totalMillis" : 6540.313246,
+            "failures" : 0,
+            "meanMillis" : 6.540313245999999
+          },
+          "COMMIT_ASYNC_SUBMIT" : {
+            "maxMillis" : 0.0,
+            "count" : 0,
+            "totalMillis" : 0.0,
+            "failures" : 0,
+            "meanMillis" : 0.0
+          }
+        }
+      },
+      "activeCalls" : 0,
+      "pools" : 1,
+      "version" : "jdbc-consumer-boundaries-v1",
+      "scope" : "live app lifecycle including baseline, idle and shutdown; preload excluded",
+      "poolsClosed" : true
+    }
+  },
+  "finishedAtUtc" : "2026-11-02T07:43:59.488643Z"
+}

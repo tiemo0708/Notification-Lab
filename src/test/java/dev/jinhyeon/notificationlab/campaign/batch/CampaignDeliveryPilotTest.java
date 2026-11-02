@@ -74,11 +74,14 @@ class CampaignDeliveryPilotTest {
     private String mockUrl;
     private int maxProbes;
     private int relayInstances;
+    private final Map<String, DeliveryTiming> timings = new LinkedHashMap<>();
 
     @Test
     void reconcilesHttpDeliveryAndComparesRealtimeLatencyDuringCampaignDrain() throws Exception {
         boolean load = Boolean.getBoolean("campaign.delivery.load");
         boolean scaling = Boolean.getBoolean("campaign.delivery.scaling");
+        boolean fineTiming = Boolean.getBoolean("campaign.delivery.fineTiming");
+        if (fineTiming && !scaling) throw new IllegalArgumentException("Fine timing requires the bounded scaling pilot");
         if (scaling && load) throw new IllegalArgumentException("Relay scaling is limited to the small pilot");
         relayInstances = scaling ? CampaignRelayGroup.validate(Integer.parseInt(System.getProperty("campaign.delivery.relayInstances", "1"))) : 0;
         int targets = Integer.getInteger("campaign.delivery.targets", 10_000);
@@ -102,6 +105,7 @@ class CampaignDeliveryPilotTest {
         report.put("publishBatchSize", Integer.getInteger("campaign.delivery.publishBatchSize", 1));
         report.put("campaignRelayInstances", relayInstances == 0 ? 1 : relayInstances);
         report.put("relayScheduling", scaling ? "test-only-fixed-delay-group-v1" : "application-scheduled-bean");
+        report.put("fineTimingEnabled", fineTiming);
         report.put("java", System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
         report.put("os", System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
         report.put("jvmMaxHeapBytes", Runtime.getRuntime().maxMemory());
@@ -235,18 +239,44 @@ class CampaignDeliveryPilotTest {
                     }
                 }
             }
+            if (fineTiming) {
+                var snapshots = new LinkedHashMap<String, Object>();
+                timings.forEach((lane, timing) -> {
+                    var snapshot = timing.snapshot();
+                    assertThat(snapshot).containsEntry("pools", 1).containsEntry("poolsClosed", true)
+                            .containsEntry("activeCalls", 0).containsEntry("wrappedConsumers", 3);
+                    verifyTiming(timing, lane.equals("CAMPAIGN") ? targets : probes.size());
+                    snapshots.put(lane, snapshot);
+                });
+                assertThat(snapshots).hasSize(2);
+                report.put("fineTimings", snapshots);
+            }
         } catch (Exception | AssertionError failure) {
             report.put("result", "FAIL"); report.put("failureType", failure.getClass().getSimpleName());
             throw failure;
         } finally {
             TimeZone.setDefault(originalZone);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path directory = Path.of(scaling ? "build/reports/relay-scaling-pilot" :
+            Path directory = Path.of(fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                     load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
             String name = scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
             mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void verifyTiming(DeliveryTiming timing, long expectedJobs) {
+        var phases = (Map<String, Map<String, Map<String, Object>>>) timing.snapshot().get("phases");
+        for (String phase : List.of("WORKER_INITIAL", "WORKER_ADMITTED", "WORKER_COMPLETE")) {
+            for (String part : List.of("STORE_CALL", "ACQUIRE", "COMMIT")) {
+                assertThat(phases.get(phase).get(part).get("count")).as(phase + "/" + part).isEqualTo(expectedJobs);
+            }
+            assertThat(phases.get(phase).get("ROLLBACK").get("count")).isEqualTo(0L);
+        }
+        assertThat(phases.get("OUTBOX_PUBLISHED").get("EXECUTE").get("count")).isEqualTo(expectedJobs);
+        assertThat(((Number) phases.get("CONSUMER").get("COMMIT_SYNC").get("count")).longValue()).isGreaterThanOrEqualTo(expectedJobs);
+        assertThat(phases.get("CONSUMER").get("COMMIT_ASYNC_SUBMIT").get("count")).isEqualTo(0L);
     }
 
     private Map<String, Object> stageTimings(ConfigurableApplicationContext app) {
@@ -266,8 +296,15 @@ class CampaignDeliveryPilotTest {
 
     private ConfigurableApplicationContext application(MySQLContainer<?> mysql, KafkaContainer kafka,
                                                        GenericContainer<?> redis, String lane, boolean live) {
-        return new SpringApplicationBuilder(NotificationLabApplication.class)
-                .web(live ? WebApplicationType.SERVLET : WebApplicationType.NONE).run(
+        var builder = new SpringApplicationBuilder(NotificationLabApplication.class)
+                .web(live ? WebApplicationType.SERVLET : WebApplicationType.NONE);
+        if (live && Boolean.getBoolean("campaign.delivery.fineTiming")) {
+            var timing = new DeliveryTiming();
+            timings.put(lane, timing);
+            builder.sources(DeliveryTiming.Wiring.class)
+                    .initializers(context -> context.getBeanFactory().registerSingleton("deliveryTiming", timing));
+        }
+        return builder.run(
                         "--server.port=0", "--app.provider.mode=HTTP", "--app.provider.http.base-url=" + (mockUrl == null ? "http://127.0.0.1:18081" : mockUrl),
                         "--app.provider.http.max-connections=3", "--app.worker.consumers=3", "--app.worker.max-active=3",
                         "--app.worker.queue-capacity=0", "--app.campaign.batch.enabled=" + !live,
@@ -454,6 +491,11 @@ class CampaignDeliveryPilotTest {
         return app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker").isRunning();
     }
     private void ready(ConfigurableApplicationContext app) {
+        if (Boolean.getBoolean("campaign.delivery.fineTiming")) {
+            var properties = app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker").getContainerProperties();
+            assertThat(properties.isSyncCommits()).isTrue();
+            assertThat(properties.getAckMode()).isEqualTo(org.springframework.kafka.listener.ContainerProperties.AckMode.RECORD);
+        }
         await().atMost(Duration.ofSeconds(20)).until(() -> {
             var partitions = app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker").getAssignedPartitions();
             return partitions != null && partitions.size() == 6;

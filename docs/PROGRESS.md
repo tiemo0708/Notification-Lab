@@ -2123,3 +2123,43 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   문서 링크/코드 블록/diff를 확인했다. Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 사용자DB/.env/IntelliJ/volume은 변경하지 않았다.
 - 원격main은 읽기 전용 확인에서9cf1786 그대로였다. Git identity를 유지하고 푸시는 하지 않는다.
   다음 작은 진단은 DB 연결 취득/SQL/commit과Kafka offset 저장 비용의 세분화다.100만 건과 유료/외부 서버 실행은 이번에 하지 않았다.
+
+
+## 2026-11-02 — S7 JDBC와 Kafka offset 저장 비용 세분화
+
+- 시작c64acf0/main/원격 추적보다12개 앞선 깨끗한 상태. AGENTS/CONTRIBUTING/PLAN/README/직전 결과를 확인했다.
+  `deliveryTimingPilot`에서만 기존 Hikari/consumer를 감싸고 기존 트랜잭션 proxy 바깥에 계측 scope를 둔다.
+  운영 Java/resources/DB 격리 수준/Worker/공유 예산/기본 RECORD ack는 변경하지 않는다.
+- 역할별7개 scope×14개 고정 구간의 count/failures/total/mean/max만 저장한다. JDBC 연결 획득/prepare/execute/commit/rollback,
+  autoCommit/격리 수준/read-only 확인·설정/반환과 실제 consumer.commitSync를 나눴다. SQL/인수/레코드/예외 메시지는 추가 저장하지 않는다.
+  자체 offset 커밋·재시도나 무한 표본 버퍼를 만들지 않는다. JDBC 예외와 consumer 인수/예외를 그대로 전달한다.
+- 첫 단위 검증은6초/8개 중7개 통과·1개 실패였다. 바인딩 인수 없는 update(String) 호출을 테스트 JDBC 대역에 맞는 PreparedStatement 경로로 수정했다.
+  이후 단위/진단9개가4초/실패·오류·스킵0으로 통과했다. 기존 운영 코드 오류를 수정한 것으로 표현하지 않는다.
+- 실제1천 건 v1/v2는42초/44초·각1개 테스트 통과/실패·오류·스킵0이었다.
+  각각 캠페인1000+실시간97/98건을 전수 대조했다. v2는 연결 상태를 autoCommit/격리/read-only로 나누고 계측 count 가드를 추가했다.
+- 후속 명령은 `caffeinate -i ./gradlew --no-daemon --console=plain deliveryTimingPilot -PcampaignRelays=N`이다.
+  같은 [소스 SHA-256](experiments/s7-delivery-timing-2026-11-02-source.json)으로 N=1→2→2→1, 각1만 건을 새 JVM/격리 인프라에서 실행했다.
+  완료 저장10/실시간1, Worker3/HTTP3/Redis3/Hikari4/queue0, 캠페인200/s·burst20, 자원과5초 probe 제한을 유지했다.
+- 네 task는 BUILD SUCCESSFUL/종료 코드0/각1개 테스트 통과/실패·오류·스킵0이었다.
+  task2분13초/2분19초/1분55초/2분1초, 발송83.733/93.196/71.916/78.354초·119.428/107.301/139.050/127.626/s였다.
+  캠페인40000+실시간1717=HTTP41717건의 대상 매핑/성공 시도1회/PUBLISHED/HTTP/offset=end/quota를 전수 대조했고 중복·매핑·Mock 오류0.
+- 혼합 APIp95 13.432/20.123/9.157/9.665ms, 최대57.451/145.725/22.851/69.546ms였다.
+  조건별2회·공유 호스트·closed-loop 관찰이며 무계측 대비 개선/오버헤드와 운영 성능을 확정하지 않는다.
+- 캠페인 Worker 각 단계의 call/acquire/commit은 각10000회, JDBC execute40000/80000/40000회였다.
+  현재 permit 전후 claim을 쓰는 설정에서 **알림당 Worker JDBC16회/DB 커밋3회**다. 다른 프로필/재시도에 일반화하지 않는다.
+  Kafka commitSync10000회씩/평균5.986/5.892/5.770/6.008ms, async0/계측 실패0이었다. 기존 handler 밖의 비용이다.
+- Worker 세 단계의 연결 획득 합은 건당0.004/0.715/0.561/0.004ms, JDBC 실행 합8.232/10.055/6.796/7.124ms,
+  DB 커밋 합3.639/4.338/2.981/3.020ms였다. caller 시간이며 DB 서버 CPU/잠금/fsync의 단일 원인으로 단정하지 않는다.
+  Outbox 선점의 격리 상태 확인·설정/복원도 호출당1.033/1.344/1.114/0.910ms로 관측했고 기존 READ COMMITTED를 유지했다.
+- 157개 자원 샘플의 Hikari 결측0/maximum4, MySQL max/oom/oom_kill0이었다.
+  캠페인 waiting최대0/1/1/0·실시간0, 앱 종료 뒤 pool1개씩 종료/consumer3개 wrapping/activeCalls0을 확인했다.
+  관찰 scope 밖의 API/지표 SQL과 구간 사이의 매핑/스케줄링/계측 오버헤드는 모두 귀속하지 않는다.
+- [범위·수치·버전별 공식 소스·원본](S7_DELIVERY_TIMING.md)에1천 건2회와1만 건4회 원본을 수정 없이 보존했다.
+  다음 후보는 DB 완료된 offset의 유한 개수·시간 기준 묶음 저장 비교다. 재소비 범위와 미완료 offset/오류/리밸런스 검증 전 기본값을 바꾸지 않는다.
+- 전체 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **BUILD SUCCESSFUL11분36초/종료 코드0**이었다.
+  최종36개 클래스 JUnit XML과 콘솔에서 **283개 통과/실패·오류·스킵0**을 대조했다. 기존278개와 신규 계측 검증5개다.
+  두 실행 JAR task는UP-TO-DATE였고 기본 회귀는 실제 재실행했다. 별도1천/1만 건과 구분한다.
+- 이후에도 계측 소스 해시와 원래100만 건 FAIL 원본이 같음을 확인했다. 새 원본의 UUID/비유한 값/민감 필드 미포함과 문서 링크/diff를 확인했다.
+  Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 사용자DB/.env/IntelliJ/volume은 변경하지 않았다.
+  기존 Git identity를 유지하고 원격main은 읽기 전용 확인에서9cf1786이었다.
+  100만 건 재실행/원래5초 timeout 원인 확정/다중 서버 배포/실제 공급자 호출/푸시는 하지 않았다.

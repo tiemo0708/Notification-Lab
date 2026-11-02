@@ -312,7 +312,12 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 처리량 범위는1개120.646~131.381/s, 2개98.426~137.346/s로 일관된 개선을 확인하지 못했다.
 `./gradlew relayScalingPilot -PcampaignRelays=1` 또는2로 재현한다(완료 저장10건 고정).
 테스트 전용 같은 JVM의 독립 루프이며 기본 앱 설정이나 여러 서버 배포 기능을 변경하지 않는다.
-다음 작은 진단은 공유 DB 연결 취득/명령/commit과offset 저장 비용을 나눠 확인하는 것이다.
+이 결과에 이어 공유 DB 연결 취득/명령/commit과offset 저장 비용을 나눠 확인했다.
+
+[JDBC와offset 저장 비용 진단](docs/S7_DELIVERY_TIMING.md)은 같은1만 건을1→2→2→1로 반복해 HTTP41717건을 전수 대조했다.
+이번 설정에서 Worker는 알림당 JDBC 실행16회/DB 커밋3회, Kafka commitSync1회를 수행했고 offset 평균은5.770~6.008ms였다.
+관찰 전용 `./gradlew deliveryTimingPilot -PcampaignRelays=1` 또는2로 재현한다(1000..10000건).
+SQL 본문/인수를 저장하지 않으며 운영 코드/격리 수준/기본 RECORD ack는 유지한다. 여러 서버와100만 건 성능을 증명한 결과는 아니다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.

@@ -1,0 +1,11 @@
+{
+  "baseCommit": "c64acf0e518c33736b738248d575efb4ade1b3b6",
+  "scope": "test-only boundary instrumentation; production code/resources unchanged",
+  "filesSha256": {
+    "build.gradle": "3d3c3e44f012b26e1bb2d9b7400bccd8fdc41d42ebbb409a174c5c2fb70ccc4b",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "4fe4dc14212f9d1df89ac004c52cc73cb4d0cacc9f7a47e02ea9c7b7fe6de28a",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTimingTest.java": "d600a2f3ee9ffdca5e2cc6d6efee96380ab8ce8063e30bcd08cdd5c9a28f1b2f",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "5b0e006cb18def07bf5d455792b72f035a73c8f1baf5f8c4c0e41e6b7f1d839a",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryDiagnostics.java": "c9f8c6aee1e02717447692a10ade0a25db87fda1105ce5eede17301cd7b53753"
+  }
+}

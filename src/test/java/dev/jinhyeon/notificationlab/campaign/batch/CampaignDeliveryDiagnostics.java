@@ -47,7 +47,14 @@ final class CampaignDeliveryDiagnostics {
         var listener = listeners == null ? null : listeners.getListenerContainer("notification-worker");
         result.put("listenerRunning", listener == null ? null : listener.isRunning());
         var dataSource = app.getBean(DataSource.class);
-        if (dataSource instanceof HikariDataSource hikari && hikari.getHikariPoolMXBean() != null) {
+        HikariDataSource hikari = null;
+        try {
+            hikari = dataSource instanceof HikariDataSource direct ? direct :
+                    dataSource.isWrapperFor(HikariDataSource.class) ? dataSource.unwrap(HikariDataSource.class) : null;
+        } catch (java.sql.SQLException unavailable) {
+            // An unavailable wrapper remains missing evidence; never expose its raw exception.
+        }
+        if (hikari != null && hikari.getHikariPoolMXBean() != null) {
             var pool = hikari.getHikariPoolMXBean();
             result.put("hikari", Map.of("available", true, "active", pool.getActiveConnections(),
                     "idle", pool.getIdleConnections(), "total", pool.getTotalConnections(),
