@@ -1,0 +1,488 @@
+{
+  "startedAtUtc" : "2026-11-02T00:45:27.262534Z",
+  "scope" : "SQL only; controlled stale statistics; same 100000 campaign + 100 realtime pending rows",
+  "conditions" : {
+    "cpu" : 2,
+    "mysql" : "8.4.8",
+    "autoRecalcForIsolatedOutbox" : false,
+    "iterationsPerQuery" : 20,
+    "taskMinutes" : 10,
+    "queryTimeoutSeconds" : 30,
+    "bufferPoolMiB" : 512,
+    "poolSize" : 4,
+    "junitMinutes" : 8,
+    "memoryMiB" : 2048
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "limitations" : [ "artificial stale-statistics control; not the previous 1m incident", "SQL UUID() seeding; one run; warm caches and fixed BEFORE/AFTER order", "no Kafka, HTTP, Worker, concurrent writes or provider acceptance", "EXPLAIN ANALYZE rows belong to iterators; handler counters are operations, not total examined rows" ],
+  "emptyTableAnalyze" : [ {
+    "Table" : "notification_lab.outbox_event",
+    "Op" : "analyze",
+    "Msg_type" : "status",
+    "Msg_text" : "OK"
+  } ],
+  "initialData" : [ {
+    "traffic_class" : "CAMPAIGN",
+    "status" : "PENDING",
+    "row_count" : 100000
+  }, {
+    "traffic_class" : "REALTIME",
+    "status" : "PENDING",
+    "row_count" : 100
+  } ],
+  "statisticsSettings" : [ {
+    "Variable_name" : "innodb_stats_auto_recalc",
+    "Value" : "ON"
+  }, {
+    "Variable_name" : "innodb_stats_persistent",
+    "Value" : "ON"
+  }, {
+    "Variable_name" : "innodb_stats_persistent_sample_pages",
+    "Value" : "20"
+  } ],
+  "tableCreateOptions" : "stats_auto_recalc=0",
+  "stages" : [ {
+    "queries" : {
+      "REALTIME" : {
+        "metrics" : {
+          "analyzeTree" : [ "-> Aggregate: min(outbox_event.created_at), sum((outbox_event.`status` = 'FAILED')), count(0)  (cost=1.61 rows=1) (actual time=76.8..76.8 rows=1 loops=1)\n    -> Filter: (outbox_event.traffic_class = 'REALTIME')  (cost=1.41 rows=2) (actual time=76.7..76.7 rows=100 loops=1)\n        -> Index range scan on outbox_event using idx_outbox_status_available over (status < 'PUBLISHED') OR ('PUBLISHED' < status), with index condition: (outbox_event.`status` <> 'PUBLISHED')  (cost=1.41 rows=2) (actual time=0.0115..74.3 rows=100100 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 82.120958,
+            "p95" : 81.441916,
+            "p50" : 77.837375
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_status_available",
+            "key_len" : "66",
+            "ref" : null,
+            "rows" : 2,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition; Using where"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 1,
+              "Handler_read_key" : 2,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 100100,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 1
+          }
+        },
+        "PENDING" : {
+          "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.00704..0.00708 rows=1 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'REALTIME' AND status = 'PENDING' AND available_at <= '2026-11-02 00:45:42.648585'), with index condition: ((outbox_event.`status` = 'PENDING') and (outbox_event.traffic_class = 'REALTIME') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.00675..0.00675 rows=1 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 2.559417,
+            "p95" : 2.465958,
+            "p50" : 1.61675
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "92",
+            "ref" : null,
+            "rows" : 1,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 1
+          }
+        },
+        "PROCESSING" : {
+          "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.00554..0.00554 rows=0 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'REALTIME' AND status = 'PROCESSING' AND available_at <= '2026-11-02 00:45:42.678199'), with index condition: ((outbox_event.`status` = 'PROCESSING') and (outbox_event.traffic_class = 'REALTIME') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.00517..0.00517 rows=0 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 2.517958,
+            "p95" : 2.209291,
+            "p50" : 1.121042
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "92",
+            "ref" : null,
+            "rows" : 1,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 0
+          }
+        }
+      },
+      "CAMPAIGN" : {
+        "metrics" : {
+          "analyzeTree" : [ "-> Aggregate: min(outbox_event.created_at), sum((outbox_event.`status` = 'FAILED')), count(0)  (cost=1.61 rows=1) (actual time=87.8..87.8 rows=1 loops=1)\n    -> Filter: (outbox_event.traffic_class = 'CAMPAIGN')  (cost=1.41 rows=2) (actual time=0.00917..81.5 rows=100000 loops=1)\n        -> Index range scan on outbox_event using idx_outbox_status_available over (status < 'PUBLISHED') OR ('PUBLISHED' < status), with index condition: (outbox_event.`status` <> 'PUBLISHED')  (cost=1.41 rows=2) (actual time=0.00883..77.4 rows=100100 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 100.102959,
+            "p95" : 92.815792,
+            "p50" : 83.4615
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_status_available",
+            "key_len" : "66",
+            "ref" : null,
+            "rows" : 2,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition; Using where"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 1,
+              "Handler_read_key" : 2,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 100100,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 1
+          }
+        },
+        "PENDING" : {
+          "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.00542..0.00542 rows=1 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'CAMPAIGN' AND status = 'PENDING' AND available_at <= '2026-11-02 00:45:44.612936'), with index condition: ((outbox_event.`status` = 'PENDING') and (outbox_event.traffic_class = 'CAMPAIGN') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.00513..0.00513 rows=1 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 3.10775,
+            "p95" : 2.728167,
+            "p50" : 1.615167
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "92",
+            "ref" : null,
+            "rows" : 1,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 1
+          }
+        },
+        "PROCESSING" : {
+          "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.00542..0.00542 rows=0 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'CAMPAIGN' AND status = 'PROCESSING' AND available_at <= '2026-11-02 00:45:44.646846'), with index condition: ((outbox_event.`status` = 'PROCESSING') and (outbox_event.traffic_class = 'CAMPAIGN') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.00504..0.00504 rows=0 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 2.247292,
+            "p95" : 1.906209,
+            "p50" : 1.2925
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "92",
+            "ref" : null,
+            "rows" : 1,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 0
+          }
+        }
+      }
+    },
+    "stage" : "BEFORE_ANALYZE"
+  }, {
+    "queries" : {
+      "REALTIME" : {
+        "metrics" : {
+          "analyzeTree" : [ "-> Aggregate: min(outbox_event.created_at), sum((outbox_event.`status` = 'FAILED')), count(0)  (cost=56.1 rows=1) (actual time=0.212..0.212 rows=1 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'REALTIME' AND status < 'PUBLISHED') OR (traffic_class = 'REALTIME' AND 'PUBLISHED' < status), with index condition: ((outbox_event.traffic_class = 'REALTIME') and (outbox_event.`status` <> 'PUBLISHED'))  (cost=46 rows=101) (actual time=0.0345..0.198 rows=100 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 3.852708,
+            "p95" : 3.614958,
+            "p50" : 1.587875
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "84",
+            "ref" : null,
+            "rows" : 101,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 2,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 100,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 1
+          }
+        },
+        "PENDING" : {
+          "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.0164..0.0164 rows=1 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'REALTIME' AND status = 'PENDING' AND available_at <= '2026-11-02 00:45:44.840064'), with index condition: ((outbox_event.`status` = 'PENDING') and (outbox_event.traffic_class = 'REALTIME') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.016..0.016 rows=1 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 4.780709,
+            "p95" : 3.616167,
+            "p50" : 1.1555
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "92",
+            "ref" : null,
+            "rows" : 1,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 1
+          }
+        },
+        "PROCESSING" : {
+          "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.00929..0.00929 rows=0 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'REALTIME' AND status = 'PROCESSING' AND available_at <= '2026-11-02 00:45:44.875583'), with index condition: ((outbox_event.`status` = 'PROCESSING') and (outbox_event.traffic_class = 'REALTIME') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.00879..0.00879 rows=0 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 2.658792,
+            "p95" : 2.401,
+            "p50" : 1.113083
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "92",
+            "ref" : null,
+            "rows" : 1,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 0
+          }
+        }
+      },
+      "CAMPAIGN" : {
+        "metrics" : {
+          "analyzeTree" : [ "-> Aggregate: min(outbox_event.created_at), sum((outbox_event.`status` = 'FAILED')), count(0)  (cost=15555 rows=1) (actual time=24.7..24.7 rows=1 loops=1)\n    -> Filter: ((outbox_event.traffic_class = 'CAMPAIGN') and (outbox_event.`status` <> 'PUBLISHED'))  (cost=10752 rows=48025) (actual time=0.0389..18.7 rows=100000 loops=1)\n        -> Table scan on outbox_event  (cost=10752 rows=96048) (actual time=0.0325..12.8 rows=100100 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 23.216584,
+            "p95" : 21.831792,
+            "p50" : 20.446917
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "ALL",
+            "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+            "key" : null,
+            "key_len" : null,
+            "ref" : null,
+            "rows" : 96048,
+            "filtered" : 50.0,
+            "Extra" : "Using where"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 1,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 100101
+            },
+            "returnedRows" : 1
+          }
+        },
+        "PENDING" : {
+          "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.00558..0.00563 rows=1 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'CAMPAIGN' AND status = 'PENDING' AND available_at <= '2026-11-02 00:45:45.371150'), with index condition: ((outbox_event.`status` = 'PENDING') and (outbox_event.traffic_class = 'CAMPAIGN') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.00521..0.00521 rows=1 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 2.3015,
+            "p95" : 1.827709,
+            "p50" : 1.262042
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "92",
+            "ref" : null,
+            "rows" : 1,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 1
+          }
+        },
+        "PROCESSING" : {
+          "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.012..0.012 rows=0 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'CAMPAIGN' AND status = 'PROCESSING' AND available_at <= '2026-11-02 00:45:45.402498'), with index condition: ((outbox_event.`status` = 'PROCESSING') and (outbox_event.traffic_class = 'CAMPAIGN') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.0114..0.0114 rows=0 loops=1)\n" ],
+          "timingMillis" : {
+            "max" : 1.90875,
+            "p95" : 1.46225,
+            "p50" : 1.278625
+          },
+          "explain" : [ {
+            "id" : 1,
+            "select_type" : "SIMPLE",
+            "table" : "outbox_event",
+            "partitions" : null,
+            "type" : "range",
+            "possible_keys" : "idx_outbox_traffic_status_available",
+            "key" : "idx_outbox_traffic_status_available",
+            "key_len" : "92",
+            "ref" : null,
+            "rows" : 1,
+            "filtered" : 100.0,
+            "Extra" : "Using index condition"
+          } ],
+          "executedReads" : {
+            "sessionHandlerDelta" : {
+              "Handler_read_first" : 0,
+              "Handler_read_key" : 1,
+              "Handler_read_last" : 0,
+              "Handler_read_next" : 0,
+              "Handler_read_prev" : 0,
+              "Handler_read_rnd" : 0,
+              "Handler_read_rnd_next" : 0
+            },
+            "returnedRows" : 0
+          }
+        }
+      }
+    },
+    "stage" : "AFTER_ANALYZE"
+  } ],
+  "loadedTableAnalyze" : [ {
+    "Table" : "notification_lab.outbox_event",
+    "Op" : "analyze",
+    "Msg_type" : "status",
+    "Msg_text" : "OK"
+  } ],
+  "finalData" : [ {
+    "traffic_class" : "CAMPAIGN",
+    "status" : "PENDING",
+    "row_count" : 100000
+  }, {
+    "traffic_class" : "REALTIME",
+    "status" : "PENDING",
+    "row_count" : 100
+  } ],
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-02T00:45:45.825256Z"
+}

@@ -50,7 +50,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe' }
+    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe' }
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
@@ -201,6 +201,20 @@ tasks.register('outboxStatisticsProbe', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform { includeTags 'outbox-statistics-probe' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(10)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '8m'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+tasks.register('outboxLockProbe', Test) {
+    description = 'Observe default statistics, Outbox lock scope and bounded cross-lane waits'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'outbox-lock-probe' }
     maxHeapSize = '512m'
     maxParallelForks = 1
     timeout = Duration.ofMinutes(10)

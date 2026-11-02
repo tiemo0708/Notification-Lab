@@ -6,12 +6,15 @@ import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import dev.jinhyeon.notificationlab.NotificationLabApplication;
 import dev.jinhyeon.notificationlab.config.AsyncProperties;
+import dev.jinhyeon.notificationlab.config.TrafficProperties;
+import dev.jinhyeon.notificationlab.notification.JdbcNotificationStore;
 import dev.jinhyeon.notificationlab.notification.NotificationStatus;
 import dev.jinhyeon.notificationlab.provider.PushProvider;
 import dev.jinhyeon.notificationlab.provider.MockPushProvider;
 import dev.jinhyeon.notificationlab.provider.PushRequest;
 import dev.jinhyeon.notificationlab.provider.PushResult;
 import dev.jinhyeon.notificationlab.worker.WorkerStore;
+import dev.jinhyeon.notificationlab.worker.DeliveryTaskStore;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,6 +22,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.DriverManager;
 import java.time.Duration;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +35,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.sql.DataSource;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.jdbc.core.RowMapper;
 import java.util.function.Function;
 import org.apache.kafka.clients.admin.Admin;
 import org.junit.jupiter.api.AfterEach;
@@ -155,6 +165,69 @@ class AsyncNotificationTest {
         } finally {
             root("DROP TRIGGER reject_outbox");
         }
+    }
+
+    @Test
+    void realtimeClaimLeavesCampaignCandidatesClaimableWithStaleStatistics() throws Exception {
+        var lane = new TrafficProperties(TrafficProperties.Lane.CAMPAIGN, true, 2, 2);
+        var tx = new TransactionTemplate(app.getBean(PlatformTransactionManager.class));
+        var campaignSubmissions = new SubmissionService(app.getBean(JdbcNotificationStore.class),
+                jdbc(), Clock.systemUTC(), app.getBean(DeliveryTaskStore.class), lane);
+        root("ALTER TABLE outbox_event STATS_AUTO_RECALC=0");
+        root("ANALYZE TABLE outbox_event");
+        try {
+            for (int i = 0; i < 32; i++) tx.executeWithoutResult(status -> campaignSubmissions.accept(
+                    new NotificationRequest("synthetic-campaign", "campaign", "synthetic body"), null));
+            jdbc().update("UPDATE outbox_event SET available_at=TIMESTAMPADD(SECOND,-5,UTC_TIMESTAMP(6))");
+            String realtimeId = json(post()).path("notificationId").asText();
+            var selected = new CountDownLatch(1);
+            var release = new CountDownLatch(1);
+            var observedIsolation = new AtomicReference<String>();
+            var gated = new JdbcTemplate(app.getBean(DataSource.class)) {
+                @Override
+                public <T> List<T> query(String sql, RowMapper<T> mapper, Object... args) {
+                    var rows = super.query(sql, mapper, args);
+                    if (sql.contains("FOR UPDATE SKIP LOCKED") && "PENDING".equals(args[1])) {
+                        observedIsolation.set(queryForObject("SELECT @@transaction_isolation", String.class));
+                        selected.countDown();
+                        try { assertThat(release.await(8, TimeUnit.SECONDS)).isTrue(); }
+                        catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt(); throw new IllegalStateException("Claim gate interrupted");
+                        }
+                    }
+                    return rows;
+                }
+            };
+            var realtimeStore = transactionProxy(new OutboxStore(gated, app.getBean(TrafficProperties.class)));
+            var campaignStore = transactionProxy(new OutboxStore(jdbc(), lane));
+            try (var executor = Executors.newFixedThreadPool(2)) {
+                var realtime = executor.submit(() -> realtimeStore.claim(10));
+                try {
+                    assertThat(selected.await(5, TimeUnit.SECONDS)).isTrue();
+                    // Exercise the production annotation through a real Spring transaction interceptor.
+                    var concurrent = executor.submit(() -> campaignStore.claim(10));
+                    assertThat(concurrent.get(3, TimeUnit.SECONDS)).isPresent();
+                } finally { release.countDown(); }
+                assertThat(realtime.get(5, TimeUnit.SECONDS).orElseThrow().notificationId()).isEqualTo(realtimeId);
+            }
+            assertThat(observedIsolation.get()).isEqualTo("READ-COMMITTED");
+            assertThat(jdbc().queryForObject("SELECT @@transaction_isolation", String.class)).isEqualTo("REPEATABLE-READ");
+            assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status='PROCESSING' AND attempt_count=1 AND lease_token IS NOT NULL", Integer.class)).isEqualTo(2);
+            assertThat(probe().attempts.get()).isZero();
+        } finally {
+            root("ALTER TABLE outbox_event STATS_AUTO_RECALC=DEFAULT");
+        }
+    }
+
+    private OutboxStore transactionProxy(OutboxStore store) {
+        var proxy = new ProxyFactory(store);
+        proxy.setProxyTargetClass(true);
+        var interceptor = new TransactionInterceptor();
+        interceptor.setTransactionManager(app.getBean(PlatformTransactionManager.class));
+        interceptor.setTransactionAttributeSource(new AnnotationTransactionAttributeSource());
+        interceptor.afterPropertiesSet();
+        proxy.addAdvice(interceptor);
+        return (OutboxStore) proxy.getProxy();
     }
 
     @Test

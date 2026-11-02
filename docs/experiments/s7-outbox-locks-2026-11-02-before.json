@@ -1,0 +1,438 @@
+{
+  "startedAtUtc" : "2026-11-02T00:37:28.531340Z",
+  "diagnosticsVersion" : "direct-select-locks-v2",
+  "scope" : "SQL-only natural automatic statistics plus explicit index controls; no HTTP/Kafka/Worker",
+  "conditions" : {
+    "heldObservationMillis" : 1000,
+    "memoryMiB" : 2048,
+    "observerPoolMax" : 1,
+    "writerPoolMax" : 1,
+    "bufferPoolMiB" : 512,
+    "cpu" : 2,
+    "applicationPoolMax" : 4,
+    "mysql" : "8.4.8",
+    "naturalObservationSeconds" : 20
+  },
+  "bounds" : {
+    "queryTimeoutSeconds" : 10,
+    "junitMinutes" : 8,
+    "observerQueryTimeoutSeconds" : 5,
+    "futureSeconds" : 8,
+    "startedLatchSeconds" : 3,
+    "writerLockTimeoutSeconds" : 3,
+    "taskMinutes" : 10,
+    "executorShutdownSeconds" : 5
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "jvmMaxHeapBytes" : 536870912,
+  "limitations" : [ "one isolated 100000 campaign + 100 realtime dataset; SQL UUID() seeding", "held SELECT transaction extends production timing; no claim UPDATE or provider acceptance", "natural optimizer statistics may change at any time; hints are diagnostic controls only", "record-lock counts are index records, not unique business rows; waits are transient snapshots", "observed SQL waits do not reproduce the previous HTTP response timeout" ],
+  "statisticsSettings" : [ {
+    "Variable_name" : "innodb_stats_auto_recalc",
+    "Value" : "ON"
+  }, {
+    "Variable_name" : "innodb_stats_persistent",
+    "Value" : "ON"
+  } ],
+  "tableCreateOptions" : "",
+  "transactionIsolation" : "REPEATABLE-READ",
+  "cases" : [ {
+    "case" : "NATURAL_IMMEDIATE",
+    "explainBeforeSelect" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "selectMillis" : 99.296,
+    "returnedRows" : 1,
+    "sessionHandlerDelta" : {
+      "Handler_read_first" : 0,
+      "Handler_read_key" : 1,
+      "Handler_read_last" : 0,
+      "Handler_read_next" : 100000,
+      "Handler_read_prev" : 0,
+      "Handler_read_rnd" : 0,
+      "Handler_read_rnd_next" : 0
+    },
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "idx_outbox_status_available",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 101496
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 100001
+    } ],
+    "observationMillis" : 1010.927,
+    "campaignUpdateWaitObserved" : true,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignUpdateCompletedWhileHeld" : false,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "elapsedMillis" : 1039.481792,
+      "result" : "ROLLED_BACK"
+    },
+    "newRealtimeAdmission" : {
+      "elapsedMillis" : 9.849625,
+      "result" : "ROLLED_BACK"
+    }
+  }, {
+    "case" : "NATURAL_AFTER_WINDOW",
+    "explainBeforeSelect" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 100,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "selectMillis" : 3.691834,
+    "returnedRows" : 1,
+    "sessionHandlerDelta" : {
+      "Handler_read_first" : 0,
+      "Handler_read_key" : 1,
+      "Handler_read_last" : 0,
+      "Handler_read_next" : 0,
+      "Handler_read_prev" : 0,
+      "Handler_read_rnd" : 0,
+      "Handler_read_rnd_next" : 0
+    },
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "idx_outbox_traffic_status_available",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    } ],
+    "observationMillis" : 60.644083,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "elapsedMillis" : 12.984625,
+      "result" : "ROLLED_BACK"
+    },
+    "newRealtimeAdmission" : {
+      "elapsedMillis" : 17.866041,
+      "result" : "ROLLED_BACK"
+    }
+  }, {
+    "case" : "CONTROL_idx_outbox_status_available",
+    "explainBeforeSelect" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "selectMillis" : 158.9455,
+    "returnedRows" : 1,
+    "sessionHandlerDelta" : {
+      "Handler_read_first" : 0,
+      "Handler_read_key" : 1,
+      "Handler_read_last" : 0,
+      "Handler_read_next" : 100000,
+      "Handler_read_prev" : 0,
+      "Handler_read_rnd" : 0,
+      "Handler_read_rnd_next" : 0
+    },
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "idx_outbox_status_available",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 101496
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 100001
+    } ],
+    "observationMillis" : 1020.121125,
+    "campaignUpdateWaitObserved" : true,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignUpdateCompletedWhileHeld" : false,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "elapsedMillis" : 1026.869542,
+      "result" : "ROLLED_BACK"
+    },
+    "newRealtimeAdmission" : {
+      "elapsedMillis" : 6.266709,
+      "result" : "ROLLED_BACK"
+    }
+  }, {
+    "case" : "CONTROL_idx_outbox_traffic_status_available",
+    "explainBeforeSelect" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "selectMillis" : 1.741625,
+    "returnedRows" : 1,
+    "sessionHandlerDelta" : {
+      "Handler_read_first" : 0,
+      "Handler_read_key" : 1,
+      "Handler_read_last" : 0,
+      "Handler_read_next" : 0,
+      "Handler_read_prev" : 0,
+      "Handler_read_rnd" : 0,
+      "Handler_read_rnd_next" : 0
+    },
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "idx_outbox_traffic_status_available",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    } ],
+    "observationMillis" : 61.068417,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "elapsedMillis" : 5.064792,
+      "result" : "ROLLED_BACK"
+    },
+    "newRealtimeAdmission" : {
+      "elapsedMillis" : 7.641042,
+      "result" : "ROLLED_BACK"
+    }
+  } ],
+  "naturalPlanTimeline" : [ {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 3.513661875
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 5.52161225
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 7.531483625
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 9.539795
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 11.551203708
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 13.563210291999999
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 100,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 15.57366
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 100,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 17.581626791999998
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 100,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 19.588221458
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 100,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 21.599399207999998
+  } ],
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-02T00:38:06.077495Z"
+}

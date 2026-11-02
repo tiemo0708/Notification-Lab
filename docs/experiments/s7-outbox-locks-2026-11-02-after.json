@@ -1,0 +1,493 @@
+{
+  "startedAtUtc" : "2026-11-02T00:46:49.503312Z",
+  "diagnosticsVersion" : "production-select-and-claim-locks-v4",
+  "scope" : "SQL-only automatic statistics ON; current production SELECT/isolation and diagnostic index controls; no HTTP/Kafka/Worker",
+  "conditions" : {
+    "applicationPoolMax" : 4,
+    "cpu" : 2,
+    "bufferPoolMiB" : 512,
+    "writerPoolMax" : 1,
+    "observerPoolMax" : 1,
+    "memoryMiB" : 2048,
+    "heldObservationMillis" : 1000,
+    "naturalObservationSeconds" : 20,
+    "mysql" : "8.4.8"
+  },
+  "bounds" : {
+    "startedLatchSeconds" : 3,
+    "futureSeconds" : 8,
+    "observerQueryTimeoutSeconds" : 5,
+    "junitMinutes" : 8,
+    "queryTimeoutSeconds" : 10,
+    "executorShutdownSeconds" : 5,
+    "taskMinutes" : 10,
+    "writerLockTimeoutSeconds" : 3
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "jvmMaxHeapBytes" : 536870912,
+  "limitations" : [ "one isolated 100000 campaign + 100 realtime dataset; SQL UUID() seeding", "held realtime SELECT extends production timing without its lease UPDATE; concurrent campaign claim updates then rolls back", "natural optimizer statistics may change at any time; hints are diagnostic controls only", "record-lock counts are index records, not unique business rows; waits are transient snapshots", "observed SQL waits do not reproduce the previous HTTP response timeout" ],
+  "declaredClaimIsolation" : 2,
+  "statisticsSettings" : [ {
+    "Variable_name" : "innodb_stats_auto_recalc",
+    "Value" : "ON"
+  }, {
+    "Variable_name" : "innodb_stats_persistent",
+    "Value" : "ON"
+  } ],
+  "tableCreateOptions" : "",
+  "serverDefaultIsolation" : "REPEATABLE-READ",
+  "initialData" : [ {
+    "traffic_class" : "CAMPAIGN",
+    "status" : "PENDING",
+    "row_count" : 100000
+  }, {
+    "traffic_class" : "REALTIME",
+    "status" : "PENDING",
+    "row_count" : 100
+  } ],
+  "cases" : [ {
+    "case" : "CURRENT_IMMEDIATE",
+    "holderIsolation" : "READ-COMMITTED",
+    "explainBeforeSelect" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "selectMillis" : 1.447041,
+    "returnedRows" : 1,
+    "sessionHandlerDelta" : {
+      "Handler_read_first" : 0,
+      "Handler_read_key" : 1,
+      "Handler_read_last" : 0,
+      "Handler_read_next" : 0,
+      "Handler_read_prev" : 0,
+      "Handler_read_rnd" : 0,
+      "Handler_read_rnd_next" : 0
+    },
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "idx_outbox_traffic_status_available",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    } ],
+    "observationMillis" : 3.480834,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignClaimWaitObserved" : false,
+    "campaignClaimWaitModes" : [ ],
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignClaimCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 26.113375
+    },
+    "newRealtimeAdmission" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 20.956416
+    },
+    "campaignClaim" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 21.129583
+    },
+    "campaignClaimFound" : true
+  }, {
+    "case" : "CURRENT_AFTER_WINDOW",
+    "holderIsolation" : "READ-COMMITTED",
+    "explainBeforeSelect" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "selectMillis" : 2.013834,
+    "returnedRows" : 1,
+    "sessionHandlerDelta" : {
+      "Handler_read_first" : 0,
+      "Handler_read_key" : 1,
+      "Handler_read_last" : 0,
+      "Handler_read_next" : 0,
+      "Handler_read_prev" : 0,
+      "Handler_read_rnd" : 0,
+      "Handler_read_rnd_next" : 0
+    },
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "idx_outbox_traffic_status_available",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    } ],
+    "observationMillis" : 62.878166,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignClaimWaitObserved" : false,
+    "campaignClaimWaitModes" : [ ],
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignClaimCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 10.512792
+    },
+    "newRealtimeAdmission" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 20.003458
+    },
+    "campaignClaim" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 18.429209
+    },
+    "campaignClaimFound" : true
+  }, {
+    "case" : "CONTROL_idx_outbox_status_available",
+    "holderIsolation" : "READ-COMMITTED",
+    "explainBeforeSelect" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "selectMillis" : 171.895333,
+    "returnedRows" : 1,
+    "sessionHandlerDelta" : {
+      "Handler_read_first" : 0,
+      "Handler_read_key" : 1,
+      "Handler_read_last" : 0,
+      "Handler_read_next" : 100000,
+      "Handler_read_prev" : 0,
+      "Handler_read_rnd" : 0,
+      "Handler_read_rnd_next" : 0
+    },
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "idx_outbox_status_available",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    } ],
+    "observationMillis" : 66.296458,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignClaimWaitObserved" : false,
+    "campaignClaimWaitModes" : [ ],
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignClaimCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 2.582042
+    },
+    "newRealtimeAdmission" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 5.977875
+    },
+    "campaignClaim" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 6.215084
+    },
+    "campaignClaimFound" : true
+  }, {
+    "case" : "CONTROL_idx_outbox_traffic_status_available",
+    "holderIsolation" : "READ-COMMITTED",
+    "explainBeforeSelect" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "selectMillis" : 0.615667,
+    "returnedRows" : 1,
+    "sessionHandlerDelta" : {
+      "Handler_read_first" : 0,
+      "Handler_read_key" : 1,
+      "Handler_read_last" : 0,
+      "Handler_read_next" : 0,
+      "Handler_read_prev" : 0,
+      "Handler_read_rnd" : 0,
+      "Handler_read_rnd_next" : 0
+    },
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "idx_outbox_traffic_status_available",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    } ],
+    "observationMillis" : 65.268291,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignClaimWaitObserved" : false,
+    "campaignClaimWaitModes" : [ ],
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignClaimCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 3.504792
+    },
+    "newRealtimeAdmission" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 5.933959
+    },
+    "campaignClaim" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 6.55125
+    },
+    "campaignClaimFound" : true
+  } ],
+  "planTimeline" : [ {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 2.0827637500000002
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 4.096850584
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 6.113886625
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 8.126344
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 10.140469792
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 12.168088667
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 14.183432542
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 16.197259709
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 18.204733124999997
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_traffic_status_available",
+      "key_len" : "92",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition"
+    } ],
+    "secondsAfterLoad" : 20.218830334
+  } ],
+  "finalData" : [ {
+    "traffic_class" : "CAMPAIGN",
+    "status" : "PENDING",
+    "row_count" : 100000
+  }, {
+    "traffic_class" : "REALTIME",
+    "status" : "PENDING",
+    "row_count" : 100
+  } ],
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-02T00:47:24.638121Z"
+}

@@ -1,0 +1,269 @@
+{
+  "startedAtUtc" : "2026-11-02T00:36:08.258754Z",
+  "scope" : "SQL-only natural automatic statistics plus explicit index controls; no HTTP/Kafka/Worker",
+  "conditions" : {
+    "heldObservationMillis" : 1000,
+    "memoryMiB" : 2048,
+    "observerPoolMax" : 1,
+    "writerPoolMax" : 1,
+    "bufferPoolMiB" : 512,
+    "cpu" : 2,
+    "applicationPoolMax" : 4,
+    "mysql" : "8.4.8",
+    "naturalObservationSeconds" : 20
+  },
+  "bounds" : {
+    "taskMinutes" : 10,
+    "executorShutdownSeconds" : 5,
+    "queryTimeoutSeconds" : 10,
+    "junitMinutes" : 8,
+    "observerQueryTimeoutSeconds" : 5,
+    "futureSeconds" : 8,
+    "startedLatchSeconds" : 3,
+    "writerLockTimeoutSeconds" : 3
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "jvmMaxHeapBytes" : 536870912,
+  "limitations" : [ "one isolated 100000 campaign + 100 realtime dataset; SQL UUID() seeding", "held SELECT transaction extends production timing; no claim UPDATE or provider acceptance", "natural optimizer statistics may change at any time; hints are diagnostic controls only", "record-lock counts are index records, not unique business rows; waits are transient snapshots", "observed SQL waits do not reproduce the previous HTTP response timeout" ],
+  "statisticsSettings" : [ {
+    "Variable_name" : "innodb_stats_auto_recalc",
+    "Value" : "ON"
+  }, {
+    "Variable_name" : "innodb_stats_persistent",
+    "Value" : "ON"
+  } ],
+  "tableCreateOptions" : "",
+  "transactionIsolation" : "REPEATABLE-READ",
+  "cases" : [ {
+    "case" : "NATURAL_IMMEDIATE",
+    "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=90.3..90.3 rows=1 loops=1)\n    -> Filter: (outbox_event.traffic_class = 'REALTIME')  (cost=0.71 rows=1) (actual time=90.3..90.3 rows=1 loops=1)\n        -> Index range scan on outbox_event using idx_outbox_status_available over (status = 'PENDING' AND available_at <= '2026-11-02 00:36:23.648880'), with index condition: ((outbox_event.`status` = 'PENDING') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.0168..87.6 rows=100001 loops=1)\n" ],
+    "holderLocks" : [ ],
+    "observationMillis" : 3.539875,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 15.048958
+    },
+    "newRealtimeAdmission" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 10.453125
+    }
+  }, {
+    "case" : "NATURAL_AFTER_WINDOW",
+    "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=158..158 rows=1 loops=1)\n    -> Filter: (outbox_event.traffic_class = 'REALTIME')  (cost=0.71 rows=1) (actual time=158..158 rows=1 loops=1)\n        -> Index range scan on outbox_event using idx_outbox_status_available over (status = 'PENDING' AND available_at <= '2026-11-02 00:36:43.888764'), with index condition: ((outbox_event.`status` = 'PENDING') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.124..155 rows=100001 loops=1)\n" ],
+    "holderLocks" : [ ],
+    "observationMillis" : 56.46275,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 6.092583
+    },
+    "newRealtimeAdmission" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 11.475416
+    }
+  }, {
+    "case" : "CONTROL_idx_outbox_status_available",
+    "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=93..93 rows=1 loops=1)\n    -> Filter: (outbox_event.traffic_class = 'REALTIME')  (cost=0.71 rows=1) (actual time=93..93 rows=1 loops=1)\n        -> Index range scan on outbox_event using idx_outbox_status_available over (status = 'PENDING' AND available_at <= '2026-11-02 00:36:44.126582'), with index condition: ((outbox_event.`status` = 'PENDING') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.0221..90.1 rows=100001 loops=1)\n" ],
+    "holderLocks" : [ ],
+    "observationMillis" : 59.231708,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 8.560792
+    },
+    "newRealtimeAdmission" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 13.135083
+    }
+  }, {
+    "case" : "CONTROL_idx_outbox_traffic_status_available",
+    "analyzeTree" : [ "-> Limit: 1 row(s)  (cost=0.71 rows=1) (actual time=0.0178..0.0178 rows=1 loops=1)\n    -> Index range scan on outbox_event using idx_outbox_traffic_status_available over (traffic_class = 'REALTIME' AND status = 'PENDING' AND available_at <= '2026-11-02 00:36:44.299188'), with index condition: ((outbox_event.`status` = 'PENDING') and (outbox_event.traffic_class = 'REALTIME') and (outbox_event.available_at <= <cache>(utc_timestamp(6))))  (cost=0.71 rows=1) (actual time=0.0173..0.0173 rows=1 loops=1)\n" ],
+    "holderLocks" : [ ],
+    "observationMillis" : 54.424333,
+    "campaignUpdateWaitObserved" : false,
+    "newRealtimeAdmissionWaitObserved" : false,
+    "campaignUpdateCompletedWhileHeld" : true,
+    "newRealtimeAdmissionCompletedWhileHeld" : true,
+    "campaignUpdate" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 4.672667
+    },
+    "newRealtimeAdmission" : {
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 8.14575
+    }
+  } ],
+  "naturalPlanTimeline" : [ {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 2.158138
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 4.168715917
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 6.178679584
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 8.190560709
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 10.199168167
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 12.207150459000001
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 14.218578208999999
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 16.229786834000002
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 18.23949525
+  }, {
+    "explain" : [ {
+      "id" : 1,
+      "select_type" : "SIMPLE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+      "key" : "idx_outbox_status_available",
+      "key_len" : "74",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using index condition; Using where"
+    } ],
+    "secondsAfterLoad" : 20.252088209
+  } ],
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-02T00:36:44.824419Z"
+}

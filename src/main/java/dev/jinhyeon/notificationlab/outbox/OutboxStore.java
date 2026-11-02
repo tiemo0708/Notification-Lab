@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 
 @Repository
 @Profile("!memory & !sync")
@@ -25,10 +26,11 @@ public class OutboxStore {
 
     public record Claim(String eventId, String notificationId, String payload, String token, int attempt, String eventType) { }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<Claim> claim(int maxAttempts) {
-        // Equality on the leading status column avoids sorting/scanning the whole backlog.
-        // Lock at most two candidates in a consistent order, then pick the oldest due event.
+        // Poll without next-key gaps that can block another lane's status transition.
+        // Keep the index scan inside this lane even with stale optimizer statistics.
+        // At most two candidates are returned; locking reads may lock more index records.
         var candidates = new ArrayList<Candidate>();
         candidates.addAll(candidate("PENDING"));
         candidates.addAll(candidate("PROCESSING"));
@@ -52,7 +54,8 @@ public class OutboxStore {
 
     private List<Candidate> candidate(String status) {
         return jdbc.query("""
-                SELECT event_id, notification_id, payload, attempt_count, available_at, event_type FROM outbox_event
+                SELECT event_id, notification_id, payload, attempt_count, available_at, event_type
+                FROM outbox_event FORCE INDEX (idx_outbox_traffic_status_available)
                 WHERE traffic_class = ? AND status = ? AND available_at <= UTC_TIMESTAMP(6)
                 ORDER BY available_at, event_id LIMIT 1 FOR UPDATE SKIP LOCKED
                 """, (rs, n) -> new Candidate(new Claim(rs.getString(1), rs.getString(2), rs.getString(3),

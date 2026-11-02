@@ -1,0 +1,77 @@
+{
+  "scope": "derived JUnit and console summary; no payloads or identifiers",
+  "before": {
+    "tests": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "result": "FAIL",
+    "exitCode": 1,
+    "buildSeconds": 20,
+    "failureType": "IllegalStateException caused by TimeoutException",
+    "observation": "campaign claim did not finish during a held realtime claim within the test 3s future bound; not the original HTTP timeout"
+  },
+  "indexOnly": {
+    "result": "FAIL",
+    "exitCode": 1,
+    "buildSeconds": 20,
+    "tests": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "observation": "index path alone did not let the concurrent campaign claim finish within the held realtime transaction; Future timeout at 3s"
+  },
+  "proxyRegressionIndexOnly": {
+    "result": "FAIL",
+    "exitCode": 1,
+    "buildSeconds": 20,
+    "tests": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "observation": "same failure through production Spring transaction metadata and a gate after the realtime SELECT"
+  },
+  "after": {
+    "result": "PASS",
+    "tests": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "observations": [
+      "concurrent campaign claim completes before realtime gate is released",
+      "production transaction metadata yields READ-COMMITTED inside claim",
+      "pooled connection reports REPEATABLE-READ afterward",
+      "two claims each have a non-null lease and one attempt"
+    ]
+  },
+  "combinedValidation": {
+    "result": "PASS",
+    "exitCode": 0,
+    "buildSeconds": 95,
+    "selectedDefaultTests": 1,
+    "separateDiagnosticTests": 3
+  },
+  "finalDefaultSuite": {
+    "classes": 33,
+    "tests": 269,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "finalCombinedValidation": {
+    "result": "PASS",
+    "exitCode": 0,
+    "buildSeconds": 848,
+    "defaultTests": 269,
+    "separateTests": 2,
+    "totalPassed": 271
+  }
+}

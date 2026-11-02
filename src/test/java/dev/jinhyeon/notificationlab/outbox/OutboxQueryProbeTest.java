@@ -30,6 +30,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.testcontainers.containers.MySQLContainer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -239,9 +240,9 @@ class OutboxQueryProbeTest {
         }
     }
 
-    private record SqlQuery(String sql, Object[] args) { }
+    record SqlQuery(String sql, Object[] args) { }
 
-    private static Map<String, SqlQuery> captureCandidates(TrafficProperties.Lane lane) {
+    static Map<String, SqlQuery> captureCandidates(TrafficProperties.Lane lane) {
         var queries = new LinkedHashMap<String, SqlQuery>();
         var captureOnly = new JdbcTemplate() {
             @Override
@@ -283,7 +284,7 @@ class OutboxQueryProbeTest {
         return Map.of("timingMillis", percentiles(times), "explain", explain, "executedReads", reads, "analyzeTree", tree);
     }
 
-    private static Map<String, Long> handlers(JdbcTemplate jdbc) {
+    static Map<String, Long> handlers(JdbcTemplate jdbc) {
         var result = new LinkedHashMap<String, Long>();
         jdbc.queryForList("SHOW SESSION STATUS LIKE 'Handler_read%'").forEach(row ->
                 result.put(row.get("Variable_name").toString(), Long.parseLong(row.get("Value").toString())));
@@ -301,13 +302,13 @@ class OutboxQueryProbeTest {
         return jdbc.queryForList("SELECT traffic_class,status,COUNT(*) AS row_count FROM outbox_event GROUP BY traffic_class,status ORDER BY traffic_class,status");
     }
 
-    private static void createSeedTables(JdbcTemplate jdbc) {
+    static void createSeedTables(JdbcTemplate jdbc) {
         jdbc.execute("CREATE TABLE diagnostic_digits (n INT PRIMARY KEY)");
         jdbc.execute("INSERT INTO diagnostic_digits VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)");
         jdbc.execute("CREATE TABLE diagnostic_seed (ordinal INT PRIMARY KEY, nid CHAR(36) CHARACTER SET ascii COLLATE ascii_bin, tid CHAR(36) CHARACTER SET ascii COLLATE ascii_bin, eid CHAR(36) CHARACTER SET ascii COLLATE ascii_bin)");
     }
 
-    private static MySQLContainer<?> mysql() {
+    static MySQLContainer<?> mysql() {
         return new MySQLContainer<>("mysql:8.4.8").withDatabaseName("notification_lab")
                 .withUsername("notification_test").withPassword(UUID.randomUUID().toString())
                 .withCommand("--default-time-zone=+00:00", "--innodb-buffer-pool-size=536870912")
@@ -318,7 +319,7 @@ class OutboxQueryProbeTest {
                         .withPortBindings(new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 0), new ExposedPort(3306))));
     }
 
-    private static void seed(JdbcTemplate jdbc, int base) {
+    static void seed(JdbcTemplate jdbc, int base) {
         jdbc.update("INSERT INTO diagnostic_seed SELECT ? + a.n + 10*b.n + 100*c.n + 1, UUID(), UUID(), UUID() FROM diagnostic_digits a CROSS JOIN diagnostic_digits b CROSS JOIN diagnostic_digits c", base);
         jdbc.update("INSERT INTO notification (notification_id,recipient_id,title,body,status,traffic_class,created_at) SELECT nid,'synthetic-target','CAMPAIGN','synthetic body','QUEUED','CAMPAIGN',UTC_TIMESTAMP(6) FROM diagnostic_seed WHERE ordinal>? AND ordinal<=?", base, base + 1000);
         jdbc.update("INSERT INTO delivery_task (task_id,notification_id,target_id,max_attempts,created_at) SELECT tid,nid,CONVERT('synthetic-target' USING binary),3,UTC_TIMESTAMP(6) FROM diagnostic_seed WHERE ordinal>? AND ordinal<=?", base, base + 1000);
@@ -327,7 +328,9 @@ class OutboxQueryProbeTest {
 
     private static void claimAndMarkPublished(TransactionTemplate tx, OutboxStore store, boolean expected) {
         // Explicit templates supply the same two transaction boundaries as production's Spring proxies.
-        var claim = tx.execute(status -> store.claim(10));
+        var claimTx = new TransactionTemplate(tx.getTransactionManager());
+        claimTx.setIsolationLevel(claimIsolation());
+        var claim = claimTx.execute(status -> store.claim(10));
         assertThat(claim).isNotNull();
         if (expected) assertThat(claim).isPresent();
         claim.ifPresent(value -> {
@@ -337,11 +340,22 @@ class OutboxQueryProbeTest {
         // No Kafka ACK is asserted here: this isolated DB probe must never be used as delivery evidence.
     }
 
-    private static TrafficProperties traffic(TrafficProperties.Lane lane) {
+    static int claimIsolation() {
+        try {
+            var attribute = new AnnotationTransactionAttributeSource().getTransactionAttribute(
+                    OutboxStore.class.getMethod("claim", int.class), OutboxStore.class);
+            if (attribute == null) throw new IllegalStateException("Claim transaction metadata missing");
+            return attribute.getIsolationLevel();
+        } catch (NoSuchMethodException missing) {
+            throw new IllegalStateException("Claim method missing");
+        }
+    }
+
+    static TrafficProperties traffic(TrafficProperties.Lane lane) {
         return new TrafficProperties(lane, true, 200, 20);
     }
 
-    private static HikariDataSource pool(MySQLContainer<?> mysql) {
+    static HikariDataSource pool(MySQLContainer<?> mysql) {
         var pool = new HikariDataSource();
         pool.setJdbcUrl(mysql.getJdbcUrl()); pool.setUsername(mysql.getUsername()); pool.setPassword(mysql.getPassword());
         pool.setMaximumPoolSize(4); pool.setMinimumIdle(1); pool.setConnectionTimeout(3000);

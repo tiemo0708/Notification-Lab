@@ -1889,3 +1889,47 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 오래된 통계가 과도한 스캔을 만들 수 있는 경로를 확인했지만, 원래1m는 기본 자동 통계 조건의43분 저장이었다.
   과거 계획/통계/잠금 자료가 없고 이번에는 Worker·동시 쓰기·장시간 부하가 없어5초 timeout의 원인으로 확정하지 않는다.
   다음은 기본 자동 통계 조건의 선점 계획과 교차 역할 잠금 범위 확인이다. S7의100만 건 검증은 미완료다.
+
+## 2026-11-02 — S7 교차 역할 선점 잠금 재현과 수정
+
+- 시작 커밋3cb14fa, main의 기존6개 로컬 커밋을 보존했다. 브랜치 생성/푸시/100만 건 재실행은 하지 않았다.
+- 기본 자동 통계 ON/MySQL8.4.8/2CPU·2GiB/buffer pool512MiB/SQL 사전 저장100000+100행에서 확인했다.
+  실제 SELECT의 보유 잠금과 data_lock_waits를 연결하고 기존 행 갱신/새 실시간 접수/캠페인 선점을 구분했다.
+  관측용 root는 격리 DB의 잠금·연결 메타데이터만 읽었으며 ID/LOCK_DATA/인증정보는 원본에 저장하지 않았다.
+- 초기 EXPLAIN-only 계측은42초/종료 코드0이었으나 보유 잠금이 모두 비어 있어 부재 증거로 쓰지 않았다.
+  실제 SELECT와 RECORD 잠금 존재 확인으로 보강했다. [초기 원본](experiments/s7-outbox-locks-2026-11-02-explain-only-preliminary.json)을 보존했다.
+- 수정 전 실제 SELECT 계측과 기존 통계/쿼리 도구3개는1분27초/종료 코드0으로 통과했다.
+  [수정 전 원본](experiments/s7-outbox-locks-2026-11-02-before.json)에서 적재 직후 상태 인덱스를 사용해
+  PRIMARY 잠금100001건과 캠페인 기존 행 갱신 대기를 확인했다.20초 창 뒤 역할별 인덱스/PRIMARY1건으로 바뀌었다.
+  두 인덱스 대조군도 같은 차이를 보였다. 새 실시간 접수의 해당 선점자 대기는 관측되지 않았다.
+- 새 기본 회귀는32개 캠페인과1개 실시간, 오래된 통계를 고정해 다른 역할의 동시 선점 완료를 검사했다.
+  최초 외부 트랜잭션 버전은20초/종료 코드1/테스트1개 실패였다(3초 Future timeout).
+  역할별 인덱스만 명시한 뒤에도 같은 상한으로 실패했고, 실제 Spring interceptor와 생산 선언을 적용한 gate 버전도 실패했다.
+- 인덱스만 고친 [중간 계측](experiments/s7-outbox-locks-2026-11-02-index-only.json)에서는
+  캠페인 상태 변경에 X,GAP,INSERT_INTENTION 대기가 확인됐다. 상태 인덱스 음성 대조군의 빈 결과를 잘못 실패로 간주해
+  task는42초/종료 코드1로 끝났다. 부분 관측을 보존하고 빈 결과도 기록하도록 계측을 고쳤다.
+- 수정: 기존 V7 idx_outbox_traffic_status_available로 선점을 고정하고 OutboxStore.claim만 READ COMMITTED로 선언했다.
+  반환1건=잠금1건이라는 잘못된 주석도 정정했다. 같은 행의 FOR UPDATE/lease token/시도 상한/조건부 기록은 유지한다.
+  Relay는 바깥 DB 트랜잭션 없이 claim을 호출한다. 기존 외부 트랜잭션에 합류하는 REQUIRED 계약은 유지한다.
+  API/Batch/Worker 전체 격리 수준이나 DB 전역 설정, ACK 후 PUBLISHED 경계는 바꾸지 않았다.
+- 수정 후 선택 회귀1개+별도 잠금/통계/쿼리3개는 **BUILD SUCCESSFUL1분35초, 종료 코드0**, 실패·오류·스킵0.
+  새 회귀는 실제 생산 선언의 READ-COMMITTED, 다른 역할의 선점 완료, 각각 lease/시도1과 이후 풀 연결의 REPEATABLE-READ를 확인했다.
+  [실패→성공 요약](experiments/s7-outbox-locks-2026-11-02-regression.json)을 남겼다.
+  [통계 도구](experiments/s7-outbox-locks-2026-11-02-statistics-after.json)/[쿼리 도구](experiments/s7-outbox-locks-2026-11-02-query-after.json)는 현재 강제된 선점 SQL을 캡처한다.
+- 최종 v4 잠금 계측은 metadata/초기·최종 상태 기록을 정리한 버전이다.
+  현재/20초 후/두 인덱스 대조군 모두 READ-COMMITTED/선택 행 RECORD 잠금을 확인하고,
+  캠페인 갱신·선점·새 접수 대기 관계는 미관측, 각 probe는 holder 종료 전 완료였다.
+  [최종 원본](experiments/s7-outbox-locks-2026-11-02-after.json)을 보존했다.
+  범위는 짧은 SELECT를 의도적으로 유지한 SQL 진단이며1m HTTP 원인 재현이나 모든 부하의 무경합 보장이 아니다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain outboxLockProbe campaignDeliveryPilot -PdeliveryTargets=1000 build`:
+  **BUILD SUCCESSFUL14분8초, 종료 코드0**, 기본33개 클래스/269개+별도 잠금1개/HTTP1개=합계271개 통과,
+  실패·오류·스킵0. 새 교차 역할 회귀1개는269개에 포함된다. XML과 콘솔 합계를 대조했다.
+  14분8초는 별도 실험을 포함한 전체 명령 시간이며 기본 test만의 시간으로 쓰지 않는다. 실행 JAR도 재생성했다.
+- 수정 후 HTTP는 사전 저장2.251초/발송12.915초, 캠페인1000+실시간107=HTTP1107건을 전수 대조했다.
+  중복·매핑 오류0, 혼합 APIp95 12.279ms/최대18.107ms(57개)였다.
+  [HTTP 원본](experiments/s7-outbox-locks-2026-11-02-http-1000.json)을 보존했고 성능 개선/1m 검증으로 해석하지 않는다.
+- 문서 링크/코드 블록/JSON 파싱·원본·민감 값 미포함/`git diff --check`를 확인했다.
+  첫1m FAIL JSON의 SHA-256도 기존과 같았다. 종료된 실행 로그·JUnit과 컨테이너 상태를 대조했고 잔존 Ryuk는 없었다.
+  사용자 DB/.env/IntelliJ와 무관한 컨테이너·volume은 변경하지 않았다.
+- [설계 판단·위험·공식 문서·측정 경계](S7_OUTBOX_CLAIM_LOCKS.md)를 정리했다.
+  다음은 수정된10만 건 HTTP 경로와 접수 지연 재검증이다. 원래5초 timeout과100만 건 완료 항목은 미완료다.

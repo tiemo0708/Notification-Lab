@@ -292,6 +292,8 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 별도 `./gradlew outboxQueryProbe`로 DB 실행 계획을 관측한다. 발송 성공을 검증하는 task는 아니다.
 `./gradlew outboxStatisticsProbe`는 격리 테이블의 오래된 통계를 고정하고 ANALYZE TABLE 전후 계획·실행 행 수를 비교한다.
 통계 갱신 후 실시간 스캔 감소를 확인했지만 이전100만 건 timeout의 원인은 아직 미확정이다.
+[교차 역할 잠금 재현과 수정](docs/S7_OUTBOX_CLAIM_LOCKS.md)에서는 역할별 인덱스 명시와 claim 전용 READ COMMITTED를 적용했다.
+`./gradlew outboxLockProbe`로 기본 자동 통계·잠금·대기 대조군을 확인한다. 기존 진단 task는 현재 선점 SQL을 캡처한다.
 [DB 인계 측정 범위·설정·실패와 재실행 결과](docs/S7_CAMPAIGN_LOAD.md)를 참고한다.
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
