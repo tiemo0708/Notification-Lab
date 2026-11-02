@@ -75,6 +75,7 @@ class CampaignDeliveryPilotTest {
     private String mockUrl;
     private int maxProbes;
     private int relayInstances;
+    private ApiRequestTiming apiRequestTiming;
     private final Map<String, DeliveryTiming> timings = new LinkedHashMap<>();
 
     @Test
@@ -83,6 +84,8 @@ class CampaignDeliveryPilotTest {
         boolean scaling = Boolean.getBoolean("campaign.delivery.scaling");
         boolean fineTiming = Boolean.getBoolean("campaign.delivery.fineTiming");
         boolean offsetComparison = Boolean.getBoolean("campaign.delivery.offsetComparison");
+        boolean apiTiming = Boolean.getBoolean("campaign.delivery.apiTiming");
+        if (apiTiming && (load || !offsetComparison)) throw new IllegalArgumentException("API timing requires the small offset pilot");
         var offsetMode = offsetComparison ? OffsetCommitPolicy.mode(System.getProperty("campaign.delivery.offsetMode", "RECORD")) : OffsetCommitPolicy.Mode.RECORD;
         if (offsetComparison && !fineTiming) throw new IllegalArgumentException("Offset comparison requires fine timing");
         if (fineTiming && !scaling) throw new IllegalArgumentException("Fine timing requires the bounded scaling pilot");
@@ -111,6 +114,7 @@ class CampaignDeliveryPilotTest {
         report.put("campaignRelayInstances", relayInstances == 0 ? 1 : relayInstances);
         report.put("relayScheduling", scaling ? "test-only-fixed-delay-group-v1" : "application-scheduled-bean");
         report.put("fineTimingEnabled", fineTiming);
+        if (apiTiming) report.put("apiTimingEnabled", true);
         report.put("offsetComparison", offsetComparison);
         report.put("campaignOffsetMode", offsetMode.name());
         if (offsetComparison) report.put("offsetSettings", Map.of("ackCount", OffsetCommitPolicy.ACK_COUNT,
@@ -177,6 +181,7 @@ class CampaignDeliveryPilotTest {
                     report.put("baselineSeconds", seconds(baselineStart));
                     report.put("baselineLatencyMs", latency(jdbc, "title='BASELINE' AND traffic_class='REALTIME'", BASELINE_PROBES));
                     long drainStart = System.nanoTime(); // Includes campaign app startup; excludes preload and baseline.
+                    if (apiRequestTiming != null) apiRequestTiming.markDrainStart(drainStart);
                     var samples = new ArrayList<Map<String, Object>>();
                     report.put("samples", samples);
                     try (var campaign = application(mysql, kafka, redis, "CAMPAIGN", true);
@@ -274,7 +279,8 @@ class CampaignDeliveryPilotTest {
         } finally {
             TimeZone.setDefault(originalZone);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path directory = Path.of(offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
+            if (apiRequestTiming != null) report.put("apiRequestTiming", apiRequestTiming.snapshot());
+            Path directory = Path.of(apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                     load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
             String name = offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
@@ -319,8 +325,15 @@ class CampaignDeliveryPilotTest {
                                                        GenericContainer<?> redis, String lane, boolean live) {
         var builder = new SpringApplicationBuilder(NotificationLabApplication.class)
                 .web(live ? WebApplicationType.SERVLET : WebApplicationType.NONE);
+        ApiRequestTiming api = live && lane.equals("REALTIME") && Boolean.getBoolean("campaign.delivery.apiTiming")
+                ? new ApiRequestTiming(maxProbes) : null;
+        if (api != null) {
+            apiRequestTiming = api;
+            builder.sources(ApiRequestTiming.Wiring.class)
+                    .initializers(context -> context.getBeanFactory().registerSingleton("apiRequestTiming", api));
+        }
         if (live && Boolean.getBoolean("campaign.delivery.fineTiming")) {
-            var timing = new DeliveryTiming();
+            var timing = new DeliveryTiming(api == null ? null : api::jdbc);
             timings.put(lane, timing);
             builder.sources(DeliveryTiming.Wiring.class)
                     .initializers(context -> context.getBeanFactory().registerSingleton("deliveryTiming", timing));
@@ -354,9 +367,16 @@ class CampaignDeliveryPilotTest {
         long start = System.nanoTime();
         var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + ((ServletWebServerApplicationContext) app).getWebServer().getPort() + "/notifications"))
                 .timeout(Duration.ofSeconds(5)).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build();
-        var response = CampaignDeliveryDiagnostics.sendProbe(http, request, report, phase, ordinal, probes.size());
-        assertThat(response.statusCode()).isEqualTo(202);
-        probes.add(new Probe(mapper.readTree(response.body()).path("notificationId").asText(), seconds(start) * 1000));
+        var capture = apiRequestTiming == null ? null : apiRequestTiming.open(ApiRequestTiming.Window.valueOf(phase));
+        try {
+            var response = CampaignDeliveryDiagnostics.sendProbe(http, request, report, phase, ordinal, probes.size());
+            double clientMillis = seconds(start) * 1000;
+            assertThat(response.statusCode()).isEqualTo(202);
+            if (capture != null) apiRequestTiming.complete(capture, clientMillis, response.statusCode());
+            probes.add(new Probe(mapper.readTree(response.body()).path("notificationId").asText(), clientMillis));
+        } finally {
+            if (capture != null) apiRequestTiming.abort(capture);
+        }
     }
 
     private void reconcile(JdbcTemplate jdbc, int targets, Audit audit, MockPushEndpoint mock) {
@@ -382,6 +402,9 @@ class CampaignDeliveryPilotTest {
         report.put("httpAudit", audit.summary());
         report.put("baselineApiLatencyMs", percentiles(probes.subList(0, BASELINE_PROBES).stream().map(Probe::apiMillis).toList()));
         report.put("mixedApiLatencyMs", percentiles(probes.subList(BASELINE_PROBES, probes.size()).stream().map(Probe::apiMillis).toList()));
+        if (apiRequestTiming != null) {
+            assertThat(apiRequestTiming.snapshot()).containsEntry("completed", probes.size()).containsEntry("pending", false);
+        }
     }
 
     private Map<String, Object> sample(MySQLContainer<?> mysql, ConfigurableApplicationContext campaign,

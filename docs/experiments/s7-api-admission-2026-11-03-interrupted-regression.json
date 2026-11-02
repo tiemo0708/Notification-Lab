@@ -1,0 +1,11 @@
+{
+  "status": "INTERRUPTED_AFTER_KNOWN_TEST_ASSERTION_FAILURE",
+  "exitCode": 130,
+  "completedConsolePasses": 156,
+  "completedConsoleFailures": 1,
+  "failedTest": "ApiRequestTimingTest.pairsClientAndServletJdbcWithoutExportingRequestIdentifiers",
+  "failureType": "AssertionError",
+  "reason": "A broad forbidden substring sql also matched the allowed sqlExecutionMillis numeric timing field; assertion changed to the exact JSON key",
+  "logSha256": "59f67cca1e08e20e57405c6918605888c043809ade64b60d798ca47263400b8e",
+  "fullRegressionPassed": false
+}

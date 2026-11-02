@@ -206,6 +206,30 @@ tasks.register('offsetCommitPilot', Test) {
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
 
+// Paired API admission timing, bounded to the existing 1k..10k pilot path.
+tasks.register('apiAdmissionPilot', Test) {
+    description = 'Trace realtime HTTP admission, JDBC acquisition, SQL and commit in a small mixed pilot'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'campaign-delivery-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(25)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '20m'
+    systemProperty 'campaign.delivery.targets', providers.gradleProperty('deliveryTargets').getOrElse('10000')
+    systemProperty 'campaign.delivery.load', 'false'
+    systemProperty 'campaign.delivery.scaling', 'true'
+    systemProperty 'campaign.delivery.relayInstances', '2'
+    systemProperty 'campaign.delivery.publishBatchSize', '10'
+    systemProperty 'campaign.delivery.fineTiming', 'true'
+    systemProperty 'campaign.delivery.offsetComparison', 'true'
+    systemProperty 'campaign.delivery.offsetMode', providers.gradleProperty('offsetMode').getOrElse('RECORD')
+    systemProperty 'campaign.delivery.apiTiming', 'true'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
 // Explicit 100k only; no million-target offset comparison is enabled.
 tasks.register('offsetCommitLoad', Test) {
     description = 'Compare RECORD/COUNT_TIME for exactly 100,000 HTTP campaign deliveries'

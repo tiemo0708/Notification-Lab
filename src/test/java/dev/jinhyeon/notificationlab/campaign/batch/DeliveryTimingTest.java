@@ -29,6 +29,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DeliveryTimingTest {
     @Test
+    void pairsApiAcquisitionFourStatementsAndCommitAcrossTheTransactionBoundary() throws Exception {
+        var api = new ApiRequestTiming(1);
+        var driver = new JdbcDriver();
+        var timing = new DeliveryTiming(api::jdbc);
+        var source = timing.dataSource(driver);
+        var tx = new TransactionTemplate(new JdbcTransactionManager(source));
+        var capture = api.open(ApiRequestTiming.Window.MIXED);
+        api.serve(() -> timing.scope(Phase.API_SUBMIT, () -> tx.execute(status -> {
+            for (int i = 0; i < 4; i++) new JdbcTemplate(source).update("PRIVATE_SQL", "PRIVATE_ARG");
+            return null;
+        })));
+        api.complete(capture, 100, 202);
+        assertCount(timing, Phase.API_SUBMIT, Part.STORE_CALL, 1, 0);
+        assertCount(timing, Phase.API_SUBMIT, Part.ACQUIRE, 1, 0);
+        assertCount(timing, Phase.API_SUBMIT, Part.EXECUTE, 4, 0);
+        assertCount(timing, Phase.API_SUBMIT, Part.COMMIT, 1, 0);
+        assertCount(timing, Phase.API_SUBMIT, Part.RELEASE, 1, 0);
+        assertThat(driver.events).endsWith("commit", "release");
+        assertThat(new ObjectMapper().writeValueAsString(api.snapshot())).doesNotContain("PRIVATE_SQL", "PRIVATE_ARG");
+    }
+
+    @Test
     void observesOneTransactionWithoutChangingCommitOrderOrRetainingSql() throws Exception {
         var driver = new JdbcDriver();
         var timing = new DeliveryTiming();

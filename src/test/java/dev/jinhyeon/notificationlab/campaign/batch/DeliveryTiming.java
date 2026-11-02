@@ -2,6 +2,7 @@ package dev.jinhyeon.notificationlab.campaign.batch;
 
 import com.zaxxer.hikari.HikariDataSource;
 import dev.jinhyeon.notificationlab.outbox.OutboxStore;
+import dev.jinhyeon.notificationlab.outbox.SubmissionService;
 import dev.jinhyeon.notificationlab.worker.WorkerStore;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -32,18 +33,23 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 /** Opt-in test instrumentation. Fixed counters only: no SQL, arguments, records or identifiers retained. */
 final class DeliveryTiming {
     enum Phase {
-        OUTBOX_CLAIM, OUTBOX_PUBLISHED, OUTBOX_FAILED, WORKER_INITIAL, WORKER_ADMITTED, WORKER_COMPLETE, CONSUMER
+        OUTBOX_CLAIM, OUTBOX_PUBLISHED, OUTBOX_FAILED, WORKER_INITIAL, WORKER_ADMITTED, WORKER_COMPLETE, CONSUMER, API_SUBMIT
     }
     enum Part { STORE_CALL, ACQUIRE, PREPARE, EXECUTE, COMMIT, ROLLBACK, AUTOCOMMIT_STATE, ISOLATION_STATE, READ_ONLY_STATE, CONNECTION_STATE, RELEASE, STATEMENT_CLOSE, COMMIT_SYNC, COMMIT_ASYNC_SUBMIT }
     @FunctionalInterface interface Action<T, E extends Throwable> { T run() throws E; }
+    @FunctionalInterface interface ApiObserver { void record(Part part, long nanos, boolean failed); }
 
     private final ThreadLocal<Phase> current = new ThreadLocal<>();
     private final Stats[][] stats = new Stats[Phase.values().length][Part.values().length];
     private final AtomicInteger active = new AtomicInteger();
     private final AtomicInteger consumers = new AtomicInteger();
     private final List<HikariDataSource> pools = new ArrayList<>();
+    private final ApiObserver apiObserver;
 
-    DeliveryTiming() {
+    DeliveryTiming() { this(null); }
+
+    DeliveryTiming(ApiObserver apiObserver) {
+        this.apiObserver = apiObserver;
         for (int p = 0; p < stats.length; p++) {
             for (int c = 0; c < stats[p].length; c++) stats[p][c] = new Stats();
         }
@@ -58,8 +64,10 @@ final class DeliveryTiming {
             failed = false;
             return value;
         } finally {
-            stats[phase.ordinal()][part.ordinal()].record(System.nanoTime() - start, failed);
+            long nanos = System.nanoTime() - start;
+            stats[phase.ordinal()][part.ordinal()].record(nanos, failed);
             active.decrementAndGet();
+            if (phase == Phase.API_SUBMIT && apiObserver != null) apiObserver.record(part, nanos, failed);
         }
     }
 
@@ -88,6 +96,14 @@ final class DeliveryTiming {
     void attachStores(OutboxStore outbox, WorkerStore worker) {
         attachStore(outbox, false);
         attachStore(worker, true);
+    }
+
+    void attachSubmission(SubmissionService submission) {
+        if (!(submission instanceof Advised advised) || advised.isFrozen()) {
+            throw new IllegalStateException("Expected mutable submission transaction proxy");
+        }
+        advised.addAdvice(0, (MethodInterceptor) invocation -> invocation.getMethod().getName().equals("accept")
+                ? scope(Phase.API_SUBMIT, invocation::proceed) : invocation.proceed());
     }
 
     private void attachStore(Object store, boolean worker) {
@@ -200,7 +216,7 @@ final class DeliveryTiming {
             for (Part part : Part.values()) parts.put(part.name(), stats[phase.ordinal()][part.ordinal()].snapshot());
             phases.put(phase.name(), parts);
         }
-        return Map.of("version", "jdbc-consumer-boundaries-v2", "scope", "live app lifecycle including baseline, idle and shutdown; preload excluded",
+        return Map.of("version", apiObserver == null ? "jdbc-consumer-boundaries-v2" : "jdbc-consumer-api-boundaries-v3", "scope", "live app lifecycle including baseline, idle and shutdown; preload excluded",
                 "wrappedConsumers", consumers.get(), "pools", pools.size(), "poolsClosed", pools.stream().allMatch(HikariDataSource::isClosed),
                 "activeCalls", active.get(), "phases", phases);
     }

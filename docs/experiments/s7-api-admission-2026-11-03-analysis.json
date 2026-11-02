@@ -1,0 +1,681 @@
+{
+  "method": "nearest-rank percentiles; tail cohort is ceil(mixed rows * 0.05) sorted by clientMillis descending; all component means use that same cohort",
+  "runs": [
+    {
+      "rawFile": "s7-api-admission-2026-11-03-smoke.json",
+      "sha256": "e343bff96019b21ad57f1061c6b9912f54a4f1b300953cc64c001bf7c3badd31",
+      "mode": "COUNT_TIME",
+      "targets": 1000,
+      "startedAtUtc": "2026-11-02T15:48:03.915918Z",
+      "finishedAtUtc": "2026-11-02T15:48:56.147952Z",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiAdmissionPilot -PdeliveryTargets=1000 -PoffsetMode=COUNT_TIME",
+      "gradleDuration": "57s",
+      "exitCode": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "drainSeconds": 10.419434667,
+      "campaignPerSecond": 95.97449688582033,
+      "httpRequests": 1094,
+      "pairedRequests": 94,
+      "mixed": {
+        "client": {
+          "count": 44,
+          "p50": 9.476083,
+          "p95": 18.468124999999997,
+          "p99": 21.939542,
+          "max": 21.939542
+        },
+        "server": {
+          "count": 44,
+          "p50": 8.152166,
+          "p95": 16.245292,
+          "p99": 20.353916,
+          "max": 20.353916
+        },
+        "parts": {
+          "STORE_CALL": {
+            "count": 44,
+            "p50": 7.20925,
+            "p95": 14.69325,
+            "p99": 18.669625,
+            "max": 18.669625
+          },
+          "ACQUIRE": {
+            "count": 44,
+            "p50": 0.003958,
+            "p95": 0.008458,
+            "p99": 0.478208,
+            "max": 0.478208
+          },
+          "EXECUTE": {
+            "count": 44,
+            "p50": 3.081833,
+            "p95": 5.531417,
+            "p99": 8.580375,
+            "max": 8.580375
+          },
+          "COMMIT": {
+            "count": 44,
+            "p50": 2.461417,
+            "p95": 7.519333,
+            "p99": 9.25325,
+            "max": 9.25325
+          }
+        }
+      },
+      "slowCohort": {
+        "count": 3,
+        "meanClientMillis": 20.262819666666665,
+        "meanServerMillis": 18.616819333333332,
+        "meanPartsMillis": {
+          "STORE_CALL": 17.142972333333333,
+          "ACQUIRE": 0.006069666666666667,
+          "EXECUTE": 6.772902333333334,
+          "COMMIT": 7.0414303333333335
+        },
+        "meanSqlExecutionMillis": [
+          1.9222223333333333,
+          0.6271386666666667,
+          2.3518606666666666,
+          1.8716806666666665
+        ]
+      },
+      "slowest": [
+        {
+          "clientMillis": 21.939542,
+          "serverMillis": 20.353916,
+          "sqlExecutionMillis": [
+            0.717792,
+            0.361083,
+            0.740666,
+            2.6765
+          ],
+          "parts": {
+            "STORE_CALL": {
+              "millis": 18.669625,
+              "count": 1
+            },
+            "ACQUIRE": {
+              "millis": 0.007167,
+              "count": 1
+            },
+            "PREPARE": {
+              "millis": 0.072748,
+              "count": 4
+            },
+            "EXECUTE": {
+              "millis": 4.496041,
+              "count": 4
+            },
+            "COMMIT": {
+              "millis": 9.161083,
+              "count": 1
+            },
+            "ROLLBACK": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "AUTOCOMMIT_STATE": {
+              "millis": 4.455584,
+              "count": 3
+            },
+            "ISOLATION_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "READ_ONLY_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "CONNECTION_STATE": {
+              "millis": 0.009,
+              "count": 2
+            },
+            "RELEASE": {
+              "millis": 0.008125,
+              "count": 1
+            },
+            "STATEMENT_CLOSE": {
+              "millis": 0.013875,
+              "count": 4
+            },
+            "COMMIT_SYNC": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "COMMIT_ASYNC_SUBMIT": {
+              "millis": 0.0,
+              "count": 0
+            }
+          }
+        },
+        {
+          "clientMillis": 20.380792,
+          "serverMillis": 19.25125,
+          "sqlExecutionMillis": [
+            1.809167,
+            0.669208,
+            4.765416,
+            1.336584
+          ],
+          "parts": {
+            "STORE_CALL": {
+              "millis": 18.066042,
+              "count": 1
+            },
+            "ACQUIRE": {
+              "millis": 0.003042,
+              "count": 1
+            },
+            "PREPARE": {
+              "millis": 0.071584,
+              "count": 4
+            },
+            "EXECUTE": {
+              "millis": 8.580375,
+              "count": 4
+            },
+            "COMMIT": {
+              "millis": 6.938125,
+              "count": 1
+            },
+            "ROLLBACK": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "AUTOCOMMIT_STATE": {
+              "millis": 2.07275,
+              "count": 3
+            },
+            "ISOLATION_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "READ_ONLY_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "CONNECTION_STATE": {
+              "millis": 0.006499,
+              "count": 2
+            },
+            "RELEASE": {
+              "millis": 0.007333,
+              "count": 1
+            },
+            "STATEMENT_CLOSE": {
+              "millis": 0.028292,
+              "count": 4
+            },
+            "COMMIT_SYNC": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "COMMIT_ASYNC_SUBMIT": {
+              "millis": 0.0,
+              "count": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "rawFile": "s7-api-admission-2026-11-03-record.json",
+      "sha256": "7c5f93745d9831b2566c47998c3776ee17374a779c48b6df9306630766897d1e",
+      "mode": "RECORD",
+      "targets": 10000,
+      "startedAtUtc": "2026-11-02T15:50:22.501534Z",
+      "finishedAtUtc": "2026-11-02T15:52:54.952021Z",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiAdmissionPilot -PoffsetMode=RECORD",
+      "gradleDuration": "2m 36s",
+      "exitCode": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "drainSeconds": 104.201900166,
+      "campaignPerSecond": 95.96753978640878,
+      "httpRequests": 10516,
+      "pairedRequests": 516,
+      "mixed": {
+        "client": {
+          "count": 466,
+          "p50": 8.737041,
+          "p95": 21.372667,
+          "p99": 37.009417000000006,
+          "max": 183.529375
+        },
+        "server": {
+          "count": 466,
+          "p50": 7.608667,
+          "p95": 18.938958,
+          "p99": 34.968125,
+          "max": 164.990916
+        },
+        "parts": {
+          "STORE_CALL": {
+            "count": 466,
+            "p50": 6.866916,
+            "p95": 16.848167,
+            "p99": 34.171292,
+            "max": 149.894417
+          },
+          "ACQUIRE": {
+            "count": 466,
+            "p50": 0.001708,
+            "p95": 0.286458,
+            "p99": 1.419292,
+            "max": 59.932834
+          },
+          "EXECUTE": {
+            "count": 466,
+            "p50": 3.136042,
+            "p95": 8.571333,
+            "p99": 18.778584,
+            "max": 81.119334
+          },
+          "COMMIT": {
+            "count": 466,
+            "p50": 2.0135,
+            "p95": 5.735584,
+            "p99": 15.937,
+            "max": 46.070167
+          }
+        }
+      },
+      "slowCohort": {
+        "count": 24,
+        "meanClientMillis": 39.2261285,
+        "meanServerMillis": 36.25863533333333,
+        "meanPartsMillis": {
+          "STORE_CALL": 33.51300345833334,
+          "ACQUIRE": 2.5782518333333333,
+          "EXECUTE": 14.422422083333332,
+          "COMMIT": 10.265538375
+        },
+        "meanSqlExecutionMillis": [
+          3.4902690416666666,
+          4.378545208333334,
+          2.7788647083333333,
+          3.774743125
+        ]
+      },
+      "slowest": [
+        {
+          "clientMillis": 183.529375,
+          "serverMillis": 164.990916,
+          "sqlExecutionMillis": [
+            13.969959,
+            43.044041,
+            18.386042,
+            5.719292
+          ],
+          "parts": {
+            "STORE_CALL": {
+              "millis": 149.894417,
+              "count": 1
+            },
+            "ACQUIRE": {
+              "millis": 0.010125,
+              "count": 1
+            },
+            "PREPARE": {
+              "millis": 0.295625,
+              "count": 4
+            },
+            "EXECUTE": {
+              "millis": 81.119334,
+              "count": 4
+            },
+            "COMMIT": {
+              "millis": 46.070167,
+              "count": 1
+            },
+            "ROLLBACK": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "AUTOCOMMIT_STATE": {
+              "millis": 21.612291,
+              "count": 3
+            },
+            "ISOLATION_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "READ_ONLY_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "CONNECTION_STATE": {
+              "millis": 0.080541,
+              "count": 2
+            },
+            "RELEASE": {
+              "millis": 0.011792,
+              "count": 1
+            },
+            "STATEMENT_CLOSE": {
+              "millis": 0.041625,
+              "count": 4
+            },
+            "COMMIT_SYNC": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "COMMIT_ASYNC_SUBMIT": {
+              "millis": 0.0,
+              "count": 0
+            }
+          }
+        },
+        {
+          "clientMillis": 122.292334,
+          "serverMillis": 119.916417,
+          "sqlExecutionMillis": [
+            1.365917,
+            12.576792,
+            6.130292,
+            18.435083
+          ],
+          "parts": {
+            "STORE_CALL": {
+              "millis": 118.826125,
+              "count": 1
+            },
+            "ACQUIRE": {
+              "millis": 59.932834,
+              "count": 1
+            },
+            "PREPARE": {
+              "millis": 0.266876,
+              "count": 4
+            },
+            "EXECUTE": {
+              "millis": 38.508084,
+              "count": 4
+            },
+            "COMMIT": {
+              "millis": 16.829167,
+              "count": 1
+            },
+            "ROLLBACK": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "AUTOCOMMIT_STATE": {
+              "millis": 2.887708,
+              "count": 3
+            },
+            "ISOLATION_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "READ_ONLY_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "CONNECTION_STATE": {
+              "millis": 0.003292,
+              "count": 2
+            },
+            "RELEASE": {
+              "millis": 0.004416,
+              "count": 1
+            },
+            "STATEMENT_CLOSE": {
+              "millis": 0.035,
+              "count": 4
+            },
+            "COMMIT_SYNC": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "COMMIT_ASYNC_SUBMIT": {
+              "millis": 0.0,
+              "count": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "rawFile": "s7-api-admission-2026-11-03-count.json",
+      "sha256": "4b87c12d30e4ba53c31e4ff6b402617f00097a16d3cd741734b2ac4843f13089",
+      "mode": "COUNT_TIME",
+      "targets": 10000,
+      "startedAtUtc": "2026-11-02T15:53:15.406546Z",
+      "finishedAtUtc": "2026-11-02T15:55:51.138334Z",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiAdmissionPilot -PoffsetMode=COUNT_TIME",
+      "gradleDuration": "2m 39s",
+      "exitCode": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "drainSeconds": 106.101898834,
+      "campaignPerSecond": 94.24902013907723,
+      "httpRequests": 10518,
+      "pairedRequests": 518,
+      "mixed": {
+        "client": {
+          "count": 468,
+          "p50": 10.71975,
+          "p95": 26.31775,
+          "p99": 48.85475,
+          "max": 239.53875
+        },
+        "server": {
+          "count": 468,
+          "p50": 9.313209,
+          "p95": 22.438917,
+          "p99": 47.090333,
+          "max": 230.338792
+        },
+        "parts": {
+          "STORE_CALL": {
+            "count": 468,
+            "p50": 8.575791,
+            "p95": 20.284333,
+            "p99": 46.5105,
+            "max": 225.154417
+          },
+          "ACQUIRE": {
+            "count": 468,
+            "p50": 0.00175,
+            "p95": 0.341833,
+            "p99": 1.851959,
+            "max": 4.9745
+          },
+          "EXECUTE": {
+            "count": 468,
+            "p50": 3.8,
+            "p95": 8.709458,
+            "p99": 23.660084,
+            "max": 57.984416
+          },
+          "COMMIT": {
+            "count": 468,
+            "p50": 2.488375,
+            "p95": 7.502417,
+            "p99": 21.682042,
+            "max": 139.998792
+          }
+        }
+      },
+      "slowCohort": {
+        "count": 24,
+        "meanClientMillis": 48.38235066666667,
+        "meanServerMillis": 43.63275345833333,
+        "meanPartsMillis": {
+          "STORE_CALL": 41.43113183333333,
+          "ACQUIRE": 0.25403295833333334,
+          "EXECUTE": 16.329802291666667,
+          "COMMIT": 18.775314208333334
+        },
+        "meanSqlExecutionMillis": [
+          5.021765708333334,
+          3.720902833333333,
+          2.6251823333333335,
+          4.9619514166666665
+        ]
+      },
+      "slowest": [
+        {
+          "clientMillis": 239.53875,
+          "serverMillis": 230.338792,
+          "sqlExecutionMillis": [
+            31.185208,
+            5.95475,
+            1.895,
+            18.949458
+          ],
+          "parts": {
+            "STORE_CALL": {
+              "millis": 225.154417,
+              "count": 1
+            },
+            "ACQUIRE": {
+              "millis": 0.003458,
+              "count": 1
+            },
+            "PREPARE": {
+              "millis": 0.141208,
+              "count": 4
+            },
+            "EXECUTE": {
+              "millis": 57.984416,
+              "count": 4
+            },
+            "COMMIT": {
+              "millis": 139.998792,
+              "count": 1
+            },
+            "ROLLBACK": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "AUTOCOMMIT_STATE": {
+              "millis": 26.490959,
+              "count": 3
+            },
+            "ISOLATION_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "READ_ONLY_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "CONNECTION_STATE": {
+              "millis": 0.003459,
+              "count": 2
+            },
+            "RELEASE": {
+              "millis": 0.007875,
+              "count": 1
+            },
+            "STATEMENT_CLOSE": {
+              "millis": 0.024584,
+              "count": 4
+            },
+            "COMMIT_SYNC": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "COMMIT_ASYNC_SUBMIT": {
+              "millis": 0.0,
+              "count": 0
+            }
+          }
+        },
+        {
+          "clientMillis": 101.421084,
+          "serverMillis": 96.126125,
+          "sqlExecutionMillis": [
+            3.0175,
+            2.081083,
+            12.09575,
+            3.053333
+          ],
+          "parts": {
+            "STORE_CALL": {
+              "millis": 91.858958,
+              "count": 1
+            },
+            "ACQUIRE": {
+              "millis": 0.002708,
+              "count": 1
+            },
+            "PREPARE": {
+              "millis": 0.284126,
+              "count": 4
+            },
+            "EXECUTE": {
+              "millis": 20.247666,
+              "count": 4
+            },
+            "COMMIT": {
+              "millis": 54.125375,
+              "count": 1
+            },
+            "ROLLBACK": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "AUTOCOMMIT_STATE": {
+              "millis": 14.943583,
+              "count": 3
+            },
+            "ISOLATION_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "READ_ONLY_STATE": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "CONNECTION_STATE": {
+              "millis": 0.019459,
+              "count": 2
+            },
+            "RELEASE": {
+              "millis": 0.004083,
+              "count": 1
+            },
+            "STATEMENT_CLOSE": {
+              "millis": 0.028833,
+              "count": 4
+            },
+            "COMMIT_SYNC": {
+              "millis": 0.0,
+              "count": 0
+            },
+            "COMMIT_ASYNC_SUBMIT": {
+              "millis": 0.0,
+              "count": 0
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "sourceManifest": "s7-api-admission-2026-11-03-source.json",
+  "sourceManifestSha256": "1efcea30a2fca953516ac24fa7e9f51b93e48b03e4d2b6f7b01940946a777001",
+  "scope": "test-only 1k smoke and 10k RECORD/COUNT_TIME, same frozen sources; counts use independent runs, not one continuous load",
+  "finalRegression": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "exitCode": 0,
+    "gradleDuration": "16m 58s",
+    "classes": 38,
+    "tests": 308,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "logSha256": "0f1b446e36bb69f7519b312f8ad922f41a0657f7cc2b1d68d7ec84b6351f6302",
+    "sourceManifest": "s7-api-admission-2026-11-03-source-final.json",
+    "sourceManifestSha256": "03ac13df50b674f441fe28d0a43200f30db5673bd8a24db431212096ffdfd065"
+  }
+}

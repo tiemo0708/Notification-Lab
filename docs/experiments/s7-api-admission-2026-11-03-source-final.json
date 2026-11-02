@@ -1,0 +1,15 @@
+{
+  "baseCommit": "1e2307c13168cfae25b77bcd392ed64af6e43f6d",
+  "scope": "final regression sources; only ApiRequestTimingTest privacy assertion changed after the pilot runs; runtime test helpers and production code unchanged",
+  "filesSha256": {
+    "build.gradle": "175b9f0bb0b0512eb45d343885a5e80cd20507f55f8614e9737a8078f7402fcf",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiRequestTiming.java": "73952d6737474f5aa108ecd93884118812b7942e621aa8027fb96353eb65a157",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiRequestTimingTest.java": "1b9f41d3c7d1ee65d6f2161efea7d8ac37c665d56a3fd7fdff979aa9f6c0e5b8",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "aab5771b11909af86ebd7e3fd218c47c25d28e93c394f8a0996912ecae7593b9",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "e2a07c59008af403df29b377a757387dd2eac18bac877385ca240b29f9c750f3",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTimingTest.java": "26d5d62c69851c563f78f2b9acb91139fbe375733bde76b76922f7f3d66e2d66",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryBounds.java": "758314965742d6e388b338ba9e131199e81e62f5e2597881c9617702d59abd68",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignRelayGroup.java": "7957f3e14bcd1f4b0c67db28949e8e8c537dabf96157ebbe0f360526756f3a5e",
+    "src/test/java/dev/jinhyeon/notificationlabtest/OffsetCommitPolicy.java": "292ce0c970fa8fcaab5ba8c55b485e482016a059ad791bc68bd49762f39ec140"
+  }
+}

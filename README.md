@@ -330,6 +330,11 @@ HTTP41910건 전수 대조와 동기 커밋10000→2163/2019회 감소를 확인
 `./gradlew offsetCommitLoad -PoffsetMode=RECORD` 또는COUNT_TIME은 정확히10만 건만 허용하는 별도 비교 task다.
 기본 회귀/앱 실행에 포함하지 않고100만 건을 이 task로 실행하지 않는다.
 
+[실시간 접수 코드 흐름과 구간 진단](docs/S7_API_ADMISSION_TIMING.md)은 기본 API의한 연결/SQL4회/commit1회를 따라가는 학습 문서다.
+테스트 전용 `./gradlew apiAdmissionPilot -PoffsetMode=RECORD` 또는COUNT_TIME으로1000..10000건만 측정한다.
+요청별 연결/SQL/commit/서버/클라이언트 시간을 대응했고1만 건 각1회/HTTP21034건을 대조했다.
+10만 건의p95 수준은 미재현이며 기본 정책을 유지한다. DB 내부 대기의 확정 원인은 아직 검증하지 않았다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

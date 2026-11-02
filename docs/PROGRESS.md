@@ -2262,3 +2262,47 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   실험 뒤 Docker에는 기존 notification-lab-mysql-1만healthy로 남았다. 사용자DB/.env/IntelliJ/volume을 변경하지 않았다.
   전체 기본 회귀302개 통과 이후 테스트 코드는 변경하지 않았다. 후속 변경은 실제 결과와 계획 문서뿐이다.
   실제 공급자/여러 서버/유료 자원/100만 건 재실행/푸시는 하지 않는다.
+
+
+## 2026-11-03 — S7 실시간 접수 흐름과 요청별 JDBC 구간 진단
+
+- 시작1e2307c/main/원격 추적보다16개 앞선 깨끗한 상태에서 AGENTS/CONTRIBUTING/PLAN/README/직전 결과를 확인했다.
+  기본 비동기 POST는 NotificationService.send가 아니라 Controller→IdempotentSubmissionService.submit→SubmissionService.accept다.
+  알림INSERT/역할UPDATE/작업INSERT/OutboxINSERT를한 연결/한 트랜잭션/SQL4회/DB commit1회로 처리한 뒤202를 반환한다.
+  [호출 흐름·트랜잭션·측정 범위·학습 질문](S7_API_ADMISSION_TIMING.md)을 코드 링크와 함께 정리했다.
+- 기존 계측에서 빠진 API 접수를 테스트 전용으로 보강했다. servlet 필터→accept 프록시 바깥→기존 DataSource 래퍼를 연결해
+  같은 요청의 client/server/획득/prepare/개별SQL4회/commit/상태 확인·반환을 기록한다. 본문/수신자/ID/SQL/예외 메시지를 저장하지 않는다.
+  순차 probe1개/trace최대5000행/고정 JDBC14구간/개별SQL4개/클라이언트5초/필터 완료 확인2초 상한을 둔다.
+- apiAdmissionPilot은1000..10000건만 허용하며 기본build에 연결하지 않는다. 캠페인Relay2/완료 저장10,
+  실시간Relay1/완료 저장1/RECORD, Worker3/Hikari4/HTTP3/Redis3/queue0/200/s와 기존CPU·메모리를 유지했다.
+  운영 Java/resources/풀/격리 수준/기본 RECORD를 바꾸지 않는다.
+- 첫 컴파일은 필터 제네릭 추론 오류로6초에 실패했다. 타입을 명시한 뒤 선택18개는5초/실패·오류·스킵0으로 통과했다.
+  이후 개별SQL 시간과 상대시각을 보강하고 실험 소스9개 SHA-256을 고정했다.
+- 1천 건COUNT_TIME 연결 검증은57초/종료 코드0/테스트1개 통과/실패·오류·스킵0이었다.
+  캠페인1000+실시간94=HTTP1094건 전수 대조, 요청별SQL4회/획득·커밋·반환1회/rollback0과 구간 대응을 확인했다.
+- 같은 소스로 새 JVM/격리 인프라에서1만 건RECORD→COUNT_TIME 각1회 실행했다. task2분36초/2분39초,
+  사전 저장17.984/18.729초, 발송104.202/106.102초·95.968/94.249/s였다. 각1개 테스트 통과/실패·오류·스킵0/종료 코드0이었다.
+  캠페인20000+실시간1034=HTTP21034건의 전체 대상 매핑/이력1회/Outbox PUBLISHED/HTTP 감사/각partition offset=end/quota를 대조했다.
+  중복·매핑·Mock 제한/오류0, 실시간1034건 모두 요청별 계측이 대응됐다. 별도1천 건까지HTTP22128건이다.
+- 혼합APIp95는21.373/26.318ms, 최대183.529/239.539ms, 서버 필터p95는18.939/22.439ms였다.
+  commitSync10000→2612회로 줄었지만 이번1만 건의 처리량 개선은 미관측이다. 각1회/공유 호스트/새 계측 오버헤드가 있다.
+  기존10만 건의97.694→202.728ms 수준의p95는 미재현이고 원래100만 건의5초 timeout 원인도 여전히 미확정이다.
+- 혼합 응답 상위ceil(N×5%)24개씩의 같은 요청에서 평균SQL 합14.422/16.330ms·commit10.266/18.775ms,
+  연결 획득2.578/0.254ms를 관측했다. 서로 다른p95를 빼서 원인을 계산하지 않는다.
+  가장 느린COUNT_TIME 요청239.539ms에서는 SQL57.984ms/commit139.999ms/획득0.003ms였다.
+  RECORD의다른 요청은획득59.933ms였지만실시간 pool waiting97개 표본은모두0이었다. 획득시간 전체를풀 대기로 단정하지 않는다.
+- [원본·명령·시각·해시·가장 느린 요청 구간 요약](experiments/s7-api-admission-2026-11-03-analysis.json)을 보존했다.
+  다음 작은 단계는 긴SQL/commit에서 DB 내부 잠금·I/O와 호출자 스케줄링을 구분할 증거를 제한적으로 수집하는 것이다.
+  현재 증거만으로 풀/인덱스/격리 수준을 바꾸지 않고 기본 RECORD를 유지한다.
+- 첫 전체 회귀는 새 테스트가 금지 문자열sql을 정상 숫자 필드sqlExecutionMillis에도 적용해1개 실패했다.
+  156개 통과/1개 실패 확인 뒤중단/종료 코드130으로 보존했다. 전체 통과로 기록하지 않는다.
+  검사식은실제SQL 원문 JSON 키로 좁혔다. 해당5개 테스트는4초/실패·오류·스킵0으로 통과했다.
+  실험 소스와 최종 회귀 소스의차이는이테스트 검사식 한 줄뿐이다. 계측/운영 코드는변경하지 않았다.
+
+- 최종 전체 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **16분58초/종료 코드0**이었다.
+  새38개 클래스 JUnit XML과 콘솔에서 **308개 통과/실패·오류·스킵0**을 대조했다. 기존302개+신규6개다.
+  기본 회귀는 실제 재실행했고 두 실행 JAR task는UP-TO-DATE/운영 Java/resources diff0이었다.
+- 최종 소스 해시/원래100만 건 FAIL 원본 해시의 불변, 새 원본의 UUID·비유한 값·민감 필드 미포함과 문서 링크를 확인했다.
+  기존 Git identity와 원격main9cf1786을 읽기 전용 확인했다. 사용자DB/.env/IntelliJ/volume과 기본 정책을 유지한다.
+  실제 공급자/유료 자원/10만·100만 건 재실행/푸시는 하지 않았다.
+- 최종 Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 격리 검증 컨테이너는 정리됐다.
