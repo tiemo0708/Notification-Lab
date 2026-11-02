@@ -1,0 +1,58 @@
+{
+  "startedAtUtc" : "2026-11-02T06:56:32.834942Z",
+  "scope" : "preloaded campaign HTTP delivery pilot; same JVM independent app contexts",
+  "targets" : 10000,
+  "bounds" : {
+    "latencyArrayBytes" : 80000,
+    "queryPageRows" : 1000,
+    "maxResourceSamples" : 452,
+    "maxRealtimeProbes" : 5000,
+    "campaignAuditBytes" : 1256,
+    "drainLimitSeconds" : 900
+  },
+  "verificationVersion" : "paged-latency-and-target-mapping-v2",
+  "diagnosticsVersion" : "live-pools-and-cgroup-counters-v1",
+  "redisConnectionsPerLane" : 3,
+  "settings" : {
+    "totalBurst" : 100,
+    "workersPerLane" : 3,
+    "campaignRate" : 200,
+    "totalRate" : 1000,
+    "httpConnectionsPerLane" : 3,
+    "mockDelayMillis" : 1,
+    "campaignBurst" : 20,
+    "probeDelayMillis" : 200,
+    "baselineProbes" : 50
+  },
+  "publishBatchSize" : 10,
+  "campaignRelayInstances" : 1,
+  "relayScheduling" : "test-only-fixed-delay-group-v1",
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "availableProcessors" : 10,
+  "infra" : {
+    "mysql" : "8.4.8",
+    "redisMemoryMiB" : 256,
+    "kafkaCpu" : 1,
+    "kafkaMemoryMiB" : 1024,
+    "mysqlCpu" : 2,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlMemoryMiB" : 2048,
+    "redis" : "7.4.11",
+    "kafka" : "4.0.2"
+  },
+  "preloadSeconds" : 14.474032542,
+  "baselineSeconds" : 11.505017042,
+  "baselineLatencyMs" : {
+    "max" : 626.926,
+    "p99" : 626.926,
+    "p50" : 200.774,
+    "count" : 50,
+    "p95" : 558.259
+  },
+  "samples" : [ ],
+  "result" : "FAIL",
+  "failureType" : "NoSuchBeanDefinitionException",
+  "finishedAtUtc" : "2026-11-02T06:57:13.480758Z"
+}

@@ -2087,3 +2087,39 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 세 실험/SQL 회귀의 성공·실패 원본을 모두 보존했다. UUID/비유한 값 미포함, 문서 링크/코드 블록과diff를 확인한다.
   Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 사용자DB/.env/IntelliJ/volume은 변경하지 않았다.
   원래100만 건 FAIL 원본도 변경하지 않는다.100만 건 실행과 원래timeout 원인 항목은 계속 미완료이며 푸시하지 않는다.
+
+
+## 2026-11-02 — S7 고정 자원에서 로컬 Relay1/2개 사전 비교
+
+- 시작ada8b67/main/원격 추적보다11개 앞선 깨끗한 상태에서 AGENTS/CONTRIBUTING/PLAN/README/이전 기록을 확인했다.
+  10만 건 선점 caller753.411초를 근거로 Worker 증설 전에 Relay 공급 경로의 병렬화 효과부터 확인한다.
+- 운영 Java/resources와 기존 기본값은 변경하지 않았다. 테스트 전용 `relayScalingPilot`은 같은 앱의 OutboxStore/DB 풀/producer를
+  공유하는 기존 Relay 루프를1..3개만 실행한다. 자동 캠페인 Relay bean을 끄고 중복 실행을 거부한다.
+  1개 기준선도 같은 테스트 전용 스케줄러를 사용하므로 예전 자동 Relay 실험의 기준선을 재사용하지 않는다.
+- 같은 루프는 겹치지 않으며 완료 뒤100ms마다 고정 작업만 등록한다. 개별 메시지 future/제출 대기열은 추가하지 않는다.
+  예상 밖 주기 작업 종료를 감지하고 종료 시 신규 선점을 멈춰 실행 중 ACK/부분 완료 저장을 기다린다.
+  정상30초+interrupt15초의 종료 상한을 두고 두 번 close해도 중복 stop하지 않는다.
+- 첫1개 실행은44초/테스트1개 실패였다. KafkaTemplate의 Boot 제네릭 bean 조회 오류로 캠페인 Relay 시작 전에 실패했다.
+  [원본](experiments/s7-relay-scaling-2026-11-02-initial-bean-failure.json)을 보존한 뒤 조회를 수정했다.
+  이후 네 실행은 [동일 파일 SHA-256](experiments/s7-relay-scaling-2026-11-02-source.json)을 확인했다.
+- 명령은 `caffeinate -i ./gradlew --no-daemon --console=plain relayScalingPilot -PcampaignRelays=N`이다.
+  N을1→2→2→1로 바꾸고 매번 새 JVM/격리 MySQL/Kafka/Redis에서1만 건을 실행했다.
+  완료 저장10건/실시간1건, Worker3/HTTP3/Redis3/Hikari4/queue0, 캠페인200/s·burst20, CPU/메모리와5초 접수 제한을 유지했다.
+- 네 task는 BUILD SUCCESSFUL/종료 코드0/각1개 통과/실패·오류·스킵0이며 전체 시간2분7초/1분56초/2분30초/2분1초였다.
+  발송82.887/72.809/101.600/76.114초, 처리량120.646/137.346/98.426/131.381/s였다.
+  캠페인40000+실시간1711=HTTP41711건의 전체 매핑/성공 시도1회/PUBLISHED/HTTP/offset=end/quota를 대조했다. 중복·매핑·Mock 오류0.
+- 혼합 APIp95는13.578/11.583/40.438/10.804ms, 최대29.703/22.956/1490.550/78.501ms였다.
+  2개 조건이 일관되게 빠르지 않았고 원래100만 건 timeout 원인은 여전히 미확정이다. 앱 기본값과 배포 설정을 유지한다.
+- 선점 호출10038/10554/10715/10048회·누적44.837/53.745/87.916/39.040초였다.
+  병렬 타이머는 중첩되고 빈 폴링도 포함한다. 이 시간을 DB 내부 실행/잠금 대기로 단정하지 않는다.
+  159개 자원샘플의 MySQL max/oom/oom_kill0, Hikari 결측0이었다. 캠페인 waiting최대0/2/1/0, 실시간0이었다.
+  동시 루프1/2/2/1과 종료 후 active0/대기 주기 작업0/terminated=true를 확인했다.
+- [문제·고정 조건·실제 수치·한계·버전별 공식 참고](S7_RELAY_SCALING_PILOT.md)에 네 PASS/첫 FAIL 원본을 보존했다.
+  같은 JVM/공유 풀의 로컬 병렬 처리이며 여러 서버 자원 증가나 다중 프로세스 동시 강제 종료를 입증하지 않는다.
+- 전체 기본 회귀 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **BUILD SUCCESSFUL12분8초/종료 코드0**이었다.
+  최종35개 클래스 JUnit XML과 콘솔에서 **278개 통과/실패·오류·스킵0**을 대조했다. 기존275개+신규 실행기3개다.
+  운영 코드가 같아 두 실행 JAR task는UP-TO-DATE였고 기본 회귀는 실제 재실행했다. 별도 발송4회와 구분한다.
+- 실험/기본 회귀 뒤에도 소스 SHA-256과 원래100만 건 FAIL 원본이 같음을 확인했다. 새 JSON의 UUID/비유한 값/민감 필드가 없음을 확인했다.
+  문서 링크/코드 블록/diff를 확인했다. Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 사용자DB/.env/IntelliJ/volume은 변경하지 않았다.
+- 원격main은 읽기 전용 확인에서9cf1786 그대로였다. Git identity를 유지하고 푸시는 하지 않는다.
+  다음 작은 진단은 DB 연결 취득/SQL/commit과Kafka offset 저장 비용의 세분화다.100만 건과 유료/외부 서버 실행은 이번에 하지 않았다.

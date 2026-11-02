@@ -73,10 +73,14 @@ class CampaignDeliveryPilotTest {
     private final String quotaKey = "test:delivery-pilot:" + UUID.randomUUID();
     private String mockUrl;
     private int maxProbes;
+    private int relayInstances;
 
     @Test
     void reconcilesHttpDeliveryAndComparesRealtimeLatencyDuringCampaignDrain() throws Exception {
         boolean load = Boolean.getBoolean("campaign.delivery.load");
+        boolean scaling = Boolean.getBoolean("campaign.delivery.scaling");
+        if (scaling && load) throw new IllegalArgumentException("Relay scaling is limited to the small pilot");
+        relayInstances = scaling ? CampaignRelayGroup.validate(Integer.parseInt(System.getProperty("campaign.delivery.relayInstances", "1"))) : 0;
         int targets = Integer.getInteger("campaign.delivery.targets", 10_000);
         var bounds = CampaignDeliveryBounds.forRun(load, targets);
         maxProbes = bounds.maxRealtimeProbes();
@@ -96,6 +100,8 @@ class CampaignDeliveryPilotTest {
                 "campaignBurst", 20, "workersPerLane", 3, "httpConnectionsPerLane", 3,
                 "probeDelayMillis", 200, "baselineProbes", BASELINE_PROBES, "mockDelayMillis", 1));
         report.put("publishBatchSize", Integer.getInteger("campaign.delivery.publishBatchSize", 1));
+        report.put("campaignRelayInstances", relayInstances == 0 ? 1 : relayInstances);
+        report.put("relayScheduling", scaling ? "test-only-fixed-delay-group-v1" : "application-scheduled-bean");
         report.put("java", System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
         report.put("os", System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
         report.put("jvmMaxHeapBytes", Runtime.getRuntime().maxMemory());
@@ -159,7 +165,8 @@ class CampaignDeliveryPilotTest {
                     long drainStart = System.nanoTime(); // Includes campaign app startup; excludes preload and baseline.
                     var samples = new ArrayList<Map<String, Object>>();
                     report.put("samples", samples);
-                    try (var campaign = application(mysql, kafka, redis, "CAMPAIGN", true)) {
+                    try (var campaign = application(mysql, kafka, redis, "CAMPAIGN", true);
+                         var relays = scaling ? CampaignRelayGroup.start(campaign, relayInstances) : null) {
                         try {
                             ready(campaign);
                             long nextSample = 0;
@@ -167,6 +174,7 @@ class CampaignDeliveryPilotTest {
                                 if (seconds(drainStart) > drainLimitSeconds) throw new IllegalStateException("Delivery drain exceeded " + drainLimitSeconds + " seconds");
                                 checkRunning(campaign, "campaign");
                                 checkRunning(realtime, "realtime");
+                                if (relays != null) relays.checkHealthy();
                                 probe(http, realtime, "MIXED");
                                 if (System.nanoTime() >= nextSample) {
                                     if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
@@ -187,6 +195,13 @@ class CampaignDeliveryPilotTest {
                             await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == probes.size());
                             awaitOffsets(admin, campaign, targets);
                             awaitOffsets(admin, realtime, probes.size());
+                            if (relays != null) {
+                                relays.checkHealthy();
+                                relays.close(); // Complete partial ACK flushes before the final audit and app teardown.
+                                report.put("campaignRelayGroup", relays.snapshot());
+                                assertThat(relays.snapshot()).containsEntry("maxConcurrentRuns", relayInstances)
+                                        .containsEntry("activeRuns", 0).containsEntry("queuedPeriodicTasks", 0).containsEntry("terminated", true);
+                            }
                             report.put("mixedProbes", mixed);
                             long verificationStart = System.nanoTime();
                             report.put("mixedLatencyMs", latency(jdbc, "title='MIXED' AND traffic_class='REALTIME'", mixed));
@@ -226,9 +241,11 @@ class CampaignDeliveryPilotTest {
         } finally {
             TimeZone.setDefault(originalZone);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path directory = Path.of(load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
+            Path directory = Path.of(scaling ? "build/reports/relay-scaling-pilot" :
+                    load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve((load ? "load-" : "pilot-") + targets + ".json").toFile(), report);
+            String name = scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
+            mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
         }
     }
 
@@ -255,7 +272,7 @@ class CampaignDeliveryPilotTest {
                         "--app.provider.http.max-connections=3", "--app.worker.consumers=3", "--app.worker.max-active=3",
                         "--app.worker.queue-capacity=0", "--app.campaign.batch.enabled=" + !live,
                         "--app.async.relay.publish-batch-size=" + (lane.equals("CAMPAIGN") ? Integer.getInteger("campaign.delivery.publishBatchSize", 1) : 1),
-                        "--app.campaign.batch.chunk-size=100", "--app.async.relay-enabled=" + live, "--app.async.worker-enabled=" + live,
+                        "--app.campaign.batch.chunk-size=100", "--app.async.relay-enabled=" + (live && !(lane.equals("CAMPAIGN") && relayInstances > 0)), "--app.async.worker-enabled=" + live,
                         "--app.traffic.split-enabled=true", "--app.traffic.lane=" + lane,
                         "--app.traffic.campaign-rate=200", "--app.traffic.campaign-burst=20",
                         "--app.rate-limit.client-enabled=true", "--app.rate-limit.pause-enabled=true", "--app.rate-limit.max-connections=3",

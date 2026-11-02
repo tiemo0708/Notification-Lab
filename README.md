@@ -307,6 +307,13 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 첫 단건 기준선 재사용 대비 처리량29.24% 증가였지만 혼합 APIp95는297.106→364.875ms로 악화했다.
 기본값1과 실시간 설정을 유지하며 캠페인10건은 선택 옵션이다.100만 건 재실행은 아직 하지 않았다.
 
+[로컬 Relay1/2개 사전 비교](docs/S7_RELAY_SCALING_PILOT.md)는 같은 Worker3/Hikari4/캠페인200/s에서
+1만 건을1→2→2→1 순서로 처리했다. 네 실행의 HTTP41711건 전수 대조를 통과했지만,
+처리량 범위는1개120.646~131.381/s, 2개98.426~137.346/s로 일관된 개선을 확인하지 못했다.
+`./gradlew relayScalingPilot -PcampaignRelays=1` 또는2로 재현한다(완료 저장10건 고정).
+테스트 전용 같은 JVM의 독립 루프이며 기본 앱 설정이나 여러 서버 배포 기능을 변경하지 않는다.
+다음 작은 진단은 공유 DB 연결 취득/명령/commit과offset 저장 비용을 나눠 확인하는 것이다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

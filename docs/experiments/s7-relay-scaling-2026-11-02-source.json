@@ -1,0 +1,10 @@
+{
+  "baseCommit": "ada8b671737affb4671bf89b0e5255e8a252ce46",
+  "scope": "test-only Relay scaling; production Java/resources unchanged from base commit",
+  "filesSha256": {
+    "build.gradle": "4241105a5bcca0969d354f5c7871c38d18508def370b51768b0ef87356be25fc",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignRelayGroup.java": "7957f3e14bcd1f4b0c67db28949e8e8c537dabf96157ebbe0f360526756f3a5e",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignRelayGroupTest.java": "6f9b19706897bbbe0ae430761326cb329584fa514a65fe5613b3a11b7fe24c5b",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "f126b072fccc63628667e33e5f6ec798794fcc1cdfecc7740b6bca3cba8c8104"
+  }
+}
