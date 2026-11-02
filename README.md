@@ -297,6 +297,11 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 수정 후10만 건 재검증도 캠페인100000+실시간7269건을 전수 대조했다(발송약30분41초/54.333건·초).
 이번 혼합 APIp95는203.917ms/최대1904.024ms였다. 정합성은 통과했지만 이전보다 처리량은 낮았고100만 건 재실행은 미실행이다.
 [DB 인계 측정 범위·설정·실패와 재실행 결과](docs/S7_CAMPAIGN_LOAD.md)를 참고한다.
+[Relay 구간 계측과 완료 저장 묶음 비교](docs/S7_RELAY_PUBLISH_BATCH.md)도 진행했다.
+1만 건 각2회에서 단건109.349~131.447초/최대10건93.949~100.122초였고 HTTP42,160건을 전수 대조했다.
+기본값은1이며 `app.async.relay.publish-batch-size=10`은 선택 옵션이다. 재발행 가능 범위가 늘어나는 비용이 있다.
+실시간 p95 개선과10만/100만 건의 같은 속도는 보장하지 않는다. 다음은 옵션의10만 건 검증이다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

@@ -71,6 +71,21 @@ public class OutboxStore {
     }
 
     @Transactional
+    public int published(List<Claim> claims) {
+        if (claims.isEmpty() || claims.size() > 10) throw new IllegalArgumentException("Publish batch must contain 1 to 10 claims");
+        var parameters = new ArrayList<Object>(claims.size() * 2);
+        var predicates = new ArrayList<String>(claims.size());
+        for (var claim : claims) {
+            predicates.add("(event_id = ? AND lease_token = ?)");
+            parameters.add(claim.eventId());
+            parameters.add(claim.token());
+        }
+        // One bounded statement/commit; every row must still own its individual lease token.
+        return jdbc.update("UPDATE outbox_event SET status = 'PUBLISHED', published_at = UTC_TIMESTAMP(6), lease_token = NULL "
+                + "WHERE status = 'PROCESSING' AND (" + String.join(" OR ", predicates) + ")", parameters.toArray());
+    }
+
+    @Transactional
     public void failed(Claim claim, int maxAttempts) {
         int backoffSeconds = Math.min(60, 1 << Math.min(claim.attempt() - 1, 6));
         jdbc.update("""

@@ -21,6 +21,11 @@ public class NotificationWorker {
     private final NotificationService service;
     private final ObjectMapper mapper;
     private final MeterRegistry registry;
+    private final Timer handlerTime;
+    private final Timer initialClaimTime;
+    private final Timer admittedClaimTime;
+    private final Timer providerTime;
+    private final Timer completionTime;
 
     public NotificationWorker(WorkerStore store, NotificationService service,
                               ObjectMapper mapper, MeterRegistry registry, WorkerAdmission admission,
@@ -32,12 +37,18 @@ public class NotificationWorker {
         this.service = service;
         this.mapper = mapper;
         this.registry = registry;
+        this.handlerTime = registry.timer("notification.pipeline.stage", "stage", "worker.handler");
+        this.initialClaimTime = registry.timer("notification.pipeline.stage", "stage", "worker.claim.initial");
+        this.admittedClaimTime = registry.timer("notification.pipeline.stage", "stage", "worker.claim.admitted");
+        this.providerTime = registry.timer("notification.pipeline.stage", "stage", "worker.provider");
+        this.completionTime = registry.timer("notification.pipeline.stage", "stage", "worker.complete");
     }
 
     @KafkaListener(id = "notification-worker", topics = {"#{@trafficRouting.topic()}", "#{@trafficRouting.retryTopic()}"},
             groupId = "#{@trafficRouting.group()}", concurrency = "${app.worker.consumers:1}",
             autoStartup = "${app.async.worker-enabled:true}")
     public void receive(ConsumerRecord<String, String> record) {
+        var handler = Timer.start(registry);
         try {
             admission.execute(() -> process(record));
         } catch (WorkerQuota.QuotaDeferred | ProviderCircuitBreaker.CircuitDeferred deferred) {
@@ -46,6 +57,8 @@ public class NotificationWorker {
             registry.counter("notification.worker.failures").increment();
             // Includes admission failure: never return successfully for an unprocessed record.
             throw new IllegalStateException("Notification processing failed; offset must remain uncommitted");
+        } finally {
+            handler.stop(handlerTime);
         }
     }
 
@@ -59,19 +72,19 @@ public class NotificationWorker {
             UUID eventId = UUID.fromString(event.path("eventId").asText());
             if (!id.toString().equals(record.key())) throw new IllegalArgumentException();
             String token = UUID.randomUUID().toString();
-            var claimed = store.claim(id, eventId, token, taskId, !quota.enabled() && !circuit.enabled());
+            var claimed = initialClaimTime.record(() -> store.claim(id, eventId, token, taskId, !quota.enabled() && !circuit.enabled()));
             try (var permit = claimed.isPresent() && claimed.get().needsPermit() ? circuit.acquire() : null) {
                 if (claimed.isPresent() && claimed.get().needsPermit()) {
                     quota.awaitPermit();
-                    claimed = store.claim(id, eventId, token, taskId); // Revalidate after admission, then start the attempt.
+                    claimed = admittedClaimTime.record(() -> store.claim(id, eventId, token, taskId)); // Revalidate after admission, then start the attempt.
                 }
                 if (claimed.isPresent()) {
                     Timer.Sample sample = Timer.start(registry);
                     var claim = claimed.get();
                     if (claim.send()) {
-                        var completed = service.attempt(claim.notification()); // Outside all DB transactions.
+                        var completed = providerTime.record(() -> service.attempt(claim.notification())); // Outside all DB transactions.
                         if (permit != null) permit.complete(completed); // Observe HTTP outcome, independently of DB completion.
-                        if (store.complete(completed, token)) { // History and retry outbox commit before the original offset.
+                        if (completionTime.record(() -> store.complete(completed, token))) { // History and retry outbox commit before the original offset.
                             registry.counter("notification.retry.scheduled").increment();
                             sample.stop(Timer.builder("notification.processing").tag("status", "WAITING_RETRY")
                                     .publishPercentileHistogram().register(registry));

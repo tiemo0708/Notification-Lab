@@ -141,6 +141,7 @@ tasks.register('campaignDeliveryPilot', Test) {
     timeout = Duration.ofMinutes(25)
     systemProperty 'junit.jupiter.execution.timeout.test.method.default', '20m'
     systemProperty 'campaign.delivery.targets', providers.gradleProperty('deliveryTargets').getOrElse('10000')
+    systemProperty 'campaign.delivery.publishBatchSize', providers.gradleProperty('publishBatchSize').getOrElse('1')
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
@@ -158,6 +159,7 @@ tasks.register('campaignDeliveryLoad', Test) {
     systemProperty 'junit.jupiter.execution.timeout.test.method.default', '80m'
     systemProperty 'campaign.delivery.load', 'true'
     systemProperty 'campaign.delivery.targets', '100000'
+    systemProperty 'campaign.delivery.publishBatchSize', providers.gradleProperty('publishBatchSize').getOrElse('1')
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
@@ -175,6 +177,7 @@ tasks.register('campaignDeliveryMillion', Test) {
     systemProperty 'junit.jupiter.execution.timeout.test.method.default', '11h'
     systemProperty 'campaign.delivery.load', 'true'
     systemProperty 'campaign.delivery.targets', '1000000'
+    systemProperty 'campaign.delivery.publishBatchSize', providers.gradleProperty('publishBatchSize').getOrElse('1')
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }

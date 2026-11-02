@@ -1967,3 +1967,49 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 100만 건 재실행은 시작하지 않았다. 다음에는 같은 자원/예산/5초 제한/상한을 유지하고 새 데이터로 실행한다.
   현재 속도 단순 외삽 발송약5시간7분+이전 사전 저장약44분으로 약6시간 규모이며 실제1m에서 더 느리거나 재실패할 수 있다.
   100만 건 원래5초 timeout의 원인과 S7 전체 완료는 계속 미완료다.
+
+
+## 2026-11-02 — S7 Relay 계측과 선택적 완료 저장 묶음 비교
+
+- 사용자 요청에 따라 속도 개선과 레퍼런스 검토를 진행했다. 시작은e6c7103/main/원격보다8개 앞선 깨끗한 상태였다.
+  기존 커밋/파일/실패 원본을 보존하고 별도 브랜치·서브에이전트·푸시는 만들지 않는다.
+- 9개 고정 stage timer를 추가했다. DB는 프록시 바깥에서 연결/격리 설정·SQL·commit·복원까지 포함한다.
+  ACK는 send/future 대기, Worker handler는 offset commit 전 반환 경계다. 중첩/병렬 누적 시간을 wall time 비율로 합산하지 않는다.
+- 첫1만 건의 Relay 누적 비용은 claim62.429초/완료 저장37.235초/ACK10.231초였다.
+  ACK 비동기화나 Worker 증설 대신 ACK 성공분의 완료 저장만 선택적으로 최대10건/단일 조건부 UPDATE·commit으로 바꿨다.
+  각 행은 PROCESSING+자기 lease token이 맞아야 하고 실제 변경 행 수만 카운터에 반영한다.
+- 기본값1/범위1..10, 단건 선점/30초 lease/순차 send/ACK 확인/Worker offset/예산/자원은 유지한다.
+  100ms는 blocking 호출 사이의 soft flush 기준이며 deadline 보장이 아니다.
+  idle/오류/stop/loop 종료 시 남은 성공분을 flush하고 DB 실패/불확실한 commit은 lease 복구에 맡긴다.
+  ACK 뒤 DB 저장 전 종료되면 재발행될 수 있는 묶음이 커진다. exactly-once를 주장하지 않는다.
+- 격리 MySQL8.4.8/2CPU·2GiB/buffer pool512MiB/Kafka4.0.2/1CPU·1GiB/Redis7.4.11/256MiB,
+  JVM512MiB/각 역할Worker3·HTTP3·Redis3·Hikari4/queue0/총1000/s 중 캠페인200/s·burst20/Mock1ms를 유지했다.
+  캠페인 batch-size만1→10→1→10으로 변경하고 실시간은1을 유지했다. 각 실행은 새 JVM/새 격리 인프라다.
+- 명령은 `caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryPilot -PdeliveryTargets=10000 -PpublishBatchSize=1`
+  또는 마지막 값을10으로 지정했다. 최초 계측 실행은 옵션 추가 전이므로 해당 인자 없이 같은 단건 경로였다.
+  네 task 모두 BUILD SUCCESSFUL/종료 코드0/각1개 테스트 통과, 실패·오류·스킵0.
+- 단건1차131.447초/76.076/s→최대10건1차100.122초/99.878/s,
+  같은 최종 운영 소스의 단건2차109.349초/91.451/s→최대10건2차93.949초/106.440/s였다.
+  시간 감소23.83%/14.08%, 처리량 증가31.29%/16.39%로 편차가 있다. 순서 고정/각2회/공유 호스트 결과다.
+- 완료 저장 호출은10000→1036/1022회, 누적 시간37.235→4.402초/28.333→3.726초였다.
+  선점과Worker DB 비용은 남아 있다. 타이머 count는 행 수가 아닌 트랜잭션 호출 수다.
+- 캠페인40000+실시간2160=HTTP42160건을 전체 대상 참조/DB 성공 시도/HTTP/offset/quota로 대조했다.
+  중복·잘못된 참조·Mock 오류0. 혼합 APIp95는23.484→21.700ms/18.635→21.790ms이므로 지연 개선을 주장하지 않는다.
+- 네 원본은 `docs/experiments/s7-delivery-profile-2026-11-02-10k-publish-batch-{1,10,1-repeat,10-repeat}.json`에 수정 없이 보존했다.
+  UUID/비유한 값 미포함을 확인한다. [경계·전체 결과·트레이드오프·레퍼런스](S7_RELAY_PUBLISH_BATCH.md)에 설명했다.
+- Spring Kafka3.3.16/Kafka clients3.9.2/Spring JDBC6.2.19/Micrometer1.15.12 실제 캐시와 해당 버전 공식 문서,
+  Spring JDBC sources의 트랜잭션 시작/commit/연결 복원 경계도 대조했다.
+  AWS Outbox/중복 멱등성, Debezium CDC/Outbox SMT 대안을 검토했지만 새로운 connector는 도입하지 않는다.
+- 100만 건과10만 건 task는 이번에 실행하지 않았다. 해당 task에도 `-PpublishBatchSize`를 전달할 수 있게 준비했다.
+  기본값을10으로 올리기 전에 같은 옵션의10만 건과실시간 지연을 재검증한다.
+  원래100만 건5초 timeout 원인과S7 전체 완료는 여전히 미완료다.
+- 추가한 실제 MySQL 회귀4개(ACK 실패/개별 token fencing/묶음 SQL 롤백 후 재발행/stop의 부분 묶음 저장)와
+  설정 범위 검증1개를 포함해 `caffeinate -i ./gradlew --no-daemon --console=plain build`를 실행했다.
+  **BUILD SUCCESSFUL12분39초/종료 코드0/기본33개 클래스274개 통과/실패·오류·스킵0**을 최종 JUnit XML과 콘솔로 대조했다.
+  별도1만 건 실험4회는 이274개와 구분한다. 실행 JAR도 새로 생성했고 BOOT-INF/lib의 실제 의존성 버전도 확인했다.
+- 네 실험 명령 전체 시간은 각각3분9초/2분35초/2분42초/2분26초였으며, 표의 발송 시간과 다른 경계다.
+  204개 자원 샘플 모두 MySQL cgroup max/oom/oom_kill0, Hikari 상태 결측0이었다.
+  네 JSON의 UUID/비유한 값0과 로컬 문서 링크/코드 블록/`git diff --check`를 확인했다.
+- 원격main을 읽기 전용으로 확인해9cf1786 그대로임을 확인했고 푸시하지 않았다.
+  Git 기존 author identity를 유지한다. Docker에는 기존 notification-lab-mysql-1만 healthy로 남아 있다.
+  사용자 DB/.env/IntelliJ/volume과 기존100만 건 FAIL 원본은 변경하지 않았다.

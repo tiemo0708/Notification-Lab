@@ -134,6 +134,101 @@ class AsyncNotificationTest {
     }
 
     @Test
+    void publishBatchFlushesOnlyAcknowledgedRowsWhenTheNextSendFails() throws Exception {
+        post(); post();
+        var pending = new CompletableFuture<SendResult<String, String>>();
+        var publishing = new CountDownLatch(1);
+        var sends = new AtomicInteger();
+        var fake = new KafkaTemplate<String, String>(kafka().getProducerFactory()) {
+            @Override
+            public CompletableFuture<SendResult<String, String>> send(String destination, String key, String data) {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                if (sends.incrementAndGet() == 1) return CompletableFuture.completedFuture(null);
+                publishing.countDown();
+                return pending;
+            }
+        };
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(() -> batchRelay(fake).relay());
+            assertThat(publishing.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status='PUBLISHED'", Integer.class)).isLessThanOrEqualTo(1);
+            assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status='PROCESSING' AND published_at IS NULL", Integer.class)).isPositive();
+            pending.completeExceptionally(new IllegalStateException("test broker outage"));
+            running.get(5, TimeUnit.SECONDS);
+        }
+        assertThat(jdbc().queryForList("SELECT status FROM outbox_event ORDER BY status", String.class)).containsExactly("PENDING", "PUBLISHED");
+        assertThat(registry().get("outbox.published").counter().count()).isEqualTo(1);
+        assertThat(registry().get("notification.pipeline.stage").tag("stage", "relay.ack").timer().count()).isEqualTo(2);
+        assertThat(probe().attempts.get()).isZero();
+    }
+
+    @Test
+    void publishBatchFencesEveryRowAgainstAReclaimedLease() throws Exception {
+        post(); post();
+        var store = app.getBean(OutboxStore.class);
+        var first = store.claim(10).orElseThrow();
+        var second = store.claim(10).orElseThrow();
+        jdbc().update("UPDATE outbox_event SET available_at=TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP(6)) WHERE event_id=?", first.eventId());
+        var reclaimed = store.claim(10).orElseThrow();
+        assertThat(reclaimed.eventId()).isEqualTo(first.eventId());
+        assertThat(reclaimed.token()).isNotEqualTo(first.token());
+        assertThat(store.published(List.of(first, second))).isEqualTo(1);
+        assertThat(jdbc().queryForObject("SELECT status FROM outbox_event WHERE event_id=?", String.class, first.eventId())).isEqualTo("PROCESSING");
+        assertThat(store.published(List.of(reclaimed))).isEqualTo(1);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status='PUBLISHED'", Integer.class)).isEqualTo(2);
+    }
+
+    @Test
+    void failedPublishBatchRollsBackAndReplaysAfterLeaseExpiry() throws Exception {
+        post(); post();
+        var store = app.getBean(OutboxStore.class);
+        var claims = List.of(store.claim(10).orElseThrow(), store.claim(10).orElseThrow());
+        for (var claim : claims) kafka().send(topic, claim.notificationId(), claim.payload()).get(10, TimeUnit.SECONDS);
+        root("CREATE TRIGGER reject_publish_batch BEFORE UPDATE ON outbox_event FOR EACH ROW "
+                + "BEGIN IF NEW.status = 'PUBLISHED' AND NEW.event_id = '" + claims.getLast().eventId()
+                + "' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test fault'; END IF; END");
+        try {
+            assertThatThrownBy(() -> store.published(claims)).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status='PROCESSING' AND published_at IS NULL", Integer.class)).isEqualTo(2);
+            assertThat(recordsOn(topic, 2)).hasSize(2);
+        } finally {
+            root("DROP TRIGGER reject_publish_batch");
+        }
+        expireOutbox();
+        batchRelay(kafka()).relay();
+        var copies = recordsOn(topic, 4);
+        assertThat(copies).hasSize(4);
+        assertThat(copies.stream().collect(java.util.stream.Collectors.groupingBy(r -> r.value(), java.util.stream.Collectors.counting())).values()).containsOnly(2L);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status='PUBLISHED' AND attempt_count=2", Integer.class)).isEqualTo(2);
+        assertThat(probe().attempts.get()).isZero();
+    }
+
+    @Test
+    void stoppingPublishBatchFlushesAcknowledgedRowsAndLeavesTheRestDurable() throws Exception {
+        post(); post(); post();
+        var sends = new AtomicInteger();
+        var relay = new AtomicReference<OutboxRelay>();
+        var fake = new KafkaTemplate<String, String>(kafka().getProducerFactory()) {
+            @Override
+            public CompletableFuture<SendResult<String, String>> send(String destination, String key, String data) {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                if (sends.incrementAndGet() == 2) relay.get().stopClaiming();
+                return CompletableFuture.completedFuture(null);
+            }
+        };
+        relay.set(batchRelay(fake));
+        relay.get().relay();
+        assertThat(sends.get()).isEqualTo(2);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status='PUBLISHED'", Integer.class)).isEqualTo(2);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status='PENDING' AND attempt_count=0", Integer.class)).isEqualTo(1);
+    }
+
+    private OutboxRelay batchRelay(KafkaTemplate<String, String> template) {
+        return new OutboxRelay(app.getBean(OutboxStore.class), template, app.getBean(AsyncProperties.class), registry(),
+                app.getBean(dev.jinhyeon.notificationlab.config.TrafficRouting.class), new dev.jinhyeon.notificationlab.config.RelayProperties(10));
+    }
+
+    @Test
     void acceptanceCommitsAllRowsBefore202WithoutCallingProvider() throws Exception {
         var response = post();
         assertThat(response.statusCode()).isEqualTo(202);

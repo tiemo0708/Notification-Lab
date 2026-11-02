@@ -8,6 +8,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AsyncPropertiesTest {
     @Test
+    void publishBatchSizeIsBoundedToLimitUnmarkedAcknowledgements() {
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+            assertThat(validator.validate(new RelayProperties(1))).isEmpty();
+            assertThat(validator.validate(new RelayProperties(10))).isEmpty();
+            assertThat(validator.validate(new RelayProperties(0))).isNotEmpty();
+            assertThat(validator.validate(new RelayProperties(11))).isNotEmpty();
+        }
+    }
+
+    @Test
     void topicCollisionsAreRejectedBeforeDlqCanReachAWorker() {
         try (var factory = Validation.buildDefaultValidatorFactory()) {
             var validator = factory.getValidator();

@@ -95,6 +95,7 @@ class CampaignDeliveryPilotTest {
         report.put("settings", Map.of("totalRate", 1000, "totalBurst", 100, "campaignRate", 200,
                 "campaignBurst", 20, "workersPerLane", 3, "httpConnectionsPerLane", 3,
                 "probeDelayMillis", 200, "baselineProbes", BASELINE_PROBES, "mockDelayMillis", 1));
+        report.put("publishBatchSize", Integer.getInteger("campaign.delivery.publishBatchSize", 1));
         report.put("java", System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
         report.put("os", System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
         report.put("jvmMaxHeapBytes", Runtime.getRuntime().maxMemory());
@@ -198,6 +199,9 @@ class CampaignDeliveryPilotTest {
                             report.put("mockStats", mock.getBean(MockPushEndpoint.class).stats());
                             report.put("campaignAllowed", counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed"));
                             report.put("realtimeAllowed", counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed"));
+                            report.put("stageTimingVersion", "caller-side-transaction-and-ack-v1");
+                            report.put("campaignStageTimings", stageTimings(campaign));
+                            report.put("realtimeStageTimings", stageTimings(realtime));
                             assertThat(counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(targets);
                             assertThat(counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(probes.size());
                             report.put("result", "PASS");
@@ -228,6 +232,21 @@ class CampaignDeliveryPilotTest {
         }
     }
 
+    private Map<String, Object> stageTimings(ConfigurableApplicationContext app) {
+        var result = new LinkedHashMap<String, Object>();
+        var registry = app.getBean(MeterRegistry.class);
+        for (String stage : List.of("relay.claim", "relay.ack", "relay.mark.published", "relay.run",
+                "worker.handler", "worker.claim.initial", "worker.claim.admitted", "worker.provider", "worker.complete")) {
+            var timer = registry.find("notification.pipeline.stage").tag("stage", stage).timer();
+            assertThat(timer).as(stage).isNotNull();
+            assertThat(timer.count()).as(stage + " observations").isPositive();
+            double total = timer.totalTime(TimeUnit.MILLISECONDS);
+            assertThat(Double.isFinite(total) && total >= 0).as(stage + " total").isTrue();
+            result.put(stage, Map.of("count", timer.count(), "totalMillis", total, "meanMillis", total / timer.count()));
+        }
+        return result;
+    }
+
     private ConfigurableApplicationContext application(MySQLContainer<?> mysql, KafkaContainer kafka,
                                                        GenericContainer<?> redis, String lane, boolean live) {
         return new SpringApplicationBuilder(NotificationLabApplication.class)
@@ -235,6 +254,7 @@ class CampaignDeliveryPilotTest {
                         "--server.port=0", "--app.provider.mode=HTTP", "--app.provider.http.base-url=" + (mockUrl == null ? "http://127.0.0.1:18081" : mockUrl),
                         "--app.provider.http.max-connections=3", "--app.worker.consumers=3", "--app.worker.max-active=3",
                         "--app.worker.queue-capacity=0", "--app.campaign.batch.enabled=" + !live,
+                        "--app.async.relay.publish-batch-size=" + (lane.equals("CAMPAIGN") ? Integer.getInteger("campaign.delivery.publishBatchSize", 1) : 1),
                         "--app.campaign.batch.chunk-size=100", "--app.async.relay-enabled=" + live, "--app.async.worker-enabled=" + live,
                         "--app.traffic.split-enabled=true", "--app.traffic.lane=" + lane,
                         "--app.traffic.campaign-rate=200", "--app.traffic.campaign-burst=20",

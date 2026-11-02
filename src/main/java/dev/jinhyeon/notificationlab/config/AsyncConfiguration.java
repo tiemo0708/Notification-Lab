@@ -14,7 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @Profile("!memory & !sync")
 @EnableScheduling
-@EnableConfigurationProperties({AsyncProperties.class, DeliveryProperties.class, WorkerProperties.class})
+@EnableConfigurationProperties({AsyncProperties.class, DeliveryProperties.class, WorkerProperties.class, RelayProperties.class})
 public class AsyncConfiguration {
     @Bean
     NewTopic notificationTopic(TrafficRouting properties) {
