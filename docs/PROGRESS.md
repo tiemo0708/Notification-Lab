@@ -2163,3 +2163,44 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 사용자DB/.env/IntelliJ/volume은 변경하지 않았다.
   기존 Git identity를 유지하고 원격main은 읽기 전용 확인에서9cf1786이었다.
   100만 건 재실행/원래5초 timeout 원인 확정/다중 서버 배포/실제 공급자 호출/푸시는 하지 않았다.
+
+
+## 2026-11-02 — S7 완료 offset의 COUNT_TIME 비교와 장애 경계
+
+- 시작1029686/main/원격 추적보다13개 앞선 깨끗한 상태에서 AGENTS/CONTRIBUTING/PLAN/README/직전 진단을 확인했다.
+  기본 RECORD와 운영 Java/resources를 유지하고 테스트에서만 COUNT_TIME(ackCount10/ackTime100ms)을 선택한다.
+  동기 commit/asyncAcks=false/autoCommit=false/max.poll.records1/poll500ms와 기존 종료 customizer를 확인한다.
+  시간 기준은 처리/poll 사이의 확인이며 강제100ms 마감이나 총 중복 횟수 상한이 아니다.
+- 사전 정책/처리 중 offset/진입 timeout·큐 포화/DB 실패/종료·재시작/저유량 tail13개가1분8초에 통과했다.
+  실제 프로세스 종료·재소비, 두 모드의7초 pause(5초 max.poll 초과)와 리밸런스·Worker/Relay 재시작6개도4분48초에 통과했다.
+  최종 설정 가드를 보강한 소스는 전체 회귀에서 다시 확인한다. 사용자의 DB/volume을 초기화하지 않는다.
+- [복수 완료 레코드의 사전 실제 JVM 종료](experiments/s7-offset-commit-2026-11-02-safety-pilot.json)는 warmup20+12건을 수동partition0에 발행했다.
+  native commit RPC 전 broker22/DB 완료28에서 강제 종료했다. 완료6건을 재소비했으며 이6건의 공급자 재호출은0이었다.
+  재시작 호출4건은 아직 처리 전인 작업이다. 전체32개 호출/성공 시도32개, 완료 행 fingerprint 불변/최종offset32를 확인했다.
+  RPC 응답 유실 전체 시나리오나 공급자 성공 뒤 DB 저장 실패의 exactly-once를 증명하지 않는다.
+- `offsetCommitPilot -PdeliveryTargets=1000 -PoffsetMode=COUNT_TIME`은1분1초/테스트1개 통과·실패/오류/스킵0이었다.
+  캠페인1000+실시간98건 전수 대조, sync commit245회/누적1.921초였다. 이후 마지막 offset 관측을 보강했다.
+- 명령은 `caffeinate -i ./gradlew --no-daemon --console=plain offsetCommitPilot -PoffsetMode=MODE`이다.
+  [같은 최종 소스 SHA-256](experiments/s7-offset-commit-2026-11-02-source.json)으로 RECORD→COUNT_TIME→COUNT_TIME→RECORD, 각1만 건을 새 인프라에서 실행했다.
+  캠페인Relay2/완료 저장10, 실시간Relay1/완료 저장1/RECORD, Worker3/HTTP3/Redis3/Hikari4/queue0과 캠페인200/s·burst20,
+  CPU/메모리/Mock1ms/기존 계측/5초 probe 제한을 유지했다. 정책 외 독립 조건을 바꾸지 않는다.
+- 네 task 모두 BUILD SUCCESSFUL/종료 코드0/각1개 통과/실패·오류·스킵0이었다. 전체2분38초/2분31초/2분16초/2분49초,
+  캠페인 완료 관측101.078/86.897/81.048/111.512초·98.933/115.079/123.383/89.676건·초였다.
+  캠페인40000+실시간1910=HTTP41910건을 전체 대상/성공 시도1회/PUBLISHED/HTTP/각partition offset=end/quota로 대조했다. 중복·매핑·Mock 오류0.
+- commitSync10000/2163/2019/10000회·누적63.178/15.278/14.271/64.823초였다. 호출 수78.37%/79.81% 감소다.
+  처리량 증가16.32%/37.59%를 관측했지만 각2회·공유 호스트·순차 probe이므로 통계적 유의성/운영 성능을 확정하지 않는다.
+  캠페인 완료 관측→offset 확인0.294/0.410/0.403/0.274초에는 자원 샘플/실시간 완료 대기와 Admin 관측 비용이 포함된다.
+- 혼합 APIp95는18.228/20.974/20.123/25.399ms, 최대55.399/115.243/184.559/264.187ms였다. 실시간 SLO 개선을 보장하지 않는다.
+  COUNT_TIME b의 초기 read-only 확인3회 증가는 관측했으나 quota/재소비 분류 counter를 수집하지 않아 원인을 단정하지 않는다.
+  시도 시작/완료/공급자 호출은각10000회였고 계측 실패와async commit은0이었다.
+- [전체 조건/공식 레퍼런스/원본/한계](S7_OFFSET_COMMIT_PILOT.md)를 기록한다.178개 자원 표본의 Hikari 상태와 MySQL 자원 상한을 확인한다.
+  기본 RECORD를 유지하고 다음은 같은 정책의10만 건/실시간 tail 검증과 적용 여부 판단이다.
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **BUILD SUCCESSFUL15분22초/종료 코드0**이었다.
+  최종37개 클래스 JUnit XML과 콘솔에서 **294개 통과/실패·오류·스킵0**을 대조했다. 기존283개+새 정책/모드11개다.
+  최종 설정 가드와 새 모드 장애 경계를 실제 재실행했다. 두 실행 JAR task는UP-TO-DATE였고 운영 Java/resources diff0을 확인했다.
+- [전체 회귀의 실제 중단 원본](experiments/s7-offset-commit-2026-11-02-safety-build.json)은 broker22/DB 완료27이었다.
+  완료5건 재소비/해당5건 공급자 재호출0, 미처리5건 신규 호출/전체32건 호출32회, 완료 행 불변/최종offset32를 재검증했다.
+- 이후 소스 해시/원래100만 건 FAIL 원본이 같고 새 원본에 UUID/비유한 값/민감 필드가 없음을 확인했다.
+  문서 링크/diff를 확인한다. Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 사용자DB/.env/IntelliJ/volume은 변경하지 않았다.
+  기존 Git identity와 원격main9cf1786을 읽기 전용으로 확인했다.100만 건 재실행/유료 서버/실제 공급자/푸시는 하지 않았다.
+  새 모드의 모든 HTTP 재시도/Retry·DLQ/commit RPC 장애 조합을 검증한 것은 아니며 후속 경계 보강과10만 건 확대 뒤 적용을 판단한다.

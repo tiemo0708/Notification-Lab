@@ -10,6 +10,7 @@ import dev.jinhyeon.notificationlab.campaign.CampaignService;
 import dev.jinhyeon.notificationlab.config.TrafficRouting;
 import dev.jinhyeon.notificationmock.MockPushEndpoint;
 import dev.jinhyeon.notificationmock.MockServerApplication;
+import dev.jinhyeon.notificationlabtest.OffsetCommitPolicy;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -81,6 +82,9 @@ class CampaignDeliveryPilotTest {
         boolean load = Boolean.getBoolean("campaign.delivery.load");
         boolean scaling = Boolean.getBoolean("campaign.delivery.scaling");
         boolean fineTiming = Boolean.getBoolean("campaign.delivery.fineTiming");
+        boolean offsetComparison = Boolean.getBoolean("campaign.delivery.offsetComparison");
+        var offsetMode = offsetComparison ? OffsetCommitPolicy.mode(System.getProperty("campaign.delivery.offsetMode", "RECORD")) : OffsetCommitPolicy.Mode.RECORD;
+        if (offsetComparison && !fineTiming) throw new IllegalArgumentException("Offset comparison requires fine timing");
         if (fineTiming && !scaling) throw new IllegalArgumentException("Fine timing requires the bounded scaling pilot");
         if (scaling && load) throw new IllegalArgumentException("Relay scaling is limited to the small pilot");
         relayInstances = scaling ? CampaignRelayGroup.validate(Integer.parseInt(System.getProperty("campaign.delivery.relayInstances", "1"))) : 0;
@@ -106,6 +110,11 @@ class CampaignDeliveryPilotTest {
         report.put("campaignRelayInstances", relayInstances == 0 ? 1 : relayInstances);
         report.put("relayScheduling", scaling ? "test-only-fixed-delay-group-v1" : "application-scheduled-bean");
         report.put("fineTimingEnabled", fineTiming);
+        report.put("offsetComparison", offsetComparison);
+        report.put("campaignOffsetMode", offsetMode.name());
+        if (offsetComparison) report.put("offsetSettings", Map.of("ackCount", OffsetCommitPolicy.ACK_COUNT,
+                "ackTimeMillis", OffsetCommitPolicy.ACK_TIME_MS, "pollTimeoutMillis", 500, "maxPollRecords", 1,
+                "syncCommits", true, "realtimeMode", "RECORD"));
         report.put("java", System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
         report.put("os", System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
         report.put("jvmMaxHeapBytes", Runtime.getRuntime().maxMemory());
@@ -197,7 +206,13 @@ class CampaignDeliveryPilotTest {
                             int mixed = probes.size() - BASELINE_PROBES;
                             assertThat(mixed).as("overlapping realtime observations").isGreaterThanOrEqualTo(10);
                             await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == probes.size());
+                            long offsetWaitStart = System.nanoTime();
                             awaitOffsets(admin, campaign, targets);
+                            if (offsetComparison) {
+                                report.put("campaignOffsetWaitSeconds", seconds(offsetWaitStart));
+                                // Includes the final resource sample/realtime completion wait after campaign completion.
+                                report.put("campaignCompletionToOffsetsSeconds", seconds(drainStart) - drainSeconds);
+                            }
                             awaitOffsets(admin, realtime, probes.size());
                             if (relays != null) {
                                 relays.checkHealthy();
@@ -245,7 +260,8 @@ class CampaignDeliveryPilotTest {
                     var snapshot = timing.snapshot();
                     assertThat(snapshot).containsEntry("pools", 1).containsEntry("poolsClosed", true)
                             .containsEntry("activeCalls", 0).containsEntry("wrappedConsumers", 3);
-                    verifyTiming(timing, lane.equals("CAMPAIGN") ? targets : probes.size());
+                    verifyTiming(timing, lane.equals("CAMPAIGN") ? targets : probes.size(),
+                            lane.equals("CAMPAIGN") ? offsetMode : OffsetCommitPolicy.Mode.RECORD);
                     snapshots.put(lane, snapshot);
                 });
                 assertThat(snapshots).hasSize(2);
@@ -257,25 +273,29 @@ class CampaignDeliveryPilotTest {
         } finally {
             TimeZone.setDefault(originalZone);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path directory = Path.of(fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
+            Path directory = Path.of(offsetComparison ? "build/reports/offset-commit-pilot" : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                     load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
-            String name = scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
+            String name = offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
             mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void verifyTiming(DeliveryTiming timing, long expectedJobs) {
+    private void verifyTiming(DeliveryTiming timing, long expectedJobs, OffsetCommitPolicy.Mode mode) {
         var phases = (Map<String, Map<String, Map<String, Object>>>) timing.snapshot().get("phases");
         for (String phase : List.of("WORKER_INITIAL", "WORKER_ADMITTED", "WORKER_COMPLETE")) {
-            for (String part : List.of("STORE_CALL", "ACQUIRE", "COMMIT")) {
-                assertThat(phases.get(phase).get(part).get("count")).as(phase + "/" + part).isEqualTo(expectedJobs);
-            }
+            long calls = ((Number) phases.get(phase).get("STORE_CALL").get("count")).longValue();
+            // A quota pause can retry its read-only initial check without another provider attempt.
+            if (mode == OffsetCommitPolicy.Mode.COUNT_TIME && phase.equals("WORKER_INITIAL")) assertThat(calls).isGreaterThanOrEqualTo(expectedJobs);
+            else assertThat(calls).as(phase + "/STORE_CALL").isEqualTo(expectedJobs);
+            for (String part : List.of("ACQUIRE", "COMMIT")) assertThat(phases.get(phase).get(part).get("count")).as(phase + "/" + part).isEqualTo(calls);
             assertThat(phases.get(phase).get("ROLLBACK").get("count")).isEqualTo(0L);
         }
         assertThat(phases.get("OUTBOX_PUBLISHED").get("EXECUTE").get("count")).isEqualTo(expectedJobs);
-        assertThat(((Number) phases.get("CONSUMER").get("COMMIT_SYNC").get("count")).longValue()).isGreaterThanOrEqualTo(expectedJobs);
+        long commits = ((Number) phases.get("CONSUMER").get("COMMIT_SYNC").get("count")).longValue();
+        if (mode == OffsetCommitPolicy.Mode.RECORD) assertThat(commits).isGreaterThanOrEqualTo(expectedJobs);
+        else assertThat(commits).as("COUNT_TIME actually reduces synchronous calls").isPositive().isLessThan(expectedJobs);
         assertThat(phases.get("CONSUMER").get("COMMIT_ASYNC_SUBMIT").get("count")).isEqualTo(0L);
     }
 
@@ -304,6 +324,9 @@ class CampaignDeliveryPilotTest {
             builder.sources(DeliveryTiming.Wiring.class)
                     .initializers(context -> context.getBeanFactory().registerSingleton("deliveryTiming", timing));
         }
+        if (live && Boolean.getBoolean("campaign.delivery.offsetComparison")) {
+            builder.sources(OffsetCommitPolicy.Wiring.class);
+        }
         return builder.run(
                         "--server.port=0", "--app.provider.mode=HTTP", "--app.provider.http.base-url=" + (mockUrl == null ? "http://127.0.0.1:18081" : mockUrl),
                         "--app.provider.http.max-connections=3", "--app.worker.consumers=3", "--app.worker.max-active=3",
@@ -318,7 +341,9 @@ class CampaignDeliveryPilotTest {
                         "--spring.datasource.url=" + mysql.getJdbcUrl(), "--spring.datasource.username=" + mysql.getUsername(),
                         "--spring.datasource.password=" + mysql.getPassword(), "--spring.datasource.hikari.maximum-pool-size=4",
                         "--spring.kafka.bootstrap-servers=" + kafka.getBootstrapServers(),
-                        "--logging.level.root=WARN", "--spring.main.banner-mode=off");
+                        "--logging.level.root=WARN", "--spring.main.banner-mode=off",
+                        "--notification.test.offset.mode=" + (lane.equals("CAMPAIGN") && Boolean.getBoolean("campaign.delivery.offsetComparison")
+                                ? System.getProperty("campaign.delivery.offsetMode", "RECORD") : "RECORD"));
     }
 
     private void probe(HttpClient http, ConfigurableApplicationContext app, String phase) throws Exception {
@@ -494,7 +519,14 @@ class CampaignDeliveryPilotTest {
         if (Boolean.getBoolean("campaign.delivery.fineTiming")) {
             var properties = app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker").getContainerProperties();
             assertThat(properties.isSyncCommits()).isTrue();
-            assertThat(properties.getAckMode()).isEqualTo(org.springframework.kafka.listener.ContainerProperties.AckMode.RECORD);
+            var selected = OffsetCommitPolicy.mode(app.getEnvironment().getProperty("notification.test.offset.mode", "RECORD"));
+            assertThat(properties.getAckMode().name()).isEqualTo(selected.name());
+            assertThat(properties.getPollTimeout()).isEqualTo(500);
+            if (Boolean.getBoolean("campaign.delivery.offsetComparison")) {
+                OffsetCommitPolicy.requireApplied(app);
+                assertThat(properties.getAckCount()).isEqualTo(OffsetCommitPolicy.ACK_COUNT);
+                assertThat(properties.getAckTime()).isEqualTo(OffsetCommitPolicy.ACK_TIME_MS);
+            }
         }
         await().atMost(Duration.ofSeconds(20)).until(() -> {
             var partitions = app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker").getAssignedPartitions();

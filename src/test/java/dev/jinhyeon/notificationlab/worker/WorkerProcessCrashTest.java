@@ -6,6 +6,7 @@ import com.github.dockerjava.api.model.Ports;
 import dev.jinhyeon.notificationlab.NotificationLabApplication;
 import dev.jinhyeon.notificationlab.outbox.PipelineMetrics;
 import dev.jinhyeon.notificationlabtest.WorkerProcess;
+import dev.jinhyeon.notificationlabtest.OffsetWorkerProcess;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -41,7 +42,7 @@ import static org.awaitility.Awaitility.await;
 @Testcontainers
 class WorkerProcessCrashTest {
     @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4.8")
+    final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4.8")
             .withDatabaseName("notification_lab").withUsername("notification_test")
             .withPassword(UUID.randomUUID().toString()).withCommand("--default-time-zone=+00:00")
             .withUrlParam("connectionTimeZone", "UTC").withUrlParam("forceConnectionTimeZoneToSession", "true")
@@ -132,9 +133,118 @@ class WorkerProcessCrashTest {
         System.out.println("WORKER_PROCESS_CRASH kafkaRecords=1 deliveryAttempts=1 originalProviderAttempts=1 replacementProviderAttempts=0 replays=1 committed=1 lag=0");
     }
 
-    private void startApiAndRelay() {
+    @Test
+    @Timeout(150)
+    void countTimeCrashReplaysMultipleCompletedRecordsWithoutRepeatingProviderCalls() throws Exception {
+        startApiAndRelay(false);
+        Process original = startOffsetWorker("offset-original", true);
+        for (int i = 0; i < 20; i++) publishManual(createManual());
+        await().atMost(Duration.ofSeconds(30)).until(() -> committed() == 20 && Files.exists(directory.resolve("offset-original.port")));
+        var tail = new ArrayList<ManualEvent>();
+        for (int i = 0; i < 12; i++) tail.add(createManual());
+        Files.writeString(directory.resolve("offset-armed"), "armed", java.nio.file.StandardOpenOption.CREATE_NEW);
+        for (var event : tail) publishManual(event);
+        Path marker = directory.resolve("offset-window");
+        await().atMost(Duration.ofSeconds(25)).untilAsserted(() -> {
+            assertThat(original.isAlive()).isTrue();
+            assertThat(marker).exists();
+            assertThat(Files.readString(marker)).matches("[0-9]+:[0-9]+");
+        });
+        var values = Files.readString(marker).split(":");
+        int before = Integer.parseInt(values[0]); int completed = Integer.parseInt(values[1]);
+        assertThat(completed - before).isBetween(2, 10);
+        assertThat(committed()).isEqualTo(before);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'", Integer.class)).isEqualTo(completed);
+        assertThat(childCounter("offset-original", "notification_provider_attempts_total")).isEqualTo(completed);
+        var finishedIds = jdbc().queryForList("SELECT notification_id FROM notification WHERE status='PROVIDER_ACCEPTED' ORDER BY notification_id", String.class);
+        String digest = completedFingerprint(finishedIds);
+        original.destroyForcibly();
+        assertThat(original.waitFor(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(original.exitValue()).isNotZero();
+        assertThat(committed()).isEqualTo(before);
+        Process replacement = startOffsetWorker("offset-replacement", false);
+        await().atMost(Duration.ofSeconds(45)).untilAsserted(() -> {
+            assertThat(replacement.isAlive()).isTrue();
+            assertThat(committed()).isEqualTo(32);
+            assertThat(directory.resolve("offset-replacement.port")).exists();
+        });
+        assertThat(childCounter("offset-replacement", "notification_worker_replays_total")).isEqualTo(completed - before);
+        assertThat(childCounter("offset-replacement", "notification_provider_attempts_total")).isEqualTo(32 - completed);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'", Integer.class)).isEqualTo(32);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM delivery_task WHERE attempt_count=1", Integer.class)).isEqualTo(32);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM delivery_attempt WHERE outcome='PROVIDER_ACCEPTED' AND attempt_no=1", Integer.class)).isEqualTo(32);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM delivery_attempt", Integer.class)).isEqualTo(32);
+        assertThat(completedFingerprint(finishedIds)).isEqualTo(digest);
+        assertThat(topicSize(topic)).isEqualTo(32);
+        assertThat(topicSize(topic + ".retry")).isZero(); assertThat(topicSize(topic + ".dlq")).isZero();
+        Path output = Path.of("build/reports/offset-commit-safety.json");
+        Files.createDirectories(output.getParent());
+        new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(output.toFile(), Map.of(
+                "result", "PASS", "targets", 32, "warmup", 20, "committedBeforeKill", before,
+                "completedBeforeKill", completed, "completedReplayed", completed - before,
+                "replacementProviderAttempts", 32 - completed, "totalProviderAttempts", 32, "finalCommitted", 32,
+                "completedRowsUnchanged", true));
+        System.out.printf("OFFSET_WINDOW_CRASH targets=32 completedReplayed=%d totalProviderAttempts=32 committed=32%n", completed - before);
+    }
+
+    private record ManualEvent(String id, String payload) { }
+
+    private ManualEvent createManual() throws Exception {
+        var response = http.send(HttpRequest.newBuilder(URI.create(base() + "/notifications"))
+                .timeout(Duration.ofSeconds(5)).header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"recipientId\":\"synthetic\",\"title\":\"offset\",\"body\":\"synthetic\"}"))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(202);
+        String id = new ObjectMapper().readTree(response.body()).path("notificationId").asText();
+        return new ManualEvent(id, jdbc().queryForObject("SELECT payload FROM outbox_event WHERE notification_id=?", String.class, id));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void publishManual(ManualEvent event) throws Exception {
+        app.getBean(org.springframework.kafka.core.KafkaTemplate.class).send(topic, 0, event.id(), event.payload()).get(5, TimeUnit.SECONDS);
+    }
+
+    private String completedFingerprint(List<String> ids) throws Exception {
+        String placeholders = String.join(",", java.util.Collections.nCopies(ids.size(), "?"));
+        var digest = java.security.MessageDigest.getInstance("SHA-256");
+        for (String query : List.of(
+                "SELECT notification_id,status,provider_message_id,error_code,completed_at FROM notification WHERE notification_id IN (%s) ORDER BY notification_id",
+                "SELECT task_id,notification_id,attempt_count,retry_generation,next_attempt_at FROM delivery_task WHERE notification_id IN (%s) ORDER BY task_id",
+                "SELECT a.* FROM delivery_attempt a JOIN delivery_task t USING(task_id) WHERE t.notification_id IN (%s) ORDER BY a.task_id,a.attempt_no")) {
+            digest.update(jdbc().queryForList(query.formatted(placeholders), ids.toArray()).toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        return java.util.HexFormat.of().formatHex(digest.digest());
+    }
+
+    private Process startOffsetWorker(String name, boolean gate) throws Exception {
+        String classpath = System.getProperty("notificationLab.testClasspath");
+        assertThat(classpath).isNotBlank();
+        var command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-Xmx256m", "-cp", classpath, OffsetWorkerProcess.class.getName()));
+        command.addAll(arguments());
+        command.addAll(List.of("--app.async.relay-enabled=false", "--notification.test.offset.mode=COUNT_TIME",
+                "--app.worker.consumers=1", "--app.worker.max-active=1", "--app.worker.queue-capacity=0",
+                "--spring.kafka.consumer.properties.session.timeout.ms=6000", "--spring.kafka.consumer.properties.heartbeat.interval.ms=1000"));
+        var builder = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(directory.resolve(name + ".log").toFile());
+        builder.environment().put("MYSQL_PASSWORD", MYSQL.getPassword());
+        builder.environment().put("SPRING_DATASOURCE_PASSWORD", MYSQL.getPassword());
+        builder.environment().put("NOTIFICATION_LAB_WORKER_PORT", directory.resolve(name + ".port").toString());
+        builder.environment().remove("NOTIFICATION_LAB_COMPLETION_MARKER");
+        builder.environment().remove("NOTIFICATION_LAB_OFFSET_MARKER");
+        builder.environment().remove("NOTIFICATION_LAB_OFFSET_ARM");
+        if (gate) {
+            builder.environment().put("NOTIFICATION_LAB_OFFSET_MARKER", directory.resolve("offset-window").toString());
+            builder.environment().put("NOTIFICATION_LAB_OFFSET_ARM", directory.resolve("offset-armed").toString());
+        }
+        Process child = builder.start(); children.add(child); return child;
+    }
+
+    private void startApiAndRelay() { startApiAndRelay(true); }
+
+    private void startApiAndRelay(boolean relay) {
         var args = arguments();
         args.add("--app.async.worker-enabled=false");
+        args.add("--app.async.relay-enabled=" + relay);
         args.add("--spring.datasource.password=" + MYSQL.getPassword());
         app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class)
                 .run(args.toArray(String[]::new));

@@ -1,5 +1,9 @@
 package dev.jinhyeon.notificationlab.worker;
 
+import dev.jinhyeon.notificationlabtest.OffsetCommitPolicy;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.PortBinding;
@@ -80,6 +84,7 @@ class WorkerQuotaIntegrationTest {
     private boolean relay;
     private boolean pausing;
     private int maxPollMs = 60000;
+    private OffsetCommitPolicy.Mode offsetMode = OffsetCommitPolicy.Mode.RECORD;
 
     private static int unusedRedisPort() {
         // Keep the same host endpoint across an actual kill/start of this test container.
@@ -319,8 +324,10 @@ class WorkerQuotaIntegrationTest {
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE notification_id = ? AND event_type = 'NOTIFICATION_DEAD_LETTER'", Integer.class, exhausted.id())).isEqualTo(1);
     }
 
-    @Test
-    void pausedConsumerKeepsPollingAndHeartbeatBeyondMaxPollWithoutSkippingOffsets() throws Exception {
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
+    void pausedConsumerKeepsPollingAndHeartbeatBeyondMaxPollWithoutSkippingOffsets(OffsetCommitPolicy.Mode mode) throws Exception {
+        offsetMode = mode;
         pausing = true; maxPollMs = 5000;
         start("SUCCESS", 2, 100, false);
         Event first = create(); Event later = create();
@@ -452,11 +459,13 @@ class WorkerQuotaIntegrationTest {
                 "--logging.level.root=WARN", "--spring.main.banner-mode=off");
         refill(); // Existing quota scenarios begin with an explicitly seeded isolated budget.
         app = application();
+        OffsetCommitPolicy.requireApplied(app);
         await().atMost(Duration.ofSeconds(20)).until(() -> assigned(app) == 6);
     }
 
     private ServletWebServerApplicationContext application() {
-        return (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class).run(
+        return (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class, OffsetCommitPolicy.Wiring.class).run(
+                "--notification.test.offset.mode=" + offsetMode.name(),
                 "--server.port=0", "--app.provider.mode=HTTP", "--app.async.relay-enabled=" + relay,
                 "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort(),
                 "--spring.datasource.url=" + url, "--spring.datasource.username=root", "--spring.datasource.password=" + MYSQL.getPassword(),

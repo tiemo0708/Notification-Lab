@@ -319,6 +319,11 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 관찰 전용 `./gradlew deliveryTimingPilot -PcampaignRelays=1` 또는2로 재현한다(1000..10000건).
 SQL 본문/인수를 저장하지 않으며 운영 코드/격리 수준/기본 RECORD ack는 유지한다. 여러 서버와100만 건 성능을 증명한 결과는 아니다.
 
+[완료 offset 묶음 비교](docs/S7_OFFSET_COMMIT_PILOT.md)는 같은 Relay2/Worker3에서 RECORD와COUNT_TIME(10개/100ms)을 각각2회 비교했다.
+HTTP41910건 전수 대조와 동기 커밋10000→2163/2019회 감소를 확인했고 처리량은89.676~98.933→115.079~123.383/s였다.
+`./gradlew offsetCommitPilot -PoffsetMode=COUNT_TIME`으로 테스트에서만 선택한다. 기본 앱과 실시간 정책은 RECORD를 유지한다.
+시간 기준은 엄격한100ms 보장이 아니며 마지막 offset 반영/재소비 범위를 함께 기록했다.10만/100만 건 확대는 미실행이다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

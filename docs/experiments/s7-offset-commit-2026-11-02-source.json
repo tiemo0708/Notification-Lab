@@ -1,0 +1,16 @@
+{
+  "baseCommit": "1029686d6c75b47772efce0a660e70dd250b21a1",
+  "scope": "test-only campaign RECORD/COUNT_TIME; same final sources for all 10k comparisons; tail timing added after initial smoke",
+  "filesSha256": {
+    "build.gradle": "ddb4cfdf20bb05276f69801f4dbbbeed4e79fe1425f85e39efecc7fc922872f1",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "0048c923a5189307d65b9f39b9fc86dc071548a80a73e1aad1ea41df95d312e0",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/OffsetCommitPolicyTest.java": "f32b0e8fbaffbe9346c5249ea52740a03c5983c852d85f6f289ff4b8ad2f99fb",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerConcurrencyTest.java": "124049cb91da0dc8bea7183b7e0d77cc221eb08936f041455e571df0c125cd6a",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerProcessCrashTest.java": "d9628b6ea103fc15246fd86f04c1250c2c15f0c30ae88ae6e432ba5629cad1db",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerQuotaIntegrationTest.java": "f28dfb7b617e6f251a36ac3684a11ba7bc295ee580e6c0990261c86bfa469e05",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerRebalanceTest.java": "694dd9b774258c1f27db130b248f9e49a847c106878d0244a7c4cfa326ef6660",
+    "src/test/java/dev/jinhyeon/notificationlabtest/OffsetCommitPolicy.java": "292ce0c970fa8fcaab5ba8c55b485e482016a059ad791bc68bd49762f39ec140",
+    "src/test/java/dev/jinhyeon/notificationlabtest/OffsetWorkerProcess.java": "a1fd64d6ccd33b22307bf6d131b728f34f9ccc3b70e292c8ee9e0d95b7bf71a2",
+    "src/test/java/dev/jinhyeon/notificationlabtest/RebalanceWorkerProcess.java": "207ddb536031677a0ae0d2a47a84c503daf83d9e134f8e5eef9e3a6617df3138"
+  }
+}

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import dev.jinhyeon.notificationlab.NotificationLabApplication;
+import dev.jinhyeon.notificationlabtest.OffsetCommitPolicy;
 import dev.jinhyeon.notificationmock.MockPushEndpoint;
 import dev.jinhyeon.notificationmock.MockServerApplication;
 import java.net.URI;
@@ -19,6 +20,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.clients.admin.Admin;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -61,9 +64,12 @@ class WorkerConcurrencyTest {
     private Admin admin;
     private String topic;
     private String group;
+    private OffsetCommitPolicy.Mode offsetMode = OffsetCommitPolicy.Mode.RECORD;
 
-    @Test
-    void twoActiveAndOneWaitingKeepOffsetsAndClaimsBehindCompletedWork() throws Exception {
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
+    void twoActiveAndOneWaitingKeepOffsetsAndClaimsBehindCompletedWork(OffsetCommitPolicy.Mode mode) throws Exception {
+        offsetMode = mode;
         start(3, 2, 1, 5000, 1500);
         var first = create(); var second = create(); var waiting = create(); var later = create();
         publish(first, 0);
@@ -85,8 +91,10 @@ class WorkerConcurrencyTest {
         System.out.println("WORKER_LIMIT consumers=3 activeCap=2 queueCap=1 peakHttp=2 calls=4 committed=4");
     }
 
-    @Test
-    void admissionTimeoutLeavesNoClaimAndRecoversUncommittedRecordOnExplicitRestart() throws Exception {
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
+    void admissionTimeoutLeavesNoClaimAndRecoversUncommittedRecordOnExplicitRestart(OffsetCommitPolicy.Mode mode) throws Exception {
+        offsetMode = mode;
         start(3, 1, 2, 100, 0);
         var waiting = create();
         var occupied = new CountDownLatch(1);
@@ -134,8 +142,10 @@ class WorkerConcurrencyTest {
         assertThat(attempts(waiting)).isEqualTo(1);
     }
 
-    @Test
-    void fullQueueRejectsBeforeClaimWithoutCommittingAndCanBeRestarted() throws Exception {
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
+    void fullQueueRejectsBeforeClaimWithoutCommittingAndCanBeRestarted(OffsetCommitPolicy.Mode mode) throws Exception {
+        offsetMode = mode;
         start(3, 1, 0, 1000, 1200);
         var first = create(); var rejected = create();
         publish(first, 0);
@@ -155,8 +165,10 @@ class WorkerConcurrencyTest {
         assertThat(stats().requests()).isEqualTo(2);
     }
 
-    @Test
-    void databaseFailureNeverCommitsPastFailedRecordAndRecoversAfterLeaseExpiry() throws Exception {
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
+    void databaseFailureNeverCommitsPastFailedRecordAndRecoversAfterLeaseExpiry(OffsetCommitPolicy.Mode mode) throws Exception {
+        offsetMode = mode;
         start(3, 2, 1, 5000, 300);
         var first = create(); var later = create(); var independent = create();
         root("CREATE TRIGGER reject_worker_completion BEFORE UPDATE ON notification FOR EACH ROW "
@@ -180,8 +192,10 @@ class WorkerConcurrencyTest {
         assertThat(stats().requests()).isEqualTo(4);
     }
 
-    @Test
-    void shutdownLeavesQueuedRecordUnclaimedAndNewContextFinishesIt() throws Exception {
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
+    void shutdownLeavesQueuedRecordUnclaimedAndNewContextFinishesIt(OffsetCommitPolicy.Mode mode) throws Exception {
+        offsetMode = mode;
         start(3, 1, 2, 5000, 1500);
         var first = create(); var queued = create();
         publish(first, 0);
@@ -213,7 +227,8 @@ class WorkerConcurrencyTest {
     }
 
     private void startApplication(int consumers, int active, int queue, int waitMs) {
-        app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class).run(
+        app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class, OffsetCommitPolicy.Wiring.class).run(
+                "--notification.test.offset.mode=" + offsetMode.name(),
                 "--server.port=0", "--app.provider.mode=HTTP", "--app.async.relay-enabled=false",
                 "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort(),
                 "--app.provider.http.response-timeout-ms=3000", "--app.provider.http.deadline-ms=4000",
@@ -224,10 +239,24 @@ class WorkerConcurrencyTest {
                 "--app.async.topic=" + topic, "--app.async.group=" + group,
                 "--logging.level.root=WARN", "--spring.main.banner-mode=off");
         if (admin == null) admin = Admin.create(Map.of("bootstrap.servers", KAFKA.getBootstrapServers()));
+        OffsetCommitPolicy.requireApplied(app);
         awaitAssigned();
     }
 
     private record Event(String id, String payload) { }
+
+    @Test
+    void countTimeFlushesLowVolumeTailWithoutTenNewRecords() throws Exception {
+        offsetMode = OffsetCommitPolicy.Mode.COUNT_TIME;
+        start(1, 1, 0, 5000, 0);
+        var events = List.of(create(), create(), create());
+        for (var event : events) publish(event, 0);
+        awaitCompleted(events, 3);
+        assertThat(stats().requests()).isEqualTo(3);
+        assertThat(offset(0)).isEqualTo(3);
+        assertThat(offset(1)).isZero(); assertThat(offset(2)).isZero();
+        System.out.println("OFFSET_TIME_TAIL completed=3 committed=3 countThreshold=10");
+    }
 
     private Event create() throws Exception {
         try (var http = HttpClient.newHttpClient()) {

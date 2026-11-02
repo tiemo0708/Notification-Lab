@@ -20,11 +20,12 @@ import org.springframework.core.env.Environment;
 /** Pauses only the first provider call so a second real consumer can join during processing. */
 public class RebalanceWorkerProcess {
     public static void main(String[] args) throws IOException {
-        var builder = new SpringApplicationBuilder(NotificationLabApplication.class);
+        var builder = new SpringApplicationBuilder(NotificationLabApplication.class, OffsetCommitPolicy.Wiring.class);
         if (System.getenv("NOTIFICATION_LAB_PROVIDER_GATE") != null) {
             builder.sources(ProviderGateConfiguration.class);
         }
         var context = (ServletWebServerApplicationContext) builder.run(args);
+        OffsetCommitPolicy.requireApplied(context);
         Files.writeString(Path.of(System.getenv("NOTIFICATION_LAB_WORKER_PORT")),
                 Integer.toString(context.getWebServer().getPort()), StandardOpenOption.CREATE_NEW);
     }

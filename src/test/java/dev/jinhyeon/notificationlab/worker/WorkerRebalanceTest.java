@@ -7,6 +7,7 @@ import dev.jinhyeon.notificationlab.NotificationLabApplication;
 import dev.jinhyeon.notificationlab.outbox.PipelineMetrics;
 import dev.jinhyeon.notificationlabtest.RebalanceWorkerProcess;
 import dev.jinhyeon.notificationlabtest.RelayProcess;
+import dev.jinhyeon.notificationlabtest.OffsetCommitPolicy;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -31,7 +32,8 @@ import org.apache.kafka.common.ConsumerGroupState;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Utils;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -48,7 +50,7 @@ import static org.awaitility.Awaitility.await;
 @Testcontainers
 class WorkerRebalanceTest {
     @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4.8")
+    final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4.8")
             .withDatabaseName("notification_lab").withUsername("notification_test")
             .withPassword(UUID.randomUUID().toString()).withCommand("--default-time-zone=+00:00")
             .withUrlParam("connectionTimeZone", "UTC").withUrlParam("forceConnectionTimeZoneToSession", "true")
@@ -71,10 +73,13 @@ class WorkerRebalanceTest {
     private HttpClient http;
     private Admin admin;
     private final List<String> ids = new ArrayList<>();
+    private OffsetCommitPolicy.Mode offsetMode;
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
     @Timeout(240)
-    void joinsDuringProcessingThenRestartsRelayAndWorkerWithoutSkippingOrRepeatingDelivery() throws Exception {
+    void joinsDuringProcessingThenRestartsRelayAndWorkerWithoutSkippingOrRepeatingDelivery(OffsetCommitPolicy.Mode mode) throws Exception {
+        offsetMode = mode;
         startApi();
         Process relay = startChild("relay", true, false);
         Process workerA = startChild("worker-a", false, true);
@@ -249,6 +254,7 @@ class WorkerRebalanceTest {
         command.addAll(arguments());
         command.add("--app.async.relay-enabled=" + relay);
         command.add("--app.async.worker-enabled=" + !relay);
+        if (!relay) command.add("--notification.test.offset.mode=" + offsetMode.name());
         var builder = new ProcessBuilder(command).redirectErrorStream(true)
                 .redirectOutput(directory.resolve(name + ".log").toFile());
         builder.environment().put("MYSQL_PASSWORD", MYSQL.getPassword());

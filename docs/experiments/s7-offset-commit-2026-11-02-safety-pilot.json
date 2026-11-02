@@ -1,0 +1,12 @@
+{
+  "completedReplayed" : 6,
+  "warmup" : 20,
+  "totalProviderAttempts" : 32,
+  "result" : "PASS",
+  "completedRowsUnchanged" : true,
+  "targets" : 32,
+  "replacementProviderAttempts" : 4,
+  "completedBeforeKill" : 28,
+  "finalCommitted" : 32,
+  "committedBeforeKill" : 22
+}
