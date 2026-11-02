@@ -2306,3 +2306,38 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   기존 Git identity와 원격main9cf1786을 읽기 전용 확인했다. 사용자DB/.env/IntelliJ/volume과 기본 정책을 유지한다.
   실제 공급자/유료 자원/10만·100만 건 재실행/푸시는 하지 않았다.
 - 최종 Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 격리 검증 컨테이너는 정리됐다.
+
+
+## 2026-11-03 — S7 DB 잠금과 커밋 후 호출자 대기 제어군 검증
+
+- 시작3f4362b/main/원격 추적보다17개 앞선 깨끗한 상태에서 AGENTS/CONTRIBUTING/PLAN/README/직전 진단을 확인했다.
+  이번에는 운영 SubmissionService/JdbcNotificationStore/DeliveryTaskStore와 실제 Spring 트랜잭션 프록시를 작은 별도context에서 실행한다.
+  HTTP/Kafka/Relay/Worker/공급자 부하는 없으며 운영 Java/resources/기본 RECORD/풀·격리 설정을 변경하지 않는다.
+- apiWaitProbe는 opt-in SQL 진단이다. MySQL8.4.8/2CPU/2GiB/buffer512MiB/JVM512MiB,
+  앱풀4+별도blocker/observer 각1개, 단일 platform worker/큐1개, 워밍업3개+제어3개=접수6개로 제한했다.
+  보류200ms/잠금5초/쿼리5초/관찰2초/gate3초/future8초 상한을 둔다. 본문·ID·SQL·예외 메시지는 결과에 저장하지 않는다.
+- 정상 접수, 테스트 blocker의RR Outbox 기본키 전 범위 잠금, 실제native commit 반환 후 호출자 반환만 보류하는3조건을 비교했다.
+  CPU시간은 ThreadMXBean의현재platform thread만 읽으며 DB 서버CPU나 순수스케줄링시간으로 해석하지 않는다.
+- 첫 연결 검증은22초/종료 코드0/테스트1개 통과/실패·오류·스킵0이었다.
+  테스트 설정을TestConfiguration으로 분리하고 연결proxy identity 처리를 보강한 뒤 최종6개 소스 해시를 고정했다.
+  최종 새MySQL 재실행은 **17초/종료 코드0/테스트1개 통과/실패·오류·스킵0**이었다.
+- 최종 정상 조건의wall12.210ms/threadCPU7.388ms/네번째SQL0.517ms/commit1.105ms였다.
+  Outbox 잠금 조건은wall250.688ms/CPU3.050ms/네번째SQL240.601ms/commit3.796ms였고,
+  실제Outbox 대기 관계1개와 미커밋 행의 비가시성을 확인했다. 해제 후 정상 완료했다.
+- 커밋 후 호출자 보류 조건은wall216.580ms/CPU2.742ms/네번째SQL1.163ms/commit호출208.463ms였다.
+  native commit이이미반환했고 별도연결에서 접수3개 테이블의새행이 보이지만future는미완료임을 확인했다.
+  해당시점대기관계0/gate해제후정상완료였다. 호출자commit시간을DB fsync시간과같다고볼수없음을 확인했다.
+- 각측정접수SQL4회/획득·commit·반환1회/rollback0, 전체알림·작업·Outbox각6개/시도이력0/공급자호출0을 확인했다.
+  대기 관계0은 순간관찰이며 전체대기부재를 증명하지 않는다. latch는 합성 호출자 지연으로 실제OS선점/네트워크장애와 구분한다.
+- [판단 기준·학습 질문·수치·공식 참고](S7_API_WAIT_CALIBRATION.md)와 두원본/소스해시/[실행 메타데이터](experiments/s7-api-wait-2026-11-03-execution.json)를 기록했다.
+  제어군 구분은 통과했지만 기존10만 건p95악화/100만 건5초timeout 원인은 여전히 미확정이다.
+  다음은 자연 발생 혼합 요청의 세션·시간과 별도DB관찰을 대응할 때의 정확성·오버헤드·상한을 검토하는 작은 단계다.
+  풀/인덱스/격리 수준을 추측으로 바꾸거나10만·100만 건부하를 다시 실행하지 않았다.
+
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **16분10초/종료 코드0**이었다.
+  새38개 클래스 JUnit XML과 콘솔에서 **308개 통과/실패·오류·스킵0**을 대조했다.
+  기본 회귀는 실제 재실행했고 두 실행 JAR task는UP-TO-DATE였다. 별도SQL 제어1개 테스트/3조건과 구분한다.
+- 고정소스6개 해시/운영Java·resources diff0/원래100만건FAIL원본 불변을 확인했다.
+  기존Git identity와원격main9cf1786을읽기전용으로확인했다. 사용자DB/.env/IntelliJ/volume과기본정책을변경하지 않았다.
+  10만·100만건/실제공급자/유료자원/푸시는 실행하지 않았다.
+- 새 원본의비유한값/UUID/민감필드미포함과문서링크를확인했다. Docker에는기존notification-lab-mysql-1만healthy로남았다.

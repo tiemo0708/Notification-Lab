@@ -1,0 +1,12 @@
+{
+  "baseCommit": "3f4362baf1f1a282146fa5dbafc547f6712956e6",
+  "scope": "final SQL-only calibration after isolating TestConfiguration and guarding proxy identity; initial run preceded these guards; no production changes",
+  "filesSha256": {
+    "build.gradle": "78d25b809ce9ac793a6b0856840cab63054dd0c8a36ba3247d85f097e4954199",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/AdmissionWaitProbeTest.java": "930af1d920188d58d38abeb77fa6b2a7f03644c754e1ec313ffd9a9459604157",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "e2a07c59008af403df29b377a757387dd2eac18bac877385ca240b29f9c750f3",
+    "src/main/java/dev/jinhyeon/notificationlab/outbox/SubmissionService.java": "76cba4d1a75a33d432e862f6a2600555d533fbc7b4069ebd908ef40bb6f9bf40",
+    "src/main/java/dev/jinhyeon/notificationlab/notification/JdbcNotificationStore.java": "bd7da8eedf8ca028b915bd6fce29d8ee53c6087ca881d1f3da6a15f0125609a0",
+    "src/main/java/dev/jinhyeon/notificationlab/worker/DeliveryTaskStore.java": "532e8f3399cfb6c9a8a39c0a5706b2217c04170dcbefb2a1261144636244eca3"
+  }
+}

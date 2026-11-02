@@ -1,0 +1,48 @@
+{
+  "scope": "one initial connectivity run, then final frozen control experiment; no HTTP/Kafka/provider load",
+  "sourceManifest": "s7-api-wait-2026-11-03-source.json",
+  "sourceManifestSha256": "4c1f9535e69f844ac203d80d75a4e80c87a98b1da5f63d8c987e3af540f09708",
+  "runs": [
+    {
+      "rawFile": "s7-api-wait-2026-11-03-initial.json",
+      "sha256": "2c0a25e9b4857652d771f7c477bf7fca0d7ab5d02895b6531a902d43c3472d27",
+      "startedAtUtc": "2026-11-02T16:49:38.518493Z",
+      "finishedAtUtc": "2026-11-02T16:49:53.646321Z",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiWaitProbe",
+      "exitCode": 0,
+      "gradleDuration": "22s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": 3,
+      "sourceFingerprintRecorded": false
+    },
+    {
+      "rawFile": "s7-api-wait-2026-11-03-final.json",
+      "sha256": "60797f70976f37ede384e4dcf16c358c5f6f70dfdff72ea13e8532f0736b304c",
+      "startedAtUtc": "2026-11-02T16:51:13.868674Z",
+      "finishedAtUtc": "2026-11-02T16:51:24.996637Z",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiWaitProbe",
+      "exitCode": 0,
+      "gradleDuration": "17s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": 3,
+      "sourceFingerprintRecorded": true
+    }
+  ],
+  "regression": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "exitCode": 0,
+    "gradleDuration": "16m 10s",
+    "classes": 38,
+    "tests": 308,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "logSha256": "e250a058d5208403c4cecdb639e27310e00e43072cb742e8c65edd2d5bf496fe"
+  }
+}

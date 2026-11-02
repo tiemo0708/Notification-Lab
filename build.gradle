@@ -50,7 +50,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe' }
+    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe', 'api-wait-probe' }
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
@@ -329,6 +329,21 @@ tasks.register('outboxLockProbe', Test) {
     maxParallelForks = 1
     timeout = Duration.ofMinutes(10)
     systemProperty 'junit.jupiter.execution.timeout.test.method.default', '8m'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+// SQL-only calibration: one baseline, one held gap lock, one post-commit caller pause.
+tasks.register('apiWaitProbe', Test) {
+    description = 'Distinguish admission row-lock waits from a synthetic delay after native commit returns'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'api-wait-probe' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(3)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '2m'
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
