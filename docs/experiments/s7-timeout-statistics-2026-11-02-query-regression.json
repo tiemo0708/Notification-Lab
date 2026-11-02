@@ -1,0 +1,303 @@
+{
+  "startedAtUtc" : "2026-11-02T00:16:24.515638Z",
+  "scope" : "SQL only; synthetic 10k/100k campaign backlog; no Kafka, Worker, HTTP or provider",
+  "conditions" : {
+    "concurrentCampaignClaims" : 100,
+    "concurrentAdmissions" : 40,
+    "mysql" : "8.4.8",
+    "concurrentMetricsSamples" : 10,
+    "cpu" : 2,
+    "bufferPoolMiB" : 512,
+    "poolPerLane" : 4,
+    "iterationsPerOperation" : 20,
+    "memoryMiB" : 2048
+  },
+  "diagnosticTiming" : {
+    "connectionTimeoutMillis" : 3000,
+    "metricsIntervalMillis" : 200,
+    "admissionIntervalMillis" : 50,
+    "jdbcQueryTimeoutSeconds" : 30,
+    "junitMinutes" : 8,
+    "taskMinutes" : 10,
+    "futureWaitSeconds" : 60
+  },
+  "limitations" : [ "one run; warm caches; fixed operation order", "SQL UUID() seeding differs from campaign Batch IDs and timestamp distribution", "manual transactions preserve store boundaries; no Kafka ACK or provider acceptance", "metrics sampled more frequently than production; no Worker DB transactions", "timings observe this host only; do not explain the previous 1m timeout" ],
+  "java" : "Amazon.com Inc. 21.0.6",
+  "jvmMaxHeapBytes" : 536870912,
+  "phases" : [ {
+    "campaignRows" : 10000,
+    "additionalSeedMillis" : 777.029625,
+    "startingStatuses" : [ {
+      "status" : "PENDING",
+      "rows_count" : 10000
+    } ],
+    "CAMPAIGN" : {
+      "metricsMillis" : {
+        "max" : 9.3885,
+        "p50" : 8.407,
+        "p95" : 9.332042
+      },
+      "claimAndMarkMillis" : {
+        "max" : 12.216042,
+        "p50" : 5.636958,
+        "p95" : 9.519917
+      },
+      "candidatePlans" : {
+        "PENDING" : [ {
+          "id" : 1,
+          "select_type" : "SIMPLE",
+          "table" : "outbox_event",
+          "partitions" : null,
+          "type" : "range",
+          "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+          "key" : "idx_outbox_status_available",
+          "key_len" : "74",
+          "ref" : null,
+          "rows" : 1,
+          "filtered" : 100.0,
+          "Extra" : "Using index condition; Using where"
+        } ],
+        "PROCESSING" : [ {
+          "id" : 1,
+          "select_type" : "SIMPLE",
+          "table" : "outbox_event",
+          "partitions" : null,
+          "type" : "range",
+          "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+          "key" : "idx_outbox_status_available",
+          "key_len" : "74",
+          "ref" : null,
+          "rows" : 1,
+          "filtered" : 100.0,
+          "Extra" : "Using index condition; Using where"
+        } ]
+      },
+      "lastMetrics" : {
+        "COUNT(*)" : 9981,
+        "COALESCE(SUM(status = 'FAILED'), 0)" : 0,
+        "COALESCE(TIMESTAMPDIFF(MICROSECOND, MIN(created_at), UTC_TIMESTAMP(6)) / 1000000.0, 0)" : 0.9888
+      },
+      "metricsPlan" : [ {
+        "id" : 1,
+        "select_type" : "SIMPLE",
+        "table" : "outbox_event",
+        "partitions" : null,
+        "type" : "range",
+        "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+        "key" : "idx_outbox_status_available",
+        "key_len" : "66",
+        "ref" : null,
+        "rows" : 2,
+        "filtered" : 100.0,
+        "Extra" : "Using index condition; Using where"
+      } ]
+    },
+    "REALTIME" : {
+      "metricsMillis" : {
+        "max" : 18.91825,
+        "p50" : 7.965375,
+        "p95" : 8.883584
+      },
+      "claimAndMarkMillis" : {
+        "max" : 14.453375,
+        "p50" : 12.377,
+        "p95" : 13.745792
+      },
+      "candidatePlans" : {
+        "PENDING" : [ {
+          "id" : 1,
+          "select_type" : "SIMPLE",
+          "table" : "outbox_event",
+          "partitions" : null,
+          "type" : "range",
+          "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+          "key" : "idx_outbox_status_available",
+          "key_len" : "74",
+          "ref" : null,
+          "rows" : 1,
+          "filtered" : 100.0,
+          "Extra" : "Using index condition; Using where"
+        } ],
+        "PROCESSING" : [ {
+          "id" : 1,
+          "select_type" : "SIMPLE",
+          "table" : "outbox_event",
+          "partitions" : null,
+          "type" : "range",
+          "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+          "key" : "idx_outbox_status_available",
+          "key_len" : "74",
+          "ref" : null,
+          "rows" : 1,
+          "filtered" : 100.0,
+          "Extra" : "Using index condition; Using where"
+        } ]
+      },
+      "lastMetrics" : {
+        "COUNT(*)" : 0,
+        "COALESCE(SUM(status = 'FAILED'), 0)" : 0,
+        "COALESCE(TIMESTAMPDIFF(MICROSECOND, MIN(created_at), UTC_TIMESTAMP(6)) / 1000000.0, 0)" : 0.0000
+      },
+      "metricsPlan" : [ {
+        "id" : 1,
+        "select_type" : "SIMPLE",
+        "table" : "outbox_event",
+        "partitions" : null,
+        "type" : "range",
+        "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+        "key" : "idx_outbox_status_available",
+        "key_len" : "66",
+        "ref" : null,
+        "rows" : 2,
+        "filtered" : 100.0,
+        "Extra" : "Using index condition; Using where"
+      } ]
+    },
+    "overlappingAdmissionDbMillis" : {
+      "max" : 19.691667,
+      "p50" : 9.30675,
+      "p95" : 16.977417
+    },
+    "realtimeRows" : 40
+  }, {
+    "campaignRows" : 100000,
+    "additionalSeedMillis" : 5442.331166,
+    "startingStatuses" : [ {
+      "status" : "PENDING",
+      "rows_count" : 99880
+    }, {
+      "status" : "PUBLISHED",
+      "rows_count" : 120
+    } ],
+    "CAMPAIGN" : {
+      "metricsMillis" : {
+        "max" : 92.506583,
+        "p50" : 81.312083,
+        "p95" : 90.3085
+      },
+      "claimAndMarkMillis" : {
+        "max" : 9.321833,
+        "p50" : 6.983875,
+        "p95" : 8.808167
+      },
+      "candidatePlans" : {
+        "PENDING" : [ {
+          "id" : 1,
+          "select_type" : "SIMPLE",
+          "table" : "outbox_event",
+          "partitions" : null,
+          "type" : "range",
+          "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+          "key" : "idx_outbox_status_available",
+          "key_len" : "74",
+          "ref" : null,
+          "rows" : 1,
+          "filtered" : 100.0,
+          "Extra" : "Using index condition; Using where"
+        } ],
+        "PROCESSING" : [ {
+          "id" : 1,
+          "select_type" : "SIMPLE",
+          "table" : "outbox_event",
+          "partitions" : null,
+          "type" : "range",
+          "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+          "key" : "idx_outbox_status_available",
+          "key_len" : "74",
+          "ref" : null,
+          "rows" : 1,
+          "filtered" : 100.0,
+          "Extra" : "Using index condition; Using where"
+        } ]
+      },
+      "lastMetrics" : {
+        "COUNT(*)" : 99861,
+        "COALESCE(SUM(status = 'FAILED'), 0)" : 0,
+        "COALESCE(TIMESTAMPDIFF(MICROSECOND, MIN(created_at), UTC_TIMESTAMP(6)) / 1000000.0, 0)" : 11.1701
+      },
+      "metricsPlan" : [ {
+        "id" : 1,
+        "select_type" : "SIMPLE",
+        "table" : "outbox_event",
+        "partitions" : null,
+        "type" : "range",
+        "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+        "key" : "idx_outbox_status_available",
+        "key_len" : "66",
+        "ref" : null,
+        "rows" : 2,
+        "filtered" : 100.0,
+        "Extra" : "Using index condition; Using where"
+      } ]
+    },
+    "REALTIME" : {
+      "metricsMillis" : {
+        "max" : 83.348625,
+        "p50" : 74.8305,
+        "p95" : 80.138458
+      },
+      "claimAndMarkMillis" : {
+        "max" : 19.652,
+        "p50" : 16.373792,
+        "p95" : 18.72575
+      },
+      "candidatePlans" : {
+        "PENDING" : [ {
+          "id" : 1,
+          "select_type" : "SIMPLE",
+          "table" : "outbox_event",
+          "partitions" : null,
+          "type" : "range",
+          "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+          "key" : "idx_outbox_status_available",
+          "key_len" : "74",
+          "ref" : null,
+          "rows" : 1,
+          "filtered" : 100.0,
+          "Extra" : "Using index condition; Using where"
+        } ],
+        "PROCESSING" : [ {
+          "id" : 1,
+          "select_type" : "SIMPLE",
+          "table" : "outbox_event",
+          "partitions" : null,
+          "type" : "range",
+          "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+          "key" : "idx_outbox_status_available",
+          "key_len" : "74",
+          "ref" : null,
+          "rows" : 1,
+          "filtered" : 100.0,
+          "Extra" : "Using index condition; Using where"
+        } ]
+      },
+      "lastMetrics" : {
+        "COUNT(*)" : 21,
+        "COALESCE(SUM(status = 'FAILED'), 0)" : 0,
+        "COALESCE(TIMESTAMPDIFF(MICROSECOND, MIN(created_at), UTC_TIMESTAMP(6)) / 1000000.0, 0)" : 10.4433
+      },
+      "metricsPlan" : [ {
+        "id" : 1,
+        "select_type" : "SIMPLE",
+        "table" : "outbox_event",
+        "partitions" : null,
+        "type" : "range",
+        "possible_keys" : "idx_outbox_status_available,idx_outbox_traffic_status_available",
+        "key" : "idx_outbox_status_available",
+        "key_len" : "66",
+        "ref" : null,
+        "rows" : 2,
+        "filtered" : 100.0,
+        "Extra" : "Using index condition; Using where"
+      } ]
+    },
+    "overlappingAdmissionDbMillis" : {
+      "max" : 17.544542,
+      "p50" : 5.435208,
+      "p95" : 12.136459
+    },
+    "realtimeRows" : 80
+  } ],
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-02T00:16:49.013064Z"
+}

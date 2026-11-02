@@ -50,7 +50,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe' }
+    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe' }
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
@@ -186,6 +186,21 @@ tasks.register('outboxQueryProbe', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform { includeTags 'outbox-query-probe' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(10)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '8m'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+// Paired SQL-only experiment on an unchanged dataset; never runs as part of build.
+tasks.register('outboxStatisticsProbe', Test) {
+    description = 'Compare Outbox plans and executed reads before and after ANALYZE TABLE'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'outbox-statistics-probe' }
     maxHeapSize = '512m'
     maxParallelForks = 1
     timeout = Duration.ofMinutes(10)

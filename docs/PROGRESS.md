@@ -1849,3 +1849,43 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 다음은 같은 적체에서 ANALYZE TABLE 전후 계획·실제 읽은 행 수·지연의 비교다.
   통계 갱신만으로 달라지는지 먼저 확인하고, 필요할 때 진단용 인덱스 힌트를 별도 조건으로 비교한다.
   이전1m의 당시 계획/통계가 없어 후속 재현만으로 과거 원인을 확정할 수 없다. S7의100만 건 검증은 미완료다.
+
+## 2026-11-02 — S7 Outbox 통계 갱신 전후 비교
+
+- 시작 커밋108debe, main의 기존5개 로컬 커밋을 보존했다. 새 브랜치/푸시/100만 건 재실행은 하지 않았다.
+- 같은 적체에서 통계 갱신만 개입하고 실행 계획·실행 노드 행 수·지연이 달라지는지 확인하는 단계다.
+  이전1m 장애 원인과 진단에서 확인한 메커니즘을 구분한다.
+- 새 opt-in outboxStatisticsProbe task를 기본 build와 분리했다. JUnit8분/task10분/JVM512MiB 상한을 둔다.
+  기존 쿼리 진단과 seed/container helper를 공유하고 클래스 태그를 메서드별 태그로 분리했다.
+- MySQL8.4.8/2CPU/2GiB/buffer pool512MiB/Hikari4/연결 대기3초/쿼리30초로 고정했다.
+  격리 outbox_event만 STATS_AUTO_RECALC=0으로 두고 빈 테이블 통계→캠페인100000+실시간100행 적재로 오래된 통계를 만들었다.
+  전역 auto_recalc/persistent는 ON/sample_pages20이었다. 운영 기본 자동 갱신 조건과 같다고 주장하지 않는다.
+- BEFORE/AFTER 사이에 ANALYZE TABLE을 한 번 실행했다. 인덱스 힌트·운영 앱/스키마/설정 변경은 없다.
+  각 단계에서 같은 PENDING100100/시도0/lease NULL을 확인했다. 측정 중 업무 DML은 하지 않는다.
+- 실제 OutboxStore의 두 SELECT를 DB 호출 없이 캡처한 뒤 실 DB에서 실행했다.
+  SELECT는 별도 트랜잭션 후 rollback하며 선점 UPDATE/published/Kafka/HTTP/Worker는 실행하지 않는다.
+  EXPLAIN/EXPLAIN ANALYZE와 같은 트랜잭션 연결의 Handler_read* 차이를 타이밍20회와 별도로 보존했다.
+  트리 노드 행 수와 카운터 연산 수를 합산해 rows_examined로 표현하지 않는다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain outboxStatisticsProbe outboxQueryProbe`:
+  **BUILD SUCCESSFUL55초, 종료 코드0. 별도 통계 비교1개+기존 쿼리 진단1개 통과, 실패·오류·스킵0**.
+  기존 task도 재실행해 공통 helper와 메서드 태그 변경을 확인했다.
+- 실시간 집계/PENDING이 상태 인덱스에서 역할별 복합 인덱스로 바뀌었다.
+  집계 스캔 노드는100100→100행, PENDING은100001→1행이었다. 반환은 계속1건이었다.
+  PENDING의 별도 읽기 연산 차이는 Handler_read_next100000→0이었다.
+  집계p95 81.364→2.420ms/PENDING p95 119.378→2.273ms였고 JDBC 왕복·트랜잭션/rollback을 포함한다.
+- 캠페인 집계는 상태 인덱스에서 테이블 스캔으로 바뀌고 스캔100100행을 유지했다(p95 88.099→22.527ms).
+  PROCESSING은0행으로 상태 인덱스를 유지했다. 모든 쿼리에 같은 인덱스를 강제하는 결론을 내리지 않는다.
+- [통계 비교 원본](experiments/s7-timeout-statistics-2026-11-02.json)과
+  [기존 쿼리 회귀 원본](experiments/s7-timeout-statistics-2026-11-02-query-regression.json)을 보존했다.
+  [측정 방법과 표·공식 문서](S7_TIMEOUT_DIAGNOSIS.md)에 경계와 한계를 기록했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **기본 회귀33개 클래스/268개 통과, 실패·오류·스킵0**, BUILD SUCCESSFUL12분11초, 종료 코드0.
+  JUnit XML/콘솔 합계를 대조했다. 통계 비교1개/기존 쿼리 진단1개는268개에 포함되지 않는다.
+  새 태그와 모든 opt-in task는 기본 build에서 제외됐고 운영 JAR 생성은 UP-TO-DATE였다.
+- 문서 링크/코드 블록/JSON 파싱·원본 동일성·실행 스캔 수·민감 값 미포함/`git diff --check`를 확인했다.
+  첫1m 실패 JSON은 기존 SHA-256과 같고 FAIL 상태를 보존했다.
+- 실행 종료 후 이번 로그·JUnit에서 생성이 확인된 잔존 Ryuk만 정리했다.
+  사용자 DB/.env/IntelliJ와 무관한 컨테이너·volume은 변경하지 않았다.
+- 오래된 통계가 과도한 스캔을 만들 수 있는 경로를 확인했지만, 원래1m는 기본 자동 통계 조건의43분 저장이었다.
+  과거 계획/통계/잠금 자료가 없고 이번에는 Worker·동시 쓰기·장시간 부하가 없어5초 timeout의 원인으로 확정하지 않는다.
+  다음은 기본 자동 통계 조건의 선점 계획과 교차 역할 잠금 범위 확인이다. S7의100만 건 검증은 미완료다.
