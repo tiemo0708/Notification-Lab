@@ -206,6 +206,29 @@ tasks.register('offsetCommitPilot', Test) {
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
 
+// Explicit 100k only; no million-target offset comparison is enabled.
+tasks.register('offsetCommitLoad', Test) {
+    description = 'Compare RECORD/COUNT_TIME for exactly 100,000 HTTP campaign deliveries'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'campaign-delivery-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(90)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '80m'
+    systemProperty 'campaign.delivery.load', 'true'
+    systemProperty 'campaign.delivery.targets', '100000'
+    systemProperty 'campaign.delivery.scaling', 'true'
+    systemProperty 'campaign.delivery.relayInstances', '2'
+    systemProperty 'campaign.delivery.publishBatchSize', '10'
+    systemProperty 'campaign.delivery.fineTiming', 'true'
+    systemProperty 'campaign.delivery.offsetComparison', 'true'
+    systemProperty 'campaign.delivery.offsetMode', providers.gradleProperty('offsetMode').getOrElse('RECORD')
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
 // Explicit 100,000-target run. Reuses the pilot path without changing application defaults.
 tasks.register('campaignDeliveryLoad', Test) {
     description = 'Reconcile 100,000 HTTP campaign deliveries and concurrent realtime probes'

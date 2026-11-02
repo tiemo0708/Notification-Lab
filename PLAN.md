@@ -191,7 +191,7 @@ S7 첫 API 단계를 구현했다. 고정 가상 대상자와 keyset 조회도 �
 - [x] 로컬 Relay1/2개 사전 비교: Worker/DB 풀/200/s 한도를 고정한1만 건 반복과 정합성·실시간 간섭 확인(일관된 개선 미확인·기본값 유지)
 - [x] 작은 동일 조건에서 DB 연결 취득/SQL/commit과Kafka offset 저장의 비용 세분화 진단(건별 offset 평균5.770~6.008ms 관측·기본값 유지)
 - [x] 완료된 offset의 개수·시간 기준 묶음 저장 선택 옵션 비교와 재소비/미완료 offset 보존 검증(호출78~80% 감소·기본 RECORD 유지)
-- [ ] COUNT_TIME의 HTTP 재시도·Retry/DLQ와 commit RPC 실패 경계 추가 검증
+- [x] COUNT_TIME의 HTTP 재시도·Retry/DLQ와 commit RPC 전/성공 후 응답 유실 경계 추가 검증(합성 오류/실제 브로커 offset 대조)
 - [ ] 같은 offset 정책의10만 건 HTTP/실시간 tail 검증과 적용 여부 판단
 - [ ] 100만 건 실행 중 접수 probe의5초 응답 timeout 원인 진단과 작은 재현
 - [ ] 100만 건 HTTP Mock 발송 경로 부하 테스트
@@ -241,6 +241,8 @@ HTTP41711건 전수 대조는 통과했지만1개120.646~131.381/s, 2개98.426~1
 [offset 묶음 저장 비교](docs/S7_OFFSET_COMMIT_PILOT.md)는 기본 RECORD를 유지한 테스트 전용 COUNT_TIME10개/100ms다.
 같은 Relay2/Worker3에서1만 건 각2회, HTTP41910건 전수 대조를 통과했다. 동기 커밋은10000→2163/2019회로 줄었고,
 RECORD89.676~98.933/s, COUNT_TIME115.079~123.383/s를 관측했다. 마지막 offset 반영과 장애 경계도 확인하며 다음은10만 건 확대 검증이다.
+[후속 오류 경계와10만 건 비교 도구](docs/S7_OFFSET_100K.md)는 HTTP5종×두 모드와 실제 commit RPC 앞뒤의 합성 오류 복구를 검증한다.
+10만 건 비교는 별도 `offsetCommitLoad`로 실행하며 기본 정책을 유지한다.
 100만 건 재실행은 아직 하지 않았으며 이후 같은 자원/예산/5초 제한의 별도 장시간 실행으로 판단한다.
 실제 검증 명령과 결과는 [PROGRESS](docs/PROGRESS.md)의 S7 기록을 따른다.
 

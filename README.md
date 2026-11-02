@@ -324,6 +324,10 @@ HTTP41910건 전수 대조와 동기 커밋10000→2163/2019회 감소를 확인
 `./gradlew offsetCommitPilot -PoffsetMode=COUNT_TIME`으로 테스트에서만 선택한다. 기본 앱과 실시간 정책은 RECORD를 유지한다.
 시간 기준은 엄격한100ms 보장이 아니며 마지막 offset 반영/재소비 범위를 함께 기록했다.10만/100만 건 확대는 미실행이다.
 
+[후속 HTTP/커밋 오류 경계](docs/S7_OFFSET_100K.md)는 두 모드의 성공·500·429·400·timeout과 실제 커밋 RPC 앞뒤의 합성 오류 복구를 검증한다.
+`./gradlew offsetCommitLoad -PoffsetMode=RECORD` 또는COUNT_TIME은 정확히10만 건만 허용하는 별도 비교 task다.
+기본 회귀/앱 실행에 포함하지 않고100만 건을 이 task로 실행하지 않는다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

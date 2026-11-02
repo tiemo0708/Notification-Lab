@@ -17,6 +17,11 @@ record CampaignDeliveryBounds(int targets, int maxRealtimeProbes, int drainLimit
 
     int maxResourceSamples() { return drainLimitSeconds / 2 + 2; }
 
+    static CampaignDeliveryBounds forOffsetRun(boolean load, int targets) {
+        if (load && targets != 100_000) throw new IllegalArgumentException("Offset load is limited to exactly 100000 targets");
+        return forRun(load, targets);
+    }
+
     long campaignAuditBytes() { return ((targets + 64L) / 64) * Long.BYTES; }
 
     long latencyArrayBytes() { return (long) Math.max(targets, maxRealtimeProbes) * Double.BYTES; }

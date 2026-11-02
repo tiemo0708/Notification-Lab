@@ -13,6 +13,20 @@ class CampaignDeliveryBoundsTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
+    void offsetComparisonAllowsOnlySmallPilotsOrTheExplicitHundredThousandRun() {
+        assertThat(CampaignDeliveryBounds.forOffsetRun(false, 1000).targets()).isEqualTo(1000);
+        assertThat(CampaignDeliveryBounds.forOffsetRun(false, 10_000).targets()).isEqualTo(10_000);
+        var load = CampaignDeliveryBounds.forOffsetRun(true, 100_000);
+        assertThat(load.drainLimitSeconds()).isEqualTo(3600);
+        assertThat(load.maxRealtimeProbes()).isEqualTo(20_000);
+        assertThat(load.maxResourceSamples()).isEqualTo(1802);
+        for (int targets : new int[] {0, 10_000, 100_001, 1_000_000, Integer.MAX_VALUE}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forOffsetRun(true, targets)).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forOffsetRun(false, 100_000)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void pilotCannotAccidentallyStartLargeOrOutOfRangeRuns() {
         for (int targets : new int[] {0, 999, 10_001, 100_000, 1_000_000, Integer.MAX_VALUE}) {
             assertThatThrownBy(() -> CampaignDeliveryBounds.forRun(false, targets))

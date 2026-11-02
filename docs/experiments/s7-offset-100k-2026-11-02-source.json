@@ -1,0 +1,21 @@
+{
+  "baseCommit": "651f8d75c9e17135d98e33c1edb2150e8e5ab1b1",
+  "scope": "test-only HTTP retry and commit RPC boundaries; final frozen sources for the explicit 100k RECORD/COUNT_TIME comparison; production defaults unchanged",
+  "filesSha256": {
+    "build.gradle": "25964b33cd805e1521f2e5c7472230562789df0c88c84f7f97692d79d0d574d8",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "c54de41575afbbf7cce6d5cfe07775dd15358d0fa677e6dfbcd74ccbb287c086",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/OffsetCommitPolicyTest.java": "f32b0e8fbaffbe9346c5249ea52740a03c5983c852d85f6f289ff4b8ad2f99fb",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerConcurrencyTest.java": "124049cb91da0dc8bea7183b7e0d77cc221eb08936f041455e571df0c125cd6a",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerProcessCrashTest.java": "61a1770cd4734d88024d486f4fb897879cc0c7629941ebd4c186f321982d21bd",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerQuotaIntegrationTest.java": "f28dfb7b617e6f251a36ac3684a11ba7bc295ee580e6c0990261c86bfa469e05",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerRebalanceTest.java": "694dd9b774258c1f27db130b248f9e49a847c106878d0244a7c4cfa326ef6660",
+    "src/test/java/dev/jinhyeon/notificationlabtest/OffsetCommitPolicy.java": "292ce0c970fa8fcaab5ba8c55b485e482016a059ad791bc68bd49762f39ec140",
+    "src/test/java/dev/jinhyeon/notificationlabtest/OffsetWorkerProcess.java": "ebb69d6c2ac2e2215d9b6b00e49bb968607a9231b993fa0acb155121b98add2e",
+    "src/test/java/dev/jinhyeon/notificationlabtest/RebalanceWorkerProcess.java": "207ddb536031677a0ae0d2a47a84c503daf83d9e134f8e5eef9e3a6617df3138",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryBounds.java": "758314965742d6e388b338ba9e131199e81e62f5e2597881c9617702d59abd68",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryBoundsTest.java": "2f0a0273590ccdb4b6a79f6b568dbe9a3c5b32bb51539f64d644c44c7738ac91",
+    "src/test/java/dev/jinhyeon/notificationlab/worker/HttpWorkerTest.java": "279a4dcfacf2091cc2529f3de96e93ad1a3b9c2e1633f23d5898b2c27404b42b",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignRelayGroup.java": "7957f3e14bcd1f4b0c67db28949e8e8c537dabf96157ebbe0f360526756f3a5e",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "4fe4dc14212f9d1df89ac004c52cc73cb4d0cacc9f7a47e02ea9c7b7fe6de28a"
+  }
+}

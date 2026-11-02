@@ -86,10 +86,11 @@ class CampaignDeliveryPilotTest {
         var offsetMode = offsetComparison ? OffsetCommitPolicy.mode(System.getProperty("campaign.delivery.offsetMode", "RECORD")) : OffsetCommitPolicy.Mode.RECORD;
         if (offsetComparison && !fineTiming) throw new IllegalArgumentException("Offset comparison requires fine timing");
         if (fineTiming && !scaling) throw new IllegalArgumentException("Fine timing requires the bounded scaling pilot");
-        if (scaling && load) throw new IllegalArgumentException("Relay scaling is limited to the small pilot");
+        if (scaling && load && !offsetComparison) throw new IllegalArgumentException("Relay scaling load requires the explicit offset comparison");
         relayInstances = scaling ? CampaignRelayGroup.validate(Integer.parseInt(System.getProperty("campaign.delivery.relayInstances", "1"))) : 0;
         int targets = Integer.getInteger("campaign.delivery.targets", 10_000);
-        var bounds = CampaignDeliveryBounds.forRun(load, targets);
+        var bounds = offsetComparison ? CampaignDeliveryBounds.forOffsetRun(load, targets) : CampaignDeliveryBounds.forRun(load, targets);
+        if (offsetComparison && relayInstances != 2) throw new IllegalArgumentException("Offset comparison requires exactly two campaign relays");
         maxProbes = bounds.maxRealtimeProbes();
         int drainLimitSeconds = bounds.drainLimitSeconds();
         var originalZone = TimeZone.getDefault();
@@ -273,7 +274,7 @@ class CampaignDeliveryPilotTest {
         } finally {
             TimeZone.setDefault(originalZone);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path directory = Path.of(offsetComparison ? "build/reports/offset-commit-pilot" : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
+            Path directory = Path.of(offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                     load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
             String name = offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;

@@ -2204,3 +2204,28 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   문서 링크/diff를 확인한다. Docker에는 기존 notification-lab-mysql-1만healthy로 남았고 사용자DB/.env/IntelliJ/volume은 변경하지 않았다.
   기존 Git identity와 원격main9cf1786을 읽기 전용으로 확인했다.100만 건 재실행/유료 서버/실제 공급자/푸시는 하지 않았다.
   새 모드의 모든 HTTP 재시도/Retry·DLQ/commit RPC 장애 조합을 검증한 것은 아니며 후속 경계 보강과10만 건 확대 뒤 적용을 판단한다.
+
+
+## 2026-11-02 — S7 COUNT_TIME HTTP/commit RPC 오류 경계와 10만 건 도구
+
+- 시작651f8d7/main/원격 추적보다14개 앞선 상태. AGENTS/CONTRIBUTING/PLAN/README/직전 결과를 확인했다.
+  운영 Java/resources/기본 RECORD를 유지하고 테스트 전용 검증을 보강한다. 새 브랜치/푸시는 하지 않는다.
+- 실제 MySQL/Kafka/HTTP에서 성공·500·429·영구400·응답 timeout을 RECORD/COUNT_TIME 각각 검증한다.
+  시도1/3/3/1/3회, Retry0/2/2/0/2개, DLQ0/1/1/1/1개와 DB 이력/Outbox PUBLISHED/각 partition offset=end를 대조했다.
+  timeout은 Mock 수락3회/클라이언트 UNKNOWN이다. 외부 공급자의 exactly-once를 주장하지 않는다.
+- 실제 native commitSync 전 미전송 오류와 실제 성공 후 호출자 응답 유실을 동일한 TimeoutException으로 주입했다.
+  후속 commit을 계속 거절하고 consumer group 이탈 후 DB/브로커를 따로 읽는다. 물리 네트워크 단절 재현과 구분한다.
+  동일 group/topic 새 JVM의 정상 재할당으로 복구하며 seek/reset/재발행을 하지 않는다.
+- 사전 선택 실행21개는2분47초/종료 코드0/실패·오류·스킵0이었다.
+  RPC 전 broker22/DB28/완료6건 재소비, RPC 후 broker29/DB29/재소비0, HOLD broker22/DB24/재소비2였다.
+  각32건 공급자 호출/성공 시도32개, 완료 행 fingerprint 불변/최종offset32를 확인했다.
+- 최종 전체 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **16분2초/종료 코드0**이었다.
+  새37개 클래스 JUnit XML과 콘솔에서 **302개 통과/실패·오류·스킵0**을 대조했다. 기존294개+신규8개다.
+  기본 회귀는 실제 재실행했고 두 실행 JAR task는UP-TO-DATE/운영 Java/resources diff0이었다.
+  RPC 전 broker21/DB28/재소비7, RPC 후 broker27/DB27/재소비0, HOLD broker22/DB27/재소비5에서도 같은32건 불변 조건을 확인했다.
+- [판단 기준/상세/실제 원본/공식 참고](S7_OFFSET_100K.md)를 보존했다. 코드15개 SHA-256을 고정했다.
+  `offsetCommitLoad`는100000건만 허용하며 test/check/build와100만 건 task에 자동 연결하지 않는다.
+  다음 실행은 같은 소스/자원/Relay2/Worker3/Hikari4/200/s/완료 저장10/5초 probe 제한의 RECORD→COUNT_TIME 각1회다.
+  10만 건 발송 결과를 아직 완료로 기록하지 않는다.
+- 기존 Git identity와 원격main9cf1786을 읽기 전용 확인했다. 원래100만 건 FAIL 원본 해시는 불변이다.
+  사용자DB/.env/IntelliJ/volume, 기본 정책과 예산을 유지한다. 실제 공급자/유료 서버/100만 건/푸시는 실행하지 않는다.

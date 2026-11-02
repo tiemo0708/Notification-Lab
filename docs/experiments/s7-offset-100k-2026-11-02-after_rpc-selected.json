@@ -1,0 +1,15 @@
+{
+  "result" : "PASS",
+  "fault" : "AFTER_RPC",
+  "targets" : 32,
+  "warmup" : 20,
+  "previousSuccessfulCommit" : 22,
+  "attemptedCommit" : 29,
+  "brokerObservedBeforeRestart" : 29,
+  "completedBeforeKill" : 29,
+  "completedReplayed" : 0,
+  "replacementProviderAttempts" : 3,
+  "totalProviderAttempts" : 32,
+  "finalCommitted" : 32,
+  "completedRowsUnchanged" : true
+}

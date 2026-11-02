@@ -28,6 +28,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -136,8 +138,19 @@ class WorkerProcessCrashTest {
     @Test
     @Timeout(150)
     void countTimeCrashReplaysMultipleCompletedRecordsWithoutRepeatingProviderCalls() throws Exception {
+        verifyOffsetBoundary(OffsetWorkerProcess.Fault.HOLD);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = OffsetWorkerProcess.Fault.class, names = {"BEFORE_RPC", "AFTER_RPC"})
+    @Timeout(150)
+    void countTimeCommitFailureRestartsFromBrokerObservedOffset(OffsetWorkerProcess.Fault fault) throws Exception {
+        verifyOffsetBoundary(fault);
+    }
+
+    private void verifyOffsetBoundary(OffsetWorkerProcess.Fault fault) throws Exception {
         startApiAndRelay(false);
-        Process original = startOffsetWorker("offset-original", true);
+        Process original = startOffsetWorker("offset-original", true, fault);
         for (int i = 0; i < 20; i++) publishManual(createManual());
         await().atMost(Duration.ofSeconds(30)).until(() -> committed() == 20 && Files.exists(directory.resolve("offset-original.port")));
         var tail = new ArrayList<ManualEvent>();
@@ -153,7 +166,12 @@ class WorkerProcessCrashTest {
         var values = Files.readString(marker).split(":");
         int before = Integer.parseInt(values[0]); int completed = Integer.parseInt(values[1]);
         assertThat(completed - before).isBetween(2, 10);
-        assertThat(committed()).isEqualTo(before);
+        if (fault != OffsetWorkerProcess.Fault.HOLD) {
+            await().atMost(Duration.ofSeconds(20)).until(() -> admin.describeConsumerGroups(List.of(group))
+                    .all().get(5, TimeUnit.SECONDS).get(group).members().isEmpty());
+        }
+        int brokerObserved = fault == OffsetWorkerProcess.Fault.AFTER_RPC ? completed : before;
+        assertThat(committed()).isEqualTo(brokerObserved);
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'", Integer.class)).isEqualTo(completed);
         assertThat(childCounter("offset-original", "notification_provider_attempts_total")).isEqualTo(completed);
         var finishedIds = jdbc().queryForList("SELECT notification_id FROM notification WHERE status='PROVIDER_ACCEPTED' ORDER BY notification_id", String.class);
@@ -161,14 +179,14 @@ class WorkerProcessCrashTest {
         original.destroyForcibly();
         assertThat(original.waitFor(10, TimeUnit.SECONDS)).isTrue();
         assertThat(original.exitValue()).isNotZero();
-        assertThat(committed()).isEqualTo(before);
+        assertThat(committed()).isEqualTo(brokerObserved);
         Process replacement = startOffsetWorker("offset-replacement", false);
         await().atMost(Duration.ofSeconds(45)).untilAsserted(() -> {
             assertThat(replacement.isAlive()).isTrue();
             assertThat(committed()).isEqualTo(32);
             assertThat(directory.resolve("offset-replacement.port")).exists();
         });
-        assertThat(childCounter("offset-replacement", "notification_worker_replays_total")).isEqualTo(completed - before);
+        assertThat(childCounter("offset-replacement", "notification_worker_replays_total")).isEqualTo(completed - brokerObserved);
         assertThat(childCounter("offset-replacement", "notification_provider_attempts_total")).isEqualTo(32 - completed);
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'", Integer.class)).isEqualTo(32);
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM delivery_task WHERE attempt_count=1", Integer.class)).isEqualTo(32);
@@ -177,14 +195,17 @@ class WorkerProcessCrashTest {
         assertThat(completedFingerprint(finishedIds)).isEqualTo(digest);
         assertThat(topicSize(topic)).isEqualTo(32);
         assertThat(topicSize(topic + ".retry")).isZero(); assertThat(topicSize(topic + ".dlq")).isZero();
-        Path output = Path.of("build/reports/offset-commit-safety.json");
+        Path output = Path.of(fault == OffsetWorkerProcess.Fault.HOLD ? "build/reports/offset-commit-safety.json"
+                : "build/reports/offset-commit-" + fault.name().toLowerCase(java.util.Locale.ROOT) + ".json");
         Files.createDirectories(output.getParent());
-        new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(output.toFile(), Map.of(
-                "result", "PASS", "targets", 32, "warmup", 20, "committedBeforeKill", before,
-                "completedBeforeKill", completed, "completedReplayed", completed - before,
-                "replacementProviderAttempts", 32 - completed, "totalProviderAttempts", 32, "finalCommitted", 32,
-                "completedRowsUnchanged", true));
-        System.out.printf("OFFSET_WINDOW_CRASH targets=32 completedReplayed=%d totalProviderAttempts=32 committed=32%n", completed - before);
+        var report = new java.util.LinkedHashMap<String, Object>();
+        report.put("result", "PASS"); report.put("fault", fault.name()); report.put("targets", 32); report.put("warmup", 20);
+        report.put("previousSuccessfulCommit", before); report.put("attemptedCommit", completed);
+        report.put("brokerObservedBeforeRestart", brokerObserved); report.put("completedBeforeKill", completed);
+        report.put("completedReplayed", completed - brokerObserved); report.put("replacementProviderAttempts", 32 - completed);
+        report.put("totalProviderAttempts", 32); report.put("finalCommitted", 32); report.put("completedRowsUnchanged", true);
+        new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(output.toFile(), report);
+        System.out.printf("OFFSET_WINDOW_CRASH fault=%s targets=32 completedReplayed=%d totalProviderAttempts=32 committed=32%n", fault, completed - brokerObserved);
     }
 
     private record ManualEvent(String id, String payload) { }
@@ -217,11 +238,16 @@ class WorkerProcessCrashTest {
     }
 
     private Process startOffsetWorker(String name, boolean gate) throws Exception {
+        return startOffsetWorker(name, gate, OffsetWorkerProcess.Fault.HOLD);
+    }
+
+    private Process startOffsetWorker(String name, boolean gate, OffsetWorkerProcess.Fault fault) throws Exception {
         String classpath = System.getProperty("notificationLab.testClasspath");
         assertThat(classpath).isNotBlank();
         var command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
                 "-Xmx256m", "-cp", classpath, OffsetWorkerProcess.class.getName()));
         command.addAll(arguments());
+        command.add("--notification.test.offset.fault=" + fault.name());
         command.addAll(List.of("--app.async.relay-enabled=false", "--notification.test.offset.mode=COUNT_TIME",
                 "--app.worker.consumers=1", "--app.worker.max-active=1", "--app.worker.queue-capacity=0",
                 "--spring.kafka.consumer.properties.session.timeout.ms=6000", "--spring.kafka.consumer.properties.heartbeat.interval.ms=1000"));

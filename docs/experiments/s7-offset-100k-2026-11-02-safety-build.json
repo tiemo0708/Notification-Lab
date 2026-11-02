@@ -1,0 +1,15 @@
+{
+  "result" : "PASS",
+  "fault" : "HOLD",
+  "targets" : 32,
+  "warmup" : 20,
+  "previousSuccessfulCommit" : 22,
+  "attemptedCommit" : 27,
+  "brokerObservedBeforeRestart" : 22,
+  "completedBeforeKill" : 27,
+  "completedReplayed" : 5,
+  "replacementProviderAttempts" : 5,
+  "totalProviderAttempts" : 32,
+  "finalCommitted" : 32,
+  "completedRowsUnchanged" : true
+}
