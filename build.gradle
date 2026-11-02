@@ -217,7 +217,7 @@ tasks.register('outboxLockProbe', Test) {
     group = 'verification'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    useJUnitPlatform { includeTags 'outbox-lock-probe' }
+    useJUnitPlatform { includeTags 'outbox-lock-probe', 'outbox-publish-probe' }
     maxHeapSize = '512m'
     maxParallelForks = 1
     timeout = Duration.ofMinutes(10)

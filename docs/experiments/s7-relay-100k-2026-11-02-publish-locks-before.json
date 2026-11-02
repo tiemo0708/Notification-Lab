@@ -1,0 +1,146 @@
+{
+  "startedAtUtc" : "2026-11-02T05:51:25.313977Z",
+  "diagnosticsVersion" : "publish-update-plan-and-held-locks-v1",
+  "scope" : "SQL-only; 100000 campaign +100 realtime synthetic rows; publication transactions deliberately held; no HTTP/Kafka/Worker",
+  "conditions" : {
+    "mysql" : "8.4.8",
+    "cpu" : 2,
+    "memoryMiB" : 2048,
+    "holderPoolMax" : 4,
+    "probePoolMax" : 4,
+    "bufferPoolMiB" : 512,
+    "observerPoolMax" : 1
+  },
+  "bounds" : {
+    "heldObservationMillis" : 1000,
+    "latchSeconds" : 3,
+    "futureSeconds" : 8,
+    "executorShutdownSeconds" : 5,
+    "queryTimeoutSeconds" : 5,
+    "probeLockTimeoutSeconds" : 3
+  },
+  "cases" : [ {
+    "batchSize" : 1,
+    "holderIsolation" : "REPEATABLE-READ",
+    "changedRows" : 1,
+    "explainBeforeUpdate" : [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ],
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    } ],
+    "maxObservedWaitEdgesToHolder" : 0,
+    "observationMillis" : 59.288375,
+    "completedWhileHeld" : [ true, true, true ],
+    "probeOrder" : [ "realtime.publish", "realtime.claim", "realtime.admission" ],
+    "outcomes" : [ {
+      "result" : "ROLLED_BACK",
+      "observedRowsOrPresence" : 1,
+      "elapsedMillis" : 3.688167
+    }, {
+      "result" : "ROLLED_BACK",
+      "observedRowsOrPresence" : 1,
+      "elapsedMillis" : 5.891833
+    }, {
+      "result" : "ROLLED_BACK",
+      "observedRowsOrPresence" : 1,
+      "elapsedMillis" : 8.001084
+    } ]
+  }, {
+    "batchSize" : 10,
+    "holderIsolation" : "REPEATABLE-READ",
+    "changedRows" : 10,
+    "explainBeforeUpdate" : [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "index",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : null,
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ],
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 104103
+    } ],
+    "maxObservedWaitEdgesToHolder" : 2,
+    "observationMillis" : 1012.222042,
+    "completedWhileHeld" : [ false, true, false ],
+    "probeOrder" : [ "realtime.publish", "realtime.claim", "realtime.admission" ],
+    "outcomes" : [ {
+      "result" : "ROLLED_BACK",
+      "observedRowsOrPresence" : 1,
+      "elapsedMillis" : 1021.775416
+    }, {
+      "result" : "ROLLED_BACK",
+      "observedRowsOrPresence" : 0,
+      "elapsedMillis" : 4.631917
+    }, {
+      "result" : "ROLLED_BACK",
+      "observedRowsOrPresence" : 1,
+      "elapsedMillis" : 1021.522834
+    } ]
+  } ],
+  "initialData" : [ {
+    "traffic_class" : "CAMPAIGN",
+    "status" : "PENDING",
+    "row_count" : 99990
+  }, {
+    "traffic_class" : "CAMPAIGN",
+    "status" : "PROCESSING",
+    "row_count" : 10
+  }, {
+    "traffic_class" : "REALTIME",
+    "status" : "PENDING",
+    "row_count" : 99
+  }, {
+    "traffic_class" : "REALTIME",
+    "status" : "PROCESSING",
+    "row_count" : 1
+  } ],
+  "statisticsSettings" : [ {
+    "Variable_name" : "innodb_stats_auto_recalc",
+    "Value" : "ON"
+  }, {
+    "Variable_name" : "innodb_stats_persistent",
+    "Value" : "ON"
+  } ],
+  "result" : "FAIL",
+  "failureType" : "AssertionError",
+  "finishedAtUtc" : "2026-11-02T05:51:39.951794Z"
+}

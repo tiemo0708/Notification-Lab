@@ -3,6 +3,10 @@
 2026-11-02, 시작 커밋 `e6c7103`. 목적은 100만 건 재실행 전에 작은 HTTP 부하에서 비용을 구분하고,
 한 가지 변경의 효과와 장애 시 비용을 비교하는 것이다. 100만 건 완료나 원래 접수 timeout 원인 확정이 아니다.
 
+후속10만 건 검증에서 구 OR UPDATE의 전체 스캔/역할 간 잠금 결함을 발견했다.
+현재 구현은 같은 트랜잭션 안에서 기본키 단건 UPDATE를 최대10번 실행하고 한 번 커밋한다.
+아래1만 건 수치는 구 OR 구현의 역사적 결과다. [10만 건 비교·잠금 진단·수정](S7_RELAY_100K_COMPARISON.md)을 함께 본다.
+
 ## 측정과 선택 근거
 
 `notification.pipeline.stage`에 고정된 9개 `stage`만 사용한다. ID/본문/수신자를 label에 넣지 않는다.
@@ -34,14 +38,15 @@ API 응답 지연은 기존 `*ApiLatencyMs`, DB 완료 지연은 `*LatencyMs`로
 ## 구현과 트레이드오프
 
 - 기본 `app.async.relay.publish-batch-size=1`은 기존 단건 완료 저장 경로다.
-- 선택 값 2..10은 ACK 성공한 claim만 메모리에 최대 10개 보관한 뒤 한 조건부 UPDATE/트랜잭션으로 완료한다.
-  JDBC batchUpdate를 호출하는 방식이 아니라, `(event_id=? AND lease_token=?) OR ...`를 바인딩하는 단일 SQL이다.
-  모든 조건에 `status='PROCESSING'`을 적용하고 실제 변경 행 수만 `outbox.published`에 더한다.
+- 선택 값 2..10은 ACK 성공한 claim만 메모리에 최대10개 보관한 뒤 한 트랜잭션으로 완료한다.
+  현재는 기존 기본키 단건 조건부 UPDATE를 최대10번 실행한다. 각 행의 PROCESSING/자기 lease token을 검증하고 실제 변경 행 수만 카운터에 더한다.
+  UPDATE 횟수는 단건 모드와 같고 트랜잭션 획득/설정/커밋 횟수를 줄인다. JDBC batchUpdate나 driver의 wire batching을 사용하는 것은 아니다.
+  기존37d4d3c의 OR 결합 단일 UPDATE는 낮은 행 추정에서 PRIMARY 전체 스캔과 광범위 잠금을 재현해 교체했다.
 - 선점은 기존 READ COMMITTED/역할 인덱스/단건 선점이다. Kafka 전송과 ACK는 순차이며 DB 트랜잭션 밖이다.
   producer acks/idempotence/max-in-flight, Worker 수/offset 처리/공급자 예산은 바꾸지 않는다.
 - 10건 도달, 다음 반복 시작 때 첫 보관 ACK 이후 100ms 경과, 빈 선점, 50회 loop 종료, stop,
   발행 실패나 선점 예외 시 남은 성공분을 저장한다. 100ms는 blocking call 사이에서 검사하는 기준이지 강제 완료 deadline이 아니다.
-- 묶음 SQL 실패/commit 불확실성에서는 메모리 목록을 재시도하지 않고 durable lease 만료로 복구한다.
+- 묶음 트랜잭션 실패/commit 불확실성에서는 메모리 목록을 재시도하지 않고 durable lease 만료로 복구한다.
   오래된 token은 새 소유자의 행을 완료시킬 수 없다. 일부 token이 오래됐으면 유효한 행만 완료한다.
 - ACK 뒤 DB commit 전 강제 종료 시 재발행될 수 있는 성공분은 기존 단건보다 늘어 최대 묶음 크기다.
   현재 전송 중인 불확실한 1건까지 포함하면 메모리에 보관한 ACK 성공분은 최대 9건 + 전송 중 1건이다.
@@ -106,7 +111,7 @@ caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryPilot -Pdeli
 
 작은 부하 결과를 10만/100만 건으로 선형 외삽해 완료 시간을 약속하지 않는다.
 API tail latency와 공유 자원 간섭, 긴 lease/DB 지연, 실제 여러 Relay의 지속 부하는 별도 검증이 필요하다.
-묶음 UPDATE의 대형 backlog에서의 실행 계획/역할 간 잠금도 이번1만 건 결과만으로 보장하지 않으며 다음10만 건 검증에서 함께 확인한다.
+후속10만 건 비교와 별도 잠금 진단에서 드러난 결함 및 수정은 [추가 기록](S7_RELAY_100K_COMPARISON.md)에 분리했다.
 
 ## 실패 경계 검증
 
@@ -114,7 +119,7 @@ API tail latency와 공유 자원 간섭, 긴 lease/DB 지연, 실제 여러 Rel
 
 - 다음 send의 future가 미완료/실패여도 이전 ACK 성공분만 저장하고 실패분은 PENDING으로 되돌린다. send 중 DB 트랜잭션이 없고 ACK 타이머가 성공/실패를 각각 기록하는지도 확인했다.
 - lease 만료 후 새 token으로 재선점된 행은 이전 token의 묶음 완료로 바뀌지 않으며, 같은 묶음의 유효한 다른 행은 완료된다.
-- 두 이벤트의 Kafka ACK 뒤 MySQL trigger로 묶음 UPDATE를 실패시키면 두 행 모두 PROCESSING/published_at NULL을 유지한다. trigger 제거/lease 만료 후 Relay로 다시 발행해 각 payload의2회 전송과 최종 완료를 확인한다. Worker는 꺼져 있어 공급자 호출은0이다.
+- 두 이벤트의 Kafka ACK 뒤 MySQL trigger로 묶음 저장을 실패시키면 두 행 모두 PROCESSING/published_at NULL을 유지한다. trigger 제거/lease 만료 후 Relay로 다시 발행해 각 payload의2회 전송과 최종 완료를 확인한다. Worker는 꺼져 있어 공급자 호출은0이다.
 - 두 번째 send에서 stop을 알리면 ACK 성공한 두 행은 저장하고 나머지 한 행은 선점/시도0의 PENDING으로 남긴다.
 
 `AsyncPropertiesTest`에는 publish-batch-size의1/10 허용과0/11 거절을 추가했다.
@@ -147,7 +152,7 @@ ACK 비동기화는 첫 측정에서 더 작은 비용 구간이었고, Worker �
 - [Spring Kafka 3.3: Sending Messages](https://docs.spring.io/spring-kafka/reference/3.3/kafka/sending-messages.html): send의 future와 동기 대기 경계. 여기서는 ACK 대기 방식을 유지했다.
 - [Kafka 3.9: Producer Configs](https://kafka.apache.org/39/configuration/producer-configs/): ACK/idempotence/max-in-flight의 의미. DB와 Kafka의 원자적 commit을 보장하는 설정으로 해석하지 않는다.
 - [Spring Framework 6.2: Transaction Propagation](https://docs.spring.io/spring-framework/reference/6.2/data-access/transaction/declarative/tx-propagation.html): REQUIRED의 외부 트랜잭션 참여와 REQUIRES_NEW의 연결 풀 비용. Relay 바깥에 트랜잭션을 추가하지 않는다.
-- [Spring Framework 6.2: JDBC Batch Operations](https://docs.spring.io/spring-framework/reference/6.2/data-access/jdbc/advanced.html): 왕복을 줄이는 묶음 처리와 반환 행 수의 제약을 검토했다. 최종 구현은 조건부 단일 UPDATE로 선택했다.
+- [Spring Framework 6.2: JDBC Batch Operations](https://docs.spring.io/spring-framework/reference/6.2/data-access/jdbc/advanced.html): 왕복을 줄이는 묶음 처리와 반환 행 수의 제약을 검토했다. 초기에는 조건부 단일 UPDATE로 선택했고 후속 잠금 검증 뒤 현재는 한 트랜잭션의 개별 기본키 UPDATE로 바꿨다.
 - [MySQL 8.4: UPDATE](https://dev.mysql.com/doc/refman/8.4/en/update.html): WHERE에 맞는 행의 변경과 변경 행 수. 각 lease 조건과 실제 MySQL 실패/롤백 테스트를 함께 사용한다.
 - [Micrometer 1.15: Timers](https://docs.micrometer.io/micrometer/reference/1.15/concepts/timers.html): count/total 기록과 time-window max/percentile 한계.
 

@@ -300,7 +300,10 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 [Relay 구간 계측과 완료 저장 묶음 비교](docs/S7_RELAY_PUBLISH_BATCH.md)도 진행했다.
 1만 건 각2회에서 단건109.349~131.447초/최대10건93.949~100.122초였고 HTTP42,160건을 전수 대조했다.
 기본값은1이며 `app.async.relay.publish-batch-size=10`은 선택 옵션이다. 재발행 가능 범위가 늘어나는 비용이 있다.
-실시간 p95 개선과10만/100만 건의 같은 속도는 보장하지 않는다. 다음은 옵션의10만 건 검증이다.
+실시간 p95 개선과10만/100만 건의 같은 속도는 보장하지 않는다.
+[후속10만 건 비교와 잠금 수정](docs/S7_RELAY_100K_COMPARISON.md)에서 구 OR구현은 처리량이 늘었지만 실시간 tail 지연도 커졌다.
+별도 SQL 진단의 PRIMARY 전체 스캔/역할 간 차단을 수정해 현재는 최대10개의 기본키 단건 UPDATE를 한 번 커밋한다.
+수정판의 추가10만 건 검증을 진행한다. 기본값1과 실시간 설정은 유지한다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.

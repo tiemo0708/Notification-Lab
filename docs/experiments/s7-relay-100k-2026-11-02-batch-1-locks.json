@@ -1,0 +1,479 @@
+{
+  "observerVersion": "mysql-global-row-lock-and-wait-edges-v1",
+  "startedAtUtc": "2026-11-02T05:00:23.380879+00:00",
+  "intervalSeconds": 60,
+  "maxSeconds": 6000,
+  "maxSamples": 128,
+  "commandTimeoutSeconds": 8,
+  "scope": "fresh logged Testcontainers MySQL only; global counters and instantaneous wait edges",
+  "samples": [
+    {
+      "observedAtUtc": "2026-11-02T05:00:23.504190+00:00",
+      "observerSeconds": 0.1229880410246551,
+      "phase": "PRELOAD_OR_BASELINE",
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 0,
+        "Innodb_row_lock_time_max": 0,
+        "Innodb_row_lock_waits": 0,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 165.2407089713961
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:01:23.827306+00:00",
+      "observerSeconds": 60.44638745789416,
+      "phase": "PRELOAD_OR_BASELINE",
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 0,
+        "Innodb_row_lock_time_max": 0,
+        "Innodb_row_lock_waits": 0,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 258.4934579208493
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:02:24.373056+00:00",
+      "observerSeconds": 120.99211345799267,
+      "phase": "PRELOAD_OR_BASELINE",
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 0,
+        "Innodb_row_lock_time_max": 0,
+        "Innodb_row_lock_waits": 0,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 300.36154203116894
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:03:24.990093+00:00",
+      "observerSeconds": 181.6092705000192,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 1676,
+      "lastLoggedRealtimeProbes": 139,
+      "lastLoggedDrainSeconds": 32.246,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 7,
+        "Innodb_row_lock_time_max": 4,
+        "Innodb_row_lock_waits": 2,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 664.1421250533313
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:04:25.948014+00:00",
+      "observerSeconds": 242.5673110410571,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 4379,
+      "lastLoggedRealtimeProbes": 375,
+      "lastLoggedDrainSeconds": 91.797,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 190.16225007362664
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:05:26.346838+00:00",
+      "observerSeconds": 302.96646379097365,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 7279,
+      "lastLoggedRealtimeProbes": 626,
+      "lastLoggedDrainSeconds": 153.399,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 974.4477919302881
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:06:27.498886+00:00",
+      "observerSeconds": 364.11841741600074,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 11492,
+      "lastLoggedRealtimeProbes": 874,
+      "lastLoggedDrainSeconds": 214.676,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 687.6417079474777
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:07:28.396819+00:00",
+      "observerSeconds": 425.01647612499073,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 15615,
+      "lastLoggedRealtimeProbes": 1117,
+      "lastLoggedDrainSeconds": 275.604,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 706.4506669994444
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:08:29.288018+00:00",
+      "observerSeconds": 485.9077688748948,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 19839,
+      "lastLoggedRealtimeProbes": 1360,
+      "lastLoggedDrainSeconds": 336.558,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 331.9971668533981
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:09:29.785485+00:00",
+      "observerSeconds": 546.4053665411193,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 23859,
+      "lastLoggedRealtimeProbes": 1600,
+      "lastLoggedDrainSeconds": 396.873,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 777.2605419158936
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:10:30.809573+00:00",
+      "observerSeconds": 607.4295554580167,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 27812,
+      "lastLoggedRealtimeProbes": 1838,
+      "lastLoggedDrainSeconds": 457.456,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 523.3881659805775
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:11:31.644010+00:00",
+      "observerSeconds": 668.2641091248952,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 31923,
+      "lastLoggedRealtimeProbes": 2078,
+      "lastLoggedDrainSeconds": 517.535,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 493.7863328959793
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:12:32.312420+00:00",
+      "observerSeconds": 728.9326520410832,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 35713,
+      "lastLoggedRealtimeProbes": 2324,
+      "lastLoggedDrainSeconds": 579.893,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 239.06095791608095
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:13:32.720510+00:00",
+      "observerSeconds": 789.3408491660375,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 39594,
+      "lastLoggedRealtimeProbes": 2561,
+      "lastLoggedDrainSeconds": 638.756,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 304.28645806387067
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:14:33.213621+00:00",
+      "observerSeconds": 849.8340693749487,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 43956,
+      "lastLoggedRealtimeProbes": 2815,
+      "lastLoggedDrainSeconds": 700.526,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 543.977458961308
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:15:33.955904+00:00",
+      "observerSeconds": 910.5764889160637,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 47969,
+      "lastLoggedRealtimeProbes": 3058,
+      "lastLoggedDrainSeconds": 759.762,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 678.9336248766631
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:16:34.787134+00:00",
+      "observerSeconds": 971.4078832080122,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 52260,
+      "lastLoggedRealtimeProbes": 3308,
+      "lastLoggedDrainSeconds": 822.305,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 246.55575002543628
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:17:35.222830+00:00",
+      "observerSeconds": 1031.8436550830957,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 56446,
+      "lastLoggedRealtimeProbes": 3553,
+      "lastLoggedDrainSeconds": 882.419,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 362.78833309188485
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:18:35.850608+00:00",
+      "observerSeconds": 1092.4715499160811,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 60590,
+      "lastLoggedRealtimeProbes": 3789,
+      "lastLoggedDrainSeconds": 943.362,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 315.25533297099173
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:19:36.311547+00:00",
+      "observerSeconds": 1152.9572894580197,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 64885,
+      "lastLoggedRealtimeProbes": 4028,
+      "lastLoggedDrainSeconds": 1003.049,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 589.5242090336978
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:20:37.073720+00:00",
+      "observerSeconds": 1213.7229272080585,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 68982,
+      "lastLoggedRealtimeProbes": 4263,
+      "lastLoggedDrainSeconds": 1063.058,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 470.313583035022
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:21:37.730992+00:00",
+      "observerSeconds": 1274.3808533749543,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 73568,
+      "lastLoggedRealtimeProbes": 4510,
+      "lastLoggedDrainSeconds": 1124.876,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 619.9880419299006
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:22:38.523625+00:00",
+      "observerSeconds": 1335.173970707925,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 77452,
+      "lastLoggedRealtimeProbes": 4742,
+      "lastLoggedDrainSeconds": 1185.465,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 793.3804159983993
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:23:39.481067+00:00",
+      "observerSeconds": 1396.1319489160087,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 81474,
+      "lastLoggedRealtimeProbes": 4980,
+      "lastLoggedDrainSeconds": 1245.903,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 255.14412485063076
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:24:39.940419+00:00",
+      "observerSeconds": 1456.59191762493,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 85821,
+      "lastLoggedRealtimeProbes": 5234,
+      "lastLoggedDrainSeconds": 1307.61,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 620.7048750948161
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:25:40.730279+00:00",
+      "observerSeconds": 1517.3822340411134,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 89831,
+      "lastLoggedRealtimeProbes": 5476,
+      "lastLoggedDrainSeconds": 1368.625,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 905.1029579713941
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:26:41.852588+00:00",
+      "observerSeconds": 1578.5050887910184,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 94077,
+      "lastLoggedRealtimeProbes": 5709,
+      "lastLoggedDrainSeconds": 1428.191,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 723.1583339162171
+    },
+    {
+      "observedAtUtc": "2026-11-02T05:27:42.764685+00:00",
+      "observerSeconds": 1639.4177505411208,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 98391,
+      "lastLoggedRealtimeProbes": 5953,
+      "lastLoggedDrainSeconds": 1488.894,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 18,
+        "Innodb_row_lock_time_max": 11,
+        "Innodb_row_lock_waits": 3,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 658.2917089108378
+    }
+  ],
+  "errors": [],
+  "status": "EXPERIMENT_ENDED",
+  "buildOutcome": "SUCCESS",
+  "finishedAtUtc": "2026-11-02T05:28:11.515765+00:00"
+}

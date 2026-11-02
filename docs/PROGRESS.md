@@ -2013,3 +2013,49 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 원격main을 읽기 전용으로 확인해9cf1786 그대로임을 확인했고 푸시하지 않았다.
   Git 기존 author identity를 유지한다. Docker에는 기존 notification-lab-mysql-1만 healthy로 남아 있다.
   사용자 DB/.env/IntelliJ/volume과 기존100만 건 FAIL 원본은 변경하지 않았다.
+
+
+## 2026-11-02 — S7 완료 저장10만 건 비교와 전체 스캔 잠금 수정
+
+- 시작37d4d3c/main/원격 추적보다9개 앞선 깨끗한 상태. AGENTS/CONTRIBUTING/PLAN/README/기존 기록을 읽고,
+  운영·Java 부하 코드는 그대로 단건→구 OR10건 각1회를 실행했다. 두 실행 전후37d4d3c와 Java/Gradle diff가 없음을 확인했다.
+- 첫 실행 명령의 자동 권한 검토는 deadline으로 프로세스 생성 전에 실패했다. 테스트 미실행이며 JUnit 실패가 아니다.
+  도구 안내에 따라 같은 명령을1회 재시도해 시작했다. 사용자 MySQL/볼륨/IntelliJ/.env는 변경하지 않는다.
+- 명령: `caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryLoad -PpublishBatchSize=1`, 이후값10.
+  실시간은1을 유지하고 Worker/HTTP/Redis/Hikari/queue/CPU/메모리/예산/5초 probe/상한을 고정했다.
+  두 task는 각각 BUILD SUCCESSFUL28분47초/21분59초, 종료 코드0/각1개 테스트 통과/실패·오류·스킵0이었다.
+- 단건 사전 저장177.923초/발송1512.978초·66.095/s/대조2.554초,
+  구 OR10건 사전 저장152.264초/발송1132.741초·88.281/s/대조2.095초였다.
+  캠페인200000+실시간10611=HTTP210611건의 대상 참조/성공 시도1회/Outbox/HTTP/전체 offset/quota를 전수 대조했고 중복·매핑·Mock 오류0.
+- 구 OR 처리량은33.57% 증가했지만 혼합 APIp95 297.106→334.034ms/최대1231.243→1731.628ms로 악화했다.
+  DB 완료p95 853.201→913.679ms도 다른 경계다. 단독 APIp95도16.143/24.658ms로 달랐다.
+  각1회/고정순서/공유 호스트/closed-loop probe의 한계와 성능·지연의 트레이드오프를 함께 남긴다.
+- 완료 저장 호출100000→10462/누적520.225→121.232초, 선점729.639→750.444초/ACK55.817→50.676초였다.
+  각 구간은 중첩/병렬 caller 시간이며 wall time 비율로 모두 합산하지 않는다.
+- 자원샘플686/515개에서 heap최대101.407/104.356MiB, MySQL cgroup1324.871/1268.355MiB,
+  스레드97/97/Hikari waiting최대 C1·RT0으로 관측됐다. max/oom/oom_kill0과 상태 결측0을 확인했다.
+- 새 읽기 전용 Python 도구로 해당 로그의 Testcontainers MySQL만 검증해60초마다 전역 row lock/순간 wait edge를 관찰했다.
+  28/21회·오류0, 마지막 누적값3회18ms·최대11ms/2회1ms·최대0ms였다. 순간 대기/edge는 관측값0이었다.
+  마지막 샘플은98391/95165건 시점이라 이후 구간을 포함하지 않는다. 관찰 오버헤드와 전역 지표의 귀속 한계를 기록했다.
+- [전체 조건·원본·레퍼런스](S7_RELAY_100K_COMPARISON.md)에 네 HTTP/관찰 원본을 수정 없이 보존했다.
+  Python 대상 검증/오류 미노출/기존 파일 보존/종료 후 미접근/예상 밖 필드 거절5개는0.006초/종료 코드0으로 통과했다.
+- 별도100100행 SQL 진단1차는19초/실패1이었다. 구 OR10건의 PRIMARY/index 전체 스캔·추정rows1과104103개 레코드 잠금,
+  실시간 완료/접수 약1초 대기 및 SKIP LOCKED 선점의 빈 결과를 관측했다. [첫 FAIL 원본](experiments/s7-relay-100k-2026-11-02-publish-locks-before.json)을 보존했다.
+- `published(List)`를 같은 트랜잭션의 기본키 단건 UPDATE최대10번으로 바꿨다. 단건 경로와ACK/token/시도/offset/기본값1은 유지했다.
+  UPDATE 개수 대신 연결·트랜잭션 관리/commit 횟수를 줄이고, 각 접근을 기본키 조건으로 좁히는 선택이다.
+- 수정 경로의1차 가드는17초/실패1이었다. RT세 경로는 진행했지만 물리 잠금11개를10행과 비교해 실패했다.
+  당시 추가1개의 LOCK_DATA 분류는 미수집이라 정확한 의미를 확정하지 않는다. [가드 FAIL](experiments/s7-relay-100k-2026-11-02-publish-locks-initial-guard-failure.json)도 보존했다.
+- v3는 EXPLAIN을 별도 autocommit 연결로 분리하고 supremum/unknown을 집계했다. 키/행/연결/트랜잭션 ID는 출력하지 않는다.
+  현재 단건/10건과구 OR대조군을 같은 fixture에서 비교해19초/종료 코드0/테스트1개 PASS였다.
+  [최종 원본](experiments/s7-relay-100k-2026-11-02-publish-locks-after.json)은 현재 실제 PRIMARY레코드1/10·대기edge0·RT선점1·세 경로 holder 종료 전 완료를 확인했다.
+  구 OR대조군은 실제100100+supremum4003/edge2/RT선점0/완료·접수 대기를 다시 관측했다. 이는 실제 UPDATE만으로의 결함 재현이다.
+- 새 SQL 회귀를 기본 테스트에 포함하고 `outboxLockProbe --tests '*OutboxPublishProbeTest'`로도 선택할 수 있게 했다.
+  수정판의 전체 빌드 후 추가10만 건을 재검증한다. 기존두 실험을 수정판 수치로 사용하지 않으며,
+  단건 경로 무변경으로 첫 기준선을 재사용하는 한계도 구분한다. 원래100만 건 timeout 원인은 계속 미확정이다.
+- 수정판 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **BUILD SUCCESSFUL11분56초/종료 코드0**.
+  최종 JUnit XML과 콘솔에서 **34개 클래스275개 통과/실패·오류·스킵0**을 대조했다. 신규 SQL회귀1개가275개에 포함된다.
+  실행 JAR도 생성했다. 기본 회귀 안의 재실행에서도 현재 PRIMARY 실제레코드1/10과RT세 경로 진행,
+  구 OR대조군의100100개 실제 레코드 잠금/실시간 선점0을 확인했고 [별도 원본](experiments/s7-relay-100k-2026-11-02-publish-locks-build.json)을 보존했다.
+- 원격main은 읽기 전용 확인에서9cf1786 그대로였다. 기존 author identity를 유지한다.
+  수정 코드와 기본 회귀를 로컬 커밋으로 고정한 뒤 해당 버전의 추가10만 건을 실행한다. 푸시는 하지 않는다.
+- 구 OR결함은 과거100만 건 실패 뒤37d4d3c에서 추가한 최적화의 별도 문제다. 원래 접수timeout 원인으로 소급하지 않는다.

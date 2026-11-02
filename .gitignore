@@ -6,3 +6,4 @@ build/
 .env
 *.log
 .DS_Store
+scripts/__pycache__/

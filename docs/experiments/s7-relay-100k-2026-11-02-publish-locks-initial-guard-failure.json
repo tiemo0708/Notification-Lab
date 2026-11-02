@@ -1,0 +1,271 @@
+{
+  "startedAtUtc" : "2026-11-02T05:54:42.125516Z",
+  "diagnosticsVersion" : "publish-point-updates-and-held-locks-v2",
+  "scope" : "SQL-only; 100000 campaign +100 realtime synthetic rows; publication transactions deliberately held; no HTTP/Kafka/Worker",
+  "conditions" : {
+    "probePoolMax" : 4,
+    "holderPoolMax" : 4,
+    "memoryMiB" : 2048,
+    "cpu" : 2,
+    "mysql" : "8.4.8",
+    "observerPoolMax" : 1,
+    "bufferPoolMiB" : 512
+  },
+  "bounds" : {
+    "executorShutdownSeconds" : 5,
+    "futureSeconds" : 8,
+    "latchSeconds" : 3,
+    "heldObservationMillis" : 1000,
+    "probeLockTimeoutSeconds" : 3,
+    "queryTimeoutSeconds" : 5
+  },
+  "cases" : [ {
+    "batchSize" : 1,
+    "holderIsolation" : "REPEATABLE-READ",
+    "changedRows" : 1,
+    "explainBeforeUpdates" : [ [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ] ],
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    } ],
+    "maxObservedWaitEdgesToHolder" : 0,
+    "observationMillis" : 1.172291,
+    "completedWhileHeld" : [ true, true, true ],
+    "probeOrder" : [ "realtime.publish", "realtime.claim", "realtime.admission" ],
+    "outcomes" : [ {
+      "observedRowsOrPresence" : 1,
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 2.928125
+    }, {
+      "observedRowsOrPresence" : 1,
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 5.164542
+    }, {
+      "observedRowsOrPresence" : 1,
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 6.977917
+    } ],
+    "primaryRecordLocks" : 1
+  }, {
+    "batchSize" : 10,
+    "holderIsolation" : "REPEATABLE-READ",
+    "changedRows" : 10,
+    "explainBeforeUpdates" : [ [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ], [ {
+      "id" : 1,
+      "select_type" : "UPDATE",
+      "table" : "outbox_event",
+      "partitions" : null,
+      "type" : "range",
+      "possible_keys" : "PRIMARY,idx_outbox_status_available",
+      "key" : "PRIMARY",
+      "key_len" : "36",
+      "ref" : "const",
+      "rows" : 1,
+      "filtered" : 100.0,
+      "Extra" : "Using where"
+    } ] ],
+    "holderLocks" : [ {
+      "INDEX_NAME" : null,
+      "LOCK_TYPE" : "TABLE",
+      "LOCK_MODE" : "IX",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 1
+    }, {
+      "INDEX_NAME" : "PRIMARY",
+      "LOCK_TYPE" : "RECORD",
+      "LOCK_MODE" : "X,REC_NOT_GAP",
+      "LOCK_STATUS" : "GRANTED",
+      "record_count" : 10
+    } ],
+    "maxObservedWaitEdgesToHolder" : 0,
+    "observationMillis" : 61.237,
+    "completedWhileHeld" : [ true, true, true ],
+    "probeOrder" : [ "realtime.publish", "realtime.claim", "realtime.admission" ],
+    "outcomes" : [ {
+      "observedRowsOrPresence" : 1,
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 3.891125
+    }, {
+      "observedRowsOrPresence" : 1,
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 5.275792
+    }, {
+      "observedRowsOrPresence" : 1,
+      "result" : "ROLLED_BACK",
+      "elapsedMillis" : 4.703125
+    } ],
+    "primaryRecordLocks" : 11
+  } ],
+  "initialData" : [ {
+    "traffic_class" : "CAMPAIGN",
+    "status" : "PENDING",
+    "row_count" : 99990
+  }, {
+    "traffic_class" : "CAMPAIGN",
+    "status" : "PROCESSING",
+    "row_count" : 10
+  }, {
+    "traffic_class" : "REALTIME",
+    "status" : "PENDING",
+    "row_count" : 99
+  }, {
+    "traffic_class" : "REALTIME",
+    "status" : "PROCESSING",
+    "row_count" : 1
+  } ],
+  "statisticsSettings" : [ {
+    "Variable_name" : "innodb_stats_auto_recalc",
+    "Value" : "ON"
+  }, {
+    "Variable_name" : "innodb_stats_persistent",
+    "Value" : "ON"
+  } ],
+  "result" : "FAIL",
+  "failureType" : "AssertionError",
+  "finishedAtUtc" : "2026-11-02T05:54:54.469105Z"
+}
