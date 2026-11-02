@@ -1,0 +1,54 @@
+{
+  "codeCommit": "740d2efeaf342130f1e39ff46ac0fec9028fd16b",
+  "scope": "same frozen code; fresh isolated infrastructure per mode; each condition once; default RECORD unchanged; no million-target rerun",
+  "sourceManifest": "s7-offset-100k-2026-11-02-source.json",
+  "sourceManifestSha256": "946a4910d79c9904d0e6d8eccbb8e5f5e0491f0b224a2bafc97108381624a936",
+  "regressionBeforeLoad": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "gradleDuration": "16m 2s",
+    "exitCode": 0,
+    "classes": 37,
+    "tests": 302,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "runs": [
+    {
+      "order": 1,
+      "mode": "RECORD",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain offsetCommitLoad -PoffsetMode=RECORD",
+      "rawFile": "s7-offset-100k-2026-11-02-record.json",
+      "sha256": "6e2eca7f8a89a4dd348c9819096f44f7d3da4454a169ba2cba0291467324a22b",
+      "startedAtUtc": "2026-11-02T14:45:34.971284Z",
+      "finishedAtUtc": "2026-11-02T15:11:14.949645Z",
+      "exitCode": 0,
+      "gradleDuration": "25m 45s",
+      "junit": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 1540.066
+      }
+    },
+    {
+      "order": 2,
+      "mode": "COUNT_TIME",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain offsetCommitLoad -PoffsetMode=COUNT_TIME",
+      "rawFile": "s7-offset-100k-2026-11-02-count.json",
+      "sha256": "42aebbada1066122baa08fc1351538db32768fd903f7c8fe4d3b6b5fd2b5c3c5",
+      "startedAtUtc": "2026-11-02T15:11:35.722657Z",
+      "finishedAtUtc": "2026-11-02T15:33:41.511335Z",
+      "exitCode": 0,
+      "gradleDuration": "22m 12s",
+      "junit": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 1325.903
+      }
+    }
+  ]
+}
