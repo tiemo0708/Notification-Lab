@@ -1799,3 +1799,53 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - DB 메모리 근접과 낮은 Kafka lag/큰 Outbox 적체만으로 병목이나 OOM을 확정하지 않는다.
   다음은 Relay 발행·DB 트랜잭션·연결 풀 대기·실시간 API 지연을 좁혀 확인하고 작은 재현을 만드는 단계다.
   원인과 재현을 검증한 뒤100만 건 재실행 여부·조건을 결정한다. 원격 CI 재확인은 별도로 남아 있다.
+
+## 2026-11-02 — S7 접수 timeout의 작은 진단
+
+- 시작 커밋05a94c8, main의 기존4개 로컬 커밋을 보존했다. 푸시와100만 건 재실행을 하지 않았다.
+- 완료 조건은 기존1만 건 HTTP를 새 계측으로 확인하고, 격리 MySQL의 작은 적체에서
+  실제 Outbox 선점 SQL과 집계 계획/비용을 관측해 다음 가설을 좁히는 것이다.
+  이전5초 timeout의 재현·원인 확정과 S7 전체 완료를 이번 작은 실험의 성공 조건으로 대체하지 않는다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryPilot -PdeliveryTargets=10000`:
+  **BUILD SUCCESSFUL2분53초, 종료 코드0, 별도 테스트1개 통과/실패·오류·스킵0**.
+  사전 저장24.895초/발송109.671초/91.182건·초, 캠페인10000+실시간544=HTTP10544건을 전수 대조했다.
+  혼합 API 응답p95 24.756ms/최대112.488ms, 단독p95 22.901ms였다.
+  DB 완료p95는 단독498.399ms/혼합491.728ms로 별도 경계다. 이전1m 실패는 재현되지 않았다.
+- Hikari/cgroup 진단51개 샘플에서 대기 최대0, active 최대 캠페인4/실시간2,
+  MySQL 메모리 최대477.40MiB, 관측 시작~끝 oom/oom_kill/max/CPU throttle 카운터0이었다.
+  순간 샘플과 이번 실행의 범위이며 과거1m의 OOM·대기 여부를 소급해 확정하지 않는다.
+- 별도 outboxQueryProbe task를 추가했다. JUnit8분/task10분/JVM512MiB 상한과 기본 build 제외를 명시했다.
+  MySQL8.4.8/2CPU/2GiB/buffer pool512MiB, 역할별 Hikari4로 SQL 사전 저장1만→10만 행을 구성한다.
+  운영 OutboxStore 코드와 명시적 두 트랜잭션, 실제 SubmissionService의 DB 접수,
+  PipelineMetrics SQL을 복사한 집계를 관측한다. Kafka/Worker/HTTP/단말 발송을 재현하지 않는다.
+- 최초 compileTestJava는 AssertJ와 TransactionTemplate의 Boolean 타입 추론 충돌로 실패했다(10초, 종료 코드1).
+  지역 변수로 타입을 명시한 뒤 다음 실제 task에서 컴파일과 실행을 검증했다.
+  이 컴파일은1만 건 HTTP 실행 중 병행했으므로 해당 관측에는 추가 CPU 부하가 있다.
+  DB 진단 task 자체는 HTTP 종료 후 실행했으며 회차 간 성능 개선을 주장하지 않는다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain outboxQueryProbe`:
+  **BUILD SUCCESSFUL32초, 종료 코드0, 별도 테스트1개 통과/실패·오류·스킵0**.
+  각 역할/작업20회, 동시 캠페인 선점100회/집계10회/실시간 접수40회를 크기별로 관측했다.
+  기본 build나1m task가 이 진단을 자동 실행하지 않는다.
+- 집계·PENDING/PROCESSING 선점은 역할별 복합 인덱스 대신 idx_outbox_status_available을 선택했다.
+  rows 추정은 집계2/선점1이었고 특히 캠페인 집계2는 실제 약10만 행 적체와 달랐다.
+  EXPLAIN 추정과 LIMIT1이 실제 읽은 행 수를 뜻하지 않는다.
+  실시간 집계p95는1만17.291ms→10만79.304ms, 캠페인 집계는8.833→96.295ms였다.
+  겹친 실시간 DB 접수 최대16.983/11.832ms였고 초 단위 지연은 관측하지 못했다.
+- SQL UUID()·빠른 사전 저장·따뜻한 캐시·고정 실행 순서와 Worker 처리 부재가 있다.
+  집계 간격200ms는 운영5초보다 촘촘하다. ANALYZE TABLE/인덱스 힌트/운영 인덱스·설정 변경은 하지 않았다.
+  PUBLISHED 상태 갱신은 SQL 진단용이며 Kafka ACK나 실제 발송의 증거가 아니다.
+- [HTTP 원본](experiments/s7-timeout-diagnosis-2026-11-02-http-10000.json)과
+  [SQL 원본](experiments/s7-timeout-diagnosis-2026-11-02-outbox-query.json)을 보존했다.
+  [측정 경계·결과·다음 가설](S7_TIMEOUT_DIAGNOSIS.md)에 표와 한계를 정리했다.
+- `caffeinate -i ./gradlew --no-daemon --console=plain build`:
+  **기본 회귀33개 클래스/268개 통과, 실패·오류·스킵0**, BUILD SUCCESSFUL12분21초, 종료 코드0.
+  JUnit XML/콘솔 합계를 대조했다. 별도 HTTP1개/SQL1개는268개에 포함되지 않는다.
+  새 태그는 기본 build에서 제외됐고1m 재실행도 없었다. 운영 JAR 생성은 UP-TO-DATE였다.
+- 문서 링크/코드 블록/JSON 파싱과 원본 동일성/수신자·ID 미포함/`git diff --check`를 확인했다.
+  진단용 집계 SQL은 현재 PipelineMetrics.refresh와 공백을 제외하고 일치했다.
+  이전1m 실패 JSON의 SHA-256도 그대로였다.
+- 실행이 종료된 뒤 이번 로그·JUnit에서 생성이 확인된 잔존 Ryuk만 정리했다.
+  사용자 로컬 DB/.env/IntelliJ 설정과 무관한 컨테이너·volume은 변경하지 않았다.
+- 다음은 같은 적체에서 ANALYZE TABLE 전후 계획·실제 읽은 행 수·지연의 비교다.
+  통계 갱신만으로 달라지는지 먼저 확인하고, 필요할 때 진단용 인덱스 힌트를 별도 조건으로 비교한다.
+  이전1m의 당시 계획/통계가 없어 후속 재현만으로 과거 원인을 확정할 수 없다. S7의100만 건 검증은 미완료다.

@@ -50,7 +50,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot' }
+    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe' }
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
@@ -175,6 +175,21 @@ tasks.register('campaignDeliveryMillion', Test) {
     systemProperty 'junit.jupiter.execution.timeout.test.method.default', '11h'
     systemProperty 'campaign.delivery.load', 'true'
     systemProperty 'campaign.delivery.targets', '1000000'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+// SQL-only diagnosis: fixed 10k/100k datasets, no provider delivery or million-target rerun.
+tasks.register('outboxQueryProbe', Test) {
+    description = 'Observe Outbox query plans and bounded DB contention at 10k/100k rows'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'outbox-query-probe' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(10)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '8m'
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }

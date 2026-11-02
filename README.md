@@ -288,6 +288,8 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 [100만 건 실험 도구](docs/S7_DELIVERY_MILLION.md)는 준비했고 2026-11-02 실제 실험을 시작했다.
 첫 실행은 실험용 실시간 접수 클라이언트의5초 응답 대기 초과로 실패했다. 마지막 캠페인 진행 관측은 약38.4만 건이며 최종 전수 대조는 미완료다.
 실패 원본과 진단 보강을 기록했고 원인 진단 후 재실행을 결정한다. 운영 성능/실시간 SLO 보장과 구분한다.
+[timeout 후 작은 진단](docs/S7_TIMEOUT_DIAGNOSIS.md)에서는1만 건 HTTP와1만/10만 행 SQL을 확인했고 같은 timeout은 미재현이다.
+별도 `./gradlew outboxQueryProbe`로 DB 실행 계획을 관측한다. 발송 성공을 검증하는 task는 아니다.
 [DB 인계 측정 범위·설정·실패와 재실행 결과](docs/S7_CAMPAIGN_LOAD.md)를 참고한다.
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
