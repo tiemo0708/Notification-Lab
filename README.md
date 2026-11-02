@@ -294,6 +294,8 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 통계 갱신 후 실시간 스캔 감소를 확인했지만 이전100만 건 timeout의 원인은 아직 미확정이다.
 [교차 역할 잠금 재현과 수정](docs/S7_OUTBOX_CLAIM_LOCKS.md)에서는 역할별 인덱스 명시와 claim 전용 READ COMMITTED를 적용했다.
 `./gradlew outboxLockProbe`로 기본 자동 통계·잠금·대기 대조군을 확인한다. 기존 진단 task는 현재 선점 SQL을 캡처한다.
+수정 후10만 건 재검증도 캠페인100000+실시간7269건을 전수 대조했다(발송약30분41초/54.333건·초).
+이번 혼합 APIp95는203.917ms/최대1904.024ms였다. 정합성은 통과했지만 이전보다 처리량은 낮았고100만 건 재실행은 미실행이다.
 [DB 인계 측정 범위·설정·실패와 재실행 결과](docs/S7_CAMPAIGN_LOAD.md)를 참고한다.
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
