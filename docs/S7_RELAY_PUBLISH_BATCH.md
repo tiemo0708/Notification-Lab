@@ -5,6 +5,7 @@
 
 후속10만 건 검증에서 구 OR UPDATE의 전체 스캔/역할 간 잠금 결함을 발견했다.
 현재 구현은 같은 트랜잭션 안에서 기본키 단건 UPDATE를 최대10번 실행하고 한 번 커밋한다.
+수정판557b2cf는 추가10만 건도 전수 대조를 통과했다. 단건 기준선 재사용 대비 처리량29.24% 증가였지만 혼합 APIp95는 악화해 기본값1을 유지한다.
 아래1만 건 수치는 구 OR 구현의 역사적 결과다. [10만 건 비교·잠금 진단·수정](S7_RELAY_100K_COMPARISON.md)을 함께 본다.
 
 ## 측정과 선택 근거
@@ -68,7 +69,7 @@ caffeinate -i ./gradlew --no-daemon --console=plain campaignDeliveryPilot -Pdeli
 ```
 
 `publishBatchSize`는 캠페인 역할만 바꾸고 실시간은 1로 유지한다.
-같은 선택 인자는 `campaignDeliveryLoad`/`campaignDeliveryMillion`에도 전달할 수 있으나 이번에는 해당 대형 task를 실행하지 않는다.
+같은 선택 인자는 `campaignDeliveryLoad`/`campaignDeliveryMillion`에도 전달할 수 있다. 이1만 건 기록 당시 대형 task는 미실행이었고, 후속10만 건3회는 별도 비교 문서에 기록했다.
 일반 앱은 `--app.async.relay.publish-batch-size=10`으로 선택한다. 0 또는 11 이상은 시작 검증에서 거절한다.
 
 ## 비교 결과 (각 조건 2회)

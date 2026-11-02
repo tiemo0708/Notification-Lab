@@ -303,7 +303,9 @@ java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar
 실시간 p95 개선과10만/100만 건의 같은 속도는 보장하지 않는다.
 [후속10만 건 비교와 잠금 수정](docs/S7_RELAY_100K_COMPARISON.md)에서 구 OR구현은 처리량이 늘었지만 실시간 tail 지연도 커졌다.
 별도 SQL 진단의 PRIMARY 전체 스캔/역할 간 차단을 수정해 현재는 최대10개의 기본키 단건 UPDATE를 한 번 커밋한다.
-수정판의 추가10만 건 검증을 진행한다. 기본값1과 실시간 설정은 유지한다.
+수정판557b2cf도10만 건1170.631초/85.424건·초, HTTP104639건의 전수 대조를 통과했다.
+첫 단건 기준선 재사용 대비 처리량29.24% 증가였지만 혼합 APIp95는297.106→364.875ms로 악화했다.
+기본값1과 실시간 설정을 유지하며 캠페인10건은 선택 옵션이다.100만 건 재실행은 아직 하지 않았다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.

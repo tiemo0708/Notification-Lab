@@ -1,0 +1,377 @@
+{
+  "observerVersion": "mysql-global-row-lock-and-wait-edges-v1",
+  "startedAtUtc": "2026-11-02T06:13:38.807477+00:00",
+  "intervalSeconds": 60,
+  "maxSeconds": 6000,
+  "maxSamples": 128,
+  "commandTimeoutSeconds": 8,
+  "scope": "fresh logged Testcontainers MySQL only; global counters and instantaneous wait edges",
+  "samples": [
+    {
+      "observedAtUtc": "2026-11-02T06:13:39.011640+00:00",
+      "observerSeconds": 0.20404837490059435,
+      "phase": "PRELOAD_OR_BASELINE",
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 0,
+        "Innodb_row_lock_time_max": 0,
+        "Innodb_row_lock_waits": 0,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 185.78691594302654
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:14:39.504879+00:00",
+      "observerSeconds": 60.69639579183422,
+      "phase": "PRELOAD_OR_BASELINE",
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 0,
+        "Innodb_row_lock_time_max": 0,
+        "Innodb_row_lock_waits": 0,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 248.57375002466142
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:15:40.032912+00:00",
+      "observerSeconds": 121.22351529193111,
+      "phase": "PRELOAD_OR_BASELINE",
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 0,
+        "Innodb_row_lock_time_max": 0,
+        "Innodb_row_lock_waits": 0,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 236.54933320358396
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:16:40.494613+00:00",
+      "observerSeconds": 181.68428749986924,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 2930,
+      "lastLoggedRealtimeProbes": 148,
+      "lastLoggedDrainSeconds": 33.713,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 2,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 2,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 555.8098331093788
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:17:41.206376+00:00",
+      "observerSeconds": 242.39512124983594,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 8712,
+      "lastLoggedRealtimeProbes": 400,
+      "lastLoggedDrainSeconds": 94.447,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 258.1344998907298
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:18:41.641071+00:00",
+      "observerSeconds": 302.828929167008,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 14046,
+      "lastLoggedRealtimeProbes": 639,
+      "lastLoggedDrainSeconds": 153.485,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 605.0611669197679
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:19:42.424330+00:00",
+      "observerSeconds": 363.6112567919772,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 19438,
+      "lastLoggedRealtimeProbes": 868,
+      "lastLoggedDrainSeconds": 212.901,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 247.73050006479025
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:20:42.813900+00:00",
+      "observerSeconds": 423.9999038327951,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 24534,
+      "lastLoggedRealtimeProbes": 1107,
+      "lastLoggedDrainSeconds": 275.149,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 710.4348330758512
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:21:43.730075+00:00",
+      "observerSeconds": 484.91513429186307,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 29749,
+      "lastLoggedRealtimeProbes": 1348,
+      "lastLoggedDrainSeconds": 336.122,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 665.4542919714004
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:22:44.580710+00:00",
+      "observerSeconds": 545.7648454168811,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 34802,
+      "lastLoggedRealtimeProbes": 1582,
+      "lastLoggedDrainSeconds": 396.797,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 481.1696249525994
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:23:45.213764+00:00",
+      "observerSeconds": 606.3969839578494,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 39622,
+      "lastLoggedRealtimeProbes": 1823,
+      "lastLoggedDrainSeconds": 458.683,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 746.2092919740826
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:24:46.131510+00:00",
+      "observerSeconds": 667.3140527079813,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 44843,
+      "lastLoggedRealtimeProbes": 2064,
+      "lastLoggedDrainSeconds": 519.163,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 739.5262499339879
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:25:47.051508+00:00",
+      "observerSeconds": 728.2328876669053,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 50011,
+      "lastLoggedRealtimeProbes": 2299,
+      "lastLoggedDrainSeconds": 579.266,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 561.5666669327766
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:26:47.785320+00:00",
+      "observerSeconds": 788.9658357079607,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 55156,
+      "lastLoggedRealtimeProbes": 2536,
+      "lastLoggedDrainSeconds": 640.587,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 410.64112493768334
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:27:48.343297+00:00",
+      "observerSeconds": 849.522850249894,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 60313,
+      "lastLoggedRealtimeProbes": 2776,
+      "lastLoggedDrainSeconds": 700.416,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 768.2127498555928
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:28:49.292194+00:00",
+      "observerSeconds": 910.4707912078593,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 65388,
+      "lastLoggedRealtimeProbes": 3008,
+      "lastLoggedDrainSeconds": 760.773,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 241.39279103837907
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:29:49.711142+00:00",
+      "observerSeconds": 970.88891362492,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 70644,
+      "lastLoggedRealtimeProbes": 3244,
+      "lastLoggedDrainSeconds": 822.519,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 307.10466601885855
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:30:50.222528+00:00",
+      "observerSeconds": 1031.39935245784,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 75982,
+      "lastLoggedRealtimeProbes": 3482,
+      "lastLoggedDrainSeconds": 883.444,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 793.4903749264777
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:31:51.207140+00:00",
+      "observerSeconds": 1092.3829854167998,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 80786,
+      "lastLoggedRealtimeProbes": 3711,
+      "lastLoggedDrainSeconds": 943.544,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 211.45679196342826
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:32:51.883030+00:00",
+      "observerSeconds": 1153.0579601668287,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 86126,
+      "lastLoggedRealtimeProbes": 3948,
+      "lastLoggedDrainSeconds": 1003.866,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 722.2430829424411
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:33:52.777649+00:00",
+      "observerSeconds": 1213.9823050829582,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 91051,
+      "lastLoggedRealtimeProbes": 4184,
+      "lastLoggedDrainSeconds": 1065.604,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 249.67670906335115
+    },
+    {
+      "observedAtUtc": "2026-11-02T06:34:53.202755+00:00",
+      "observerSeconds": 1274.4187934168149,
+      "phase": "DRAIN",
+      "targets": 100000,
+      "lastLoggedCompleted": 96243,
+      "lastLoggedRealtimeProbes": 4418,
+      "lastLoggedDrainSeconds": 1125.675,
+      "counters": {
+        "Innodb_row_lock_current_waits": 0,
+        "Innodb_row_lock_time": 5,
+        "Innodb_row_lock_time_max": 2,
+        "Innodb_row_lock_waits": 4,
+        "data_lock_wait_edges": 0
+      },
+      "observationMillis": 815.0029580574483
+    }
+  ],
+  "errors": [],
+  "status": "EXPERIMENT_ENDED",
+  "buildOutcome": "SUCCESS",
+  "finishedAtUtc": "2026-11-02T06:35:42.232683+00:00"
+}
