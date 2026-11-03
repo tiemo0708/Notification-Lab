@@ -53,10 +53,17 @@ class ApiFailurePilotControlTest {
             assertThat(map(report.get("failureCaptureContext"))).containsEntry("available", true).containsEntry("realtimeActive", true);
             assertThat(control).containsEntry("injected", true).containsEntry("captured", true).containsEntry("gateReleased", true);
             var storage = map(report.get("failureSnapshotStorage"));
-            if (mode == ApiFailurePilotSupport.Mode.TIMEOUT) {
+            if (mode != ApiFailurePilotSupport.Mode.STORAGE_FAILURE) {
                 assertThat(storage).containsEntry("written", true);
                 assertThat(Files.readAllBytes(file)).isEqualTo(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsBytes(window));
-                assertThat(failure.getSuppressed()).isEmpty();
+                if (mode == ApiFailurePilotSupport.Mode.REPORT_FAILURE) {
+                    assertThat(failure.getSuppressed()).hasSize(1);
+                    assertThat(map(report.get("finalizationFailure"))).containsEntry("errorType", "FileNotFoundException")
+                            .containsEntry("originalFailureRetained", true);
+                    assertThat(pilot.failureDirectory().resolve("result.json")).isDirectory();
+                    new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(
+                            pilot.failureDirectory().resolve("control-observed-report.json").toFile(), report);
+                } else assertThat(failure.getSuppressed()).isEmpty();
             } else {
                 assertThat(storage).containsEntry("written", false).containsEntry("errorType", "FileAlreadyExistsException");
                 assertThat(Files.readString(file)).isEqualTo(ApiFailurePilotSupport.EARLIER_EVIDENCE);

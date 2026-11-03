@@ -57,7 +57,8 @@ HTTP timeout은 원래 HttpTimeoutException과 FAIL을 유지한다. 서버 결�
 제어 timeout은 첫 MIXED 요청의 실제 commit과 auto-commit 복원 후 반환을 최대8초 지연한다.
 이 제어는 실제 장시간 원인의 재현이 아니다. 저장 방식·파일시스템·전원 장애 한계는 [기존 계약](S7_FAILURE_PERSISTENCE.md)을 따른다.
 preload·앱 초기화·종료 중 오류, JVM 강제 종료, 외부 kill, Gradle/JUnit의 최종 강제 중단까지 종료 전 파일을 보장하지 않는다.
-새 파일 실패 시 메모리 snapshot은 마지막 report 쓰기가 가능할 때만 남는다. 기존 최종 report 쓰기 자체가 실패하면 새 I/O 오류가 바깥 예외를 가릴 수 있으며 이 경로의 원래 예외 유지까지 보장하지 않는다.
+새 파일 실패 시 메모리 snapshot은 마지막 report 쓰기가 가능할 때만 남는다. 당시 남긴 최종 report 오류의 우선순위 문제는 [후속 보완과 실제 제어](S7_FINAL_REPORT_FAILURE.md)에서 수정했다.
+일반 Exception/AssertionError에는 원래 실패를 유지하며, 앞선 실패가 없으면 마지막 오류가 실행 실패로 전파된다.
 
 ## 실제 검증 결과
 

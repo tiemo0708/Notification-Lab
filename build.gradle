@@ -332,7 +332,7 @@ tasks.register('apiFailureLongRunRehearsal', Test) {
     systemProperty 'campaign.delivery.failureWindow', 'true'
     systemProperty 'campaign.delivery.failureProfile', 'REHEARSAL'
     def mode = providers.gradleProperty('failureMode').getOrElse('NONE')
-    if (!(mode in ['NONE', 'TIMEOUT', 'STORAGE_FAILURE'])) throw new GradleException('failureMode must be NONE, TIMEOUT or STORAGE_FAILURE')
+    if (!(mode in ['NONE', 'TIMEOUT', 'STORAGE_FAILURE', 'REPORT_FAILURE'])) throw new GradleException('failureMode must be NONE, TIMEOUT, STORAGE_FAILURE or REPORT_FAILURE')
     systemProperty 'campaign.delivery.failureMode', mode
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }

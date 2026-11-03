@@ -358,7 +358,9 @@ ON은 getAutoCommit과setAutoCommit(false/true)를 따로 기록한다.
 [실제 HTTP/MySQL 접수 제어](docs/S7_FAILURE_PERSISTENCE.md)는 `apiFailurePersistenceProbe`로 종료 전 첫 파일 저장과 늦은 처리 후 불변을 검증한다.
 [작은 Kafka 혼합 실험](docs/S7_FAILURE_MIXED_PILOT.md)은 `apiFailurePilot`의1천 건 opt-in 연결로 정상 전수 대조와 timeout·저장 실패 보존을 검증했다.
 [장시간 도구의 선택적 보존](docs/S7_LONG_RUN_WIRING.md)은 `campaignDeliveryMillion -PfailureObservation=ON`으로 켜며 기본OFF다.
-발송 없는 OFF/ON 설정 확인과1천 건 리허설까지 검증했다. 100만 건 재실행과 과거 timeout 원인 규명은 아직 남아 있다.
+발송 없는 OFF/ON 설정 확인과1천 건 리허설까지 검증했다.
+[최종 보고서 오류 처리](docs/S7_FINAL_REPORT_FAILURE.md)는 report 쓰기가 실패해도 원래 실행 오류를 유지한다.
+100만 건 재실행과 과거 timeout 원인 규명은 아직 남아 있다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.

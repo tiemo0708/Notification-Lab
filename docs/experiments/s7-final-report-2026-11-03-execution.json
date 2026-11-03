@@ -1,0 +1,93 @@
+{
+  "baseCommit": "0b47a1cff479b62f4b22710c66f5a87e3c4f0004",
+  "dateKst": "2026-11-03",
+  "commands": [
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*PilotFinalizationTest' --tests '*ApiFailureObservationPlanTest' --tests '*ApiFailurePilotSupportTest' --tests '*FailureSnapshotStoreTest' --tests '*CampaignDeliveryDiagnosticsTest'",
+      "exitCode": 0,
+      "gradleElapsed": "7s",
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailureLongRunRehearsal -PfailureMode=REPORT_FAILURE",
+      "exitCode": 0,
+      "gradleElapsed": "37s",
+      "harnessResult": "FAIL",
+      "primaryFailureType": "HttpTimeoutException",
+      "primarySuppressedCount": 1,
+      "firstSnapshotWritten": true,
+      "finalReportWritten": false,
+      "controlVerification": "PASS"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailureLongRunRehearsal -PfailureMode=NONE",
+      "exitCode": 0,
+      "gradleElapsed": "45s",
+      "harnessResult": "PASS",
+      "httpMockAccepted": 1105,
+      "controlVerification": "PASS"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+      "exitCode": 0,
+      "gradleElapsed": "14m 19s",
+      "classes": 44,
+      "tests": 341,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "freshXmlFiles": true,
+      "bootJar": "UP-TO-DATE",
+      "remoteCiClaimed": false
+    }
+  ],
+  "artifactMapping": {
+    "s7-final-report-2026-11-03-none-result.json": {
+      "bytes": 97124,
+      "sha256": "d33cf4e54e5ccd3797bfc63336b90d6ad0f1876f3831c83e3cae5e1d639a5e6e",
+      "originalFileName": "result.json"
+    },
+    "s7-final-report-2026-11-03-none-verification.json": {
+      "bytes": 207,
+      "sha256": "a887687d076f34f5c9992bc6ba618f0d63aa3e2d87522ece1c639f8b31860899",
+      "originalFileName": "verification.json"
+    },
+    "s7-final-report-2026-11-03-report-failure-control-observed-report.json": {
+      "bytes": 78827,
+      "sha256": "cd9d6caca912c6c563d4bd6d3af4e6308d065060d2685794eff59394160b15f2",
+      "originalFileName": "control-observed-report.json"
+    },
+    "s7-final-report-2026-11-03-report-failure-failure.json": {
+      "bytes": 68414,
+      "sha256": "da7bbd80889ee266e526a26950b729113e30c517bf9376b8f05adfba0152c113",
+      "originalFileName": "failure.json"
+    },
+    "s7-final-report-2026-11-03-report-failure-verification.json": {
+      "bytes": 232,
+      "sha256": "783049504a901875a9224f059b372b90cd89ccfe4c1cee5a05ce77fd80de30ec",
+      "originalFileName": "verification.json"
+    },
+    "s7-final-report-2026-11-03-source.json": {
+      "bytes": 1620,
+      "sha256": "72a98c429281da09d7efc2e464013816ce4ebeb26c8ac4a2344177d6f92628ab"
+    },
+    "s7-final-report-2026-11-03-target-observation.json": {
+      "bytes": 188,
+      "sha256": "c7db8852a3715d38163f8cbda4a5b5a9efa7dd5cbb88667ea748fe2b2b2736bb"
+    }
+  },
+  "millionLoadExecuted": false,
+  "hundredThousandLoadExecuted": false,
+  "pushPerformed": false,
+  "productionSourceChanges": false,
+  "originalMillionFailureSha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b",
+  "limitations": [
+    "No reproduction or root-cause determination of the original million-run timeout",
+    "No guarantee for fatal VM errors, forced process termination or power loss",
+    "Failed final report is not repaired or retried; control-observed-report is written only by the verifier",
+    "No execution of a long-running or production provider workload"
+  ]
+}

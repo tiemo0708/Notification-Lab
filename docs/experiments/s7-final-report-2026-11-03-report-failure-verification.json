@@ -1,0 +1,9 @@
+{
+  "mode" : "REPORT_FAILURE",
+  "profile" : "REHEARSAL",
+  "verification" : "PASS",
+  "harnessResult" : "FAIL",
+  "expectedPrimaryFailureType" : "HttpTimeoutException",
+  "primarySuppressedCount" : 1,
+  "failureFileExists" : true
+}

@@ -30,7 +30,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Opt-in admission observation adapter; fault injection is restricted by the run profile. No production wiring, request contents, identifiers or diagnostic database queries. */
 final class ApiFailurePilotSupport {
-    enum Mode { NONE, TIMEOUT, STORAGE_FAILURE }
+    enum Mode { NONE, TIMEOUT, STORAGE_FAILURE, REPORT_FAILURE }
     static final String EARLIER_EVIDENCE = "earlier synthetic evidence retained";
     final ApiFailureWindow window;
     private final Mode mode;
@@ -48,6 +48,7 @@ final class ApiFailurePilotSupport {
         Files.createDirectories(directory);
         file = directory.resolve("failure.json");
         if (mode == Mode.STORAGE_FAILURE) Files.writeString(file, EARLIER_EVIDENCE, java.nio.file.StandardOpenOption.CREATE_NEW);
+        if (mode == Mode.REPORT_FAILURE) Files.createDirectory(directory.resolve("result.json"));
         store = new FailureSnapshotStore(window, file);
     }
     static ApiFailurePilotSupport create(int maxProbes, Mode mode) throws IOException {

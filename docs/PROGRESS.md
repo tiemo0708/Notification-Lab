@@ -2619,3 +2619,34 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   고정소스12개/보존원본13개 SHA일치, 운영Java/resources diff0/기존100만 건FAIL 원본SHA 불변을 확인했다.
 - 기존 Git identity/원격main9cf1786을 읽기 전용 확인했다. Docker에는 기존notification-lab-mysql-1만healthy로 남았다.
   사용자DB/.env/IntelliJ/volume을 유지했고 실제장시간·유료자원·실제공급자·푸시는 실행하지 않았다.
+
+
+## 2026-11-03: S7 최종 보고서 실패의 원래 오류 보존
+
+시작0b47a1c/main. 앞선 단계에서 남긴 finally의 최종 report 쓰기 오류가 원래 timeout을 가리는 결함을 보완했다.
+실제100만 건/10만 건 발송은 시작하지 않았다.
+
+- 바깥 catch의 원래 실패 객체를 보관하고 마지막 진단·report 처리를 PilotFinalization으로 감쌌다.
+  마지막 Exception/AssertionError는 기존 실패에 정제된 suppressed IOException1개로 더한다.
+  기존 실패가 없으면 마지막 오류 자체를 전파하고 메모리 결과를FAIL로 바꾼다. 자동 재시도나PASS 변환은 없다.
+- 관련 단위20개가7초에 실패·오류·스킵0으로 통과했다. 새 단위3개는 실제 파일 쓰기 실패/원래 timeout 객체 동일성,
+  기존 실패 없는 보고서 오류 전파, AssertionError와 기존 suppressed 오류 보존을 검증했다.
+- 1천 건 REHEARSAL의 REPORT_FAILURE는37초/종료코드0으로 제어 검증을 통과했다.
+  첫MIXED(51번째)5초 timeout에서 완료50/evicted18/최근32+진행1, active AUTOCOMMIT_STATE/commit반환true/응답미관찰이었다.
+  앱active/pool open/gate 대기 중 첫파일68414bytes를 저장하고 정리 후 동결 snapshot과 byte 일치를 확인했다.
+  그 뒤 result.json 경로의 제어 디렉터리 때문에 실제 마지막 쓰기가FileNotFoundException으로 실패했다.
+  원래 harness는FAIL/HttpTimeoutException과 suppressed1개를 유지했으며 최종 report 파일은 생성되지 않았다.
+  검증기만 별도 control-observed-report.json에 메모리 결과를 복사했다. 실제 자동복구/report 재시도가 아니다.
+- NONE도45초/1105건(캠페인1000+실시간105) HTTP·DB·참조·offset 전수대조를 통과했다. 중복/잘못된참조0이다.
+  실패 제어의 부분 발송은 최종 성공 집계에 넣지 않는다. LONG_RUN은 새 주입도 거절하며 운영Java/resources는 변경하지 않았다.
+- [변경·실제 결과·미보장 경계](S7_FINAL_REPORT_FAILURE.md), [고정 소스](experiments/s7-final-report-2026-11-03-source.json),
+  [원본 SHA·실행 메타데이터](experiments/s7-final-report-2026-11-03-execution.json)를 보존한다.
+  강제종료/치명적VM Error/전원 장애의 파일 보존과 실제100만 건 timeout 원인 확정은 보장하지 않는다.
+
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`: **14분19초/종료코드0**.
+  새44개 클래스 XML과 콘솔에서 **341개통과/실패·오류·스킵0**을 대조했다. 기존338개+새단위3개다.
+  기본회귀를 재실행했고bootJar는UP-TO-DATE였다. 별도제어2회/원격CI와 구분한다.
+  고정소스10개/보존원본7개 SHA일치, 운영Java/resources diff0/기존100만 건FAIL 원본SHA 불변을 확인했다.
+  사용자 선택에 따라 이번 범위는 최종 보고서 저장 실패 보완까지다. 실제 장시간 실행과 푸시는 하지 않았다.
+- 기존 Git identity/원격main9cf1786을 읽기 전용 확인했다. Docker에는 기존notification-lab-mysql-1만healthy로 남았다.
+  사용자DB/.env/IntelliJ/volume을 유지했다.

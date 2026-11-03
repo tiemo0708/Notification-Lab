@@ -146,6 +146,7 @@ class CampaignDeliveryPilotTest {
         report.put("infra", Map.of("mysql", "8.4.8", "mysqlCpu", 2, "mysqlMemoryMiB", 2048,
                 "mysqlBufferPoolMiB", 512, "kafka", "4.0.2", "kafkaCpu", 1, "kafkaMemoryMiB", 1024,
                 "redis", "7.4.11", "redisMemoryMiB", 256));
+        Throwable primaryFailure = null;
         try (var mysql = new MySQLContainer<>("mysql:8.4.8")
                      .withDatabaseName("notification_lab").withUsername("notification_test").withPassword(UUID.randomUUID().toString())
                      .withCommand("--default-time-zone=+00:00", "--innodb-buffer-pool-size=536870912")
@@ -302,27 +303,30 @@ class CampaignDeliveryPilotTest {
                 report.put("fineTimings", snapshots);
             }
         } catch (Exception | AssertionError failure) {
+            primaryFailure = failure;
             captureFailure(failure, ApiFailureWindow.Stop.INFRA_FAILURE, null);
             report.put("result", "FAIL"); report.put("failureType", failure.getClass().getSimpleName());
             throw failure;
         } finally {
-            TimeZone.setDefault(originalZone);
-            if (apiDbObservation != null) {
-                apiDbObservation.close();
-                report.put("apiDbObservation", apiDbObservation.snapshot());
-            }
-            report.put("finishedAtUtc", Instant.now().toString());
-            if (apiRequestTiming != null) report.put("apiRequestTiming", apiRequestTiming.snapshot());
-            if (failureSupport != null) {
-                failureSupport.release(); report.put("apiFailureWindow", failureSupport.window.snapshot());
-                report.put("failureWindowControl", failureSupport.control());
-            }
-            Path directory = failureSupport != null ? failureSupport.directory() : Path.of(connectionPilot ? "build/reports/api-connection-pilot" : dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
-                    load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
-            Files.createDirectories(directory);
-            String name = failureSupport != null ? "result" : connectionPilot ? (Boolean.getBoolean("campaign.delivery.connectionCalls") ? "ON" : "OFF") + "-targets-" + targets : dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
-                    : offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
-            mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
+            PilotFinalization.run(primaryFailure, report, () -> {
+                TimeZone.setDefault(originalZone);
+                if (apiDbObservation != null) {
+                    apiDbObservation.close();
+                    report.put("apiDbObservation", apiDbObservation.snapshot());
+                }
+                report.put("finishedAtUtc", Instant.now().toString());
+                if (apiRequestTiming != null) report.put("apiRequestTiming", apiRequestTiming.snapshot());
+                if (failureSupport != null) {
+                    failureSupport.release(); report.put("apiFailureWindow", failureSupport.window.snapshot());
+                    report.put("failureWindowControl", failureSupport.control());
+                }
+                Path directory = failureSupport != null ? failureSupport.directory() : Path.of(connectionPilot ? "build/reports/api-connection-pilot" : dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
+                        load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
+                Files.createDirectories(directory);
+                String name = failureSupport != null ? "result" : connectionPilot ? (Boolean.getBoolean("campaign.delivery.connectionCalls") ? "ON" : "OFF") + "-targets-" + targets : dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
+                        : offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
+                mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
+            });
         }
     }
 

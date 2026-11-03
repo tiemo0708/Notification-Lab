@@ -14,8 +14,9 @@ class ApiFailureObservationPlanTest {
     }
 
     @Test
-    void millionRunRejectsBothSyntheticFaultModesBeforeStartingInfrastructure() {
-        for (var mode : new ApiFailurePilotSupport.Mode[]{ApiFailurePilotSupport.Mode.TIMEOUT, ApiFailurePilotSupport.Mode.STORAGE_FAILURE}) {
+    void millionRunRejectsEverySyntheticFaultModeBeforeStartingInfrastructure() {
+        for (var mode : ApiFailurePilotSupport.Mode.values()) {
+            if (mode == ApiFailurePilotSupport.Mode.NONE) continue;
             var plan = new ApiFailureObservationPlan(ApiFailureObservationPlan.Profile.LONG_RUN, mode);
             assertThatThrownBy(() -> plan.validate(true, 1_000_000, false, false, false, false)).isInstanceOf(IllegalArgumentException.class);
         }

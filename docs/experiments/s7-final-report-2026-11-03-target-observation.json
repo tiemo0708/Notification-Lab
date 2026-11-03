@@ -1,0 +1,7 @@
+{
+  "finalReportFileName": "result.json",
+  "targetIsDirectory": true,
+  "targetIsRegularFile": false,
+  "snapshotIsRegularFile": true,
+  "memoryReportCopiedOnlyByControlVerifier": true
+}
