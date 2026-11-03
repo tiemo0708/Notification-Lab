@@ -124,3 +124,5 @@ commit은 18.109ms였다. AUTOCOMMIT_STATE 합계 127.318ms(3호출), PREPARE �
 고정 소스 7개 해시, 운영 Java/resources diff 0, 100만 건 FAIL 원본 SHA 불변을 확인했다.
 Git identity를 유지했고 원격 main 9cf1786은 읽기 전용으로 확인했다.
 최종 Docker에는 기존 notification-lab-mysql-1만 healthy로 남았고 임시 검증 컨테이너는 정리됐다.
+
+후속 [메서드별 연결 상태 진단](S7_API_CONNECTION_TIMING.md)에서 진입·복원 제어군과1천 건 상세OFF/ON을 검증했다. 자연127ms 상태 합계는 미재현이다.

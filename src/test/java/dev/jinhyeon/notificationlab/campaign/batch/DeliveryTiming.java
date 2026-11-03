@@ -37,7 +37,11 @@ final class DeliveryTiming {
     }
     enum Part { STORE_CALL, ACQUIRE, PREPARE, EXECUTE, COMMIT, ROLLBACK, AUTOCOMMIT_STATE, ISOLATION_STATE, READ_ONLY_STATE, CONNECTION_STATE, RELEASE, STATEMENT_CLOSE, COMMIT_SYNC, COMMIT_ASYNC_SUBMIT }
     @FunctionalInterface interface Action<T, E extends Throwable> { T run() throws E; }
-    @FunctionalInterface interface ApiObserver { void record(Part part, long nanos, boolean failed); }
+    @FunctionalInterface interface ApiObserver {
+        void record(Part part, long nanos, boolean failed);
+        default boolean connectionCallsEnabled() { return false; }
+        default void connectionCall(ApiConnectionTiming.Method method, ApiConnectionTiming.Boundary boundary, long nanos, boolean failed) { }
+    }
     interface ApiIoObserver extends ApiObserver {
         void starting(Part part);
         void connection(Connection connection) throws SQLException;
@@ -158,6 +162,8 @@ final class DeliveryTiming {
     }
 
     private Connection wrapConnection(Connection target, Phase phase) {
+        var boundary = phase == Phase.API_SUBMIT && apiObserver != null && apiObserver.connectionCallsEnabled()
+                ? new ConnectionBoundary() : null;
         return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] {Connection.class}, (proxy, method, args) -> {
             if (method.getDeclaringClass() == Object.class) return objectMethod(proxy, method, args);
             String name = method.getName();
@@ -171,12 +177,28 @@ final class DeliveryTiming {
                 case "isReadOnly", "setReadOnly" -> Part.READ_ONLY_STATE;
                 default -> Part.CONNECTION_STATE;
             };
-            Object result = measure(phase, part, () -> invoke(target, method, args));
-            return result instanceof Statement statement ? wrapStatement(statement, (Connection) proxy, phase) : result;
+            ApiConnectionTiming.Method detail = boundary == null ? null : switch (name) {
+                case "getAutoCommit" -> ApiConnectionTiming.Method.GET_AUTO_COMMIT;
+                case "setAutoCommit" -> Boolean.TRUE.equals(args[0]) ? ApiConnectionTiming.Method.SET_AUTO_COMMIT_TRUE : ApiConnectionTiming.Method.SET_AUTO_COMMIT_FALSE;
+                default -> null;
+            };
+            Object result = measure(phase, part, () -> {
+                if (detail == null) return invoke(target, method, args);
+                long start = System.nanoTime(); boolean failed = true;
+                try { Object value = invoke(target, method, args); failed = false; return value; }
+                finally { apiObserver.connectionCall(detail, boundary.value, System.nanoTime() - start, failed); }
+            });
+            if (boundary != null && name.equals("commit")) boundary.value = ApiConnectionTiming.Boundary.AFTER_COMMIT;
+            if (boundary != null && name.equals("rollback") && (args == null || args.length == 0)) boundary.value = ApiConnectionTiming.Boundary.AFTER_ROLLBACK;
+            return result instanceof Statement statement ? wrapStatement(statement, (Connection) proxy, phase, boundary) : result;
         });
     }
 
-    private Statement wrapStatement(Statement target, Connection connection, Phase phase) {
+    private static final class ConnectionBoundary {
+        ApiConnectionTiming.Boundary value = ApiConnectionTiming.Boundary.BEFORE_FIRST_SQL;
+    }
+
+    private Statement wrapStatement(Statement target, Connection connection, Phase phase, ConnectionBoundary boundary) {
         Class<?> type = target instanceof CallableStatement ? CallableStatement.class : target instanceof PreparedStatement ? PreparedStatement.class : Statement.class;
         return (Statement) Proxy.newProxyInstance(Statement.class.getClassLoader(), new Class<?>[] {type}, (proxy, method, args) -> {
             if (method.getDeclaringClass() == Object.class) return objectMethod(proxy, method, args);
@@ -186,6 +208,7 @@ final class DeliveryTiming {
                 case "close" -> Part.STATEMENT_CLOSE;
                 default -> null;
             };
+            if (part == Part.EXECUTE && boundary != null) boundary.value = ApiConnectionTiming.Boundary.BEFORE_COMPLETION;
             return part == null ? invoke(target, method, args) : measure(phase, part, () -> invoke(target, method, args));
         });
     }

@@ -1,0 +1,103 @@
+{
+  "scope": "bounded per-method auto-commit entry/restoration diagnostic; synthetic SQL controls and same-source 1k detail OFF/ON each once; previous latency not reproduced",
+  "sourceManifest": "s7-api-connection-2026-11-03-source.json",
+  "sourceManifestSha256": "b1d1b63bda5a19bc5aac76107fa0f15789d643dbcca5f8bca200c173e9d288ac",
+  "unit": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*DeliveryTimingTest' --tests '*ApiRequestTimingTest' --tests '*ApiDbObservationTest'",
+    "exitCode": 0,
+    "duration": "6s",
+    "tests": 20,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "runs": [
+    {
+      "rawFile": "s7-api-connection-2026-11-03-control.json",
+      "sha256": "a4217bc4c3287df840fd5c9d2de0f0e21cffe84903deff7d68cba6098da9fb41",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiConnectionProbe",
+      "exitCode": 0,
+      "gradleDuration": "11s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T01:47:02.349761Z",
+      "finishedAtUtc": "2026-11-03T01:47:10.425651Z"
+    },
+    {
+      "rawFile": "s7-api-connection-2026-11-03-session-regression.json",
+      "sha256": "9d6ed449da8779ab95f21b63d658212a5b9c63a0071643cd5d9fa43cd4426927",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiSessionProbe -PdbMinCallMillis=20",
+      "exitCode": 0,
+      "gradleDuration": "11s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T01:47:26.160982Z",
+      "finishedAtUtc": "2026-11-03T01:47:34.095560Z"
+    },
+    {
+      "rawFile": "s7-api-connection-2026-11-03-off.json",
+      "sha256": "db0e677fc0fb46cbe119748a759ce77fc6fe3cfe78b49b9adbde65bbc07b4adc",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiConnectionPilot -PconnectionCalls=OFF",
+      "exitCode": 0,
+      "gradleDuration": "41s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T01:48:09.128042Z",
+      "finishedAtUtc": "2026-11-03T01:48:46.679362Z",
+      "httpRequests": 1088,
+      "pairedRequests": 88,
+      "detailedCalls": 0
+    },
+    {
+      "rawFile": "s7-api-connection-2026-11-03-on.json",
+      "sha256": "81c21a09c62ddcbe6b6cc69c38b3e1c9173d87a4a37d35ffe8b08ed1f62b6ffc",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiConnectionPilot -PconnectionCalls=ON",
+      "exitCode": 0,
+      "gradleDuration": "39s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T01:48:55.686885Z",
+      "finishedAtUtc": "2026-11-03T01:49:31.999681Z",
+      "httpRequests": 1086,
+      "pairedRequests": 86,
+      "detailedCalls": 258
+    }
+  ],
+  "fullBuild": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "exitCode": 0,
+    "duration": "14m 14s",
+    "classes": 39,
+    "tests": 317,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "freshXmlAfterLogBirth": true,
+    "consolePassed": 317,
+    "artifactTasks": [
+      "> Task :bootJar UP-TO-DATE",
+      "> Task :jar SKIPPED"
+    ]
+  },
+  "inspectedDependencySources": [
+    {
+      "fileName": "spring-jdbc-6.2.19-sources.jar",
+      "sha256": "41fbc1371d47bda9d7adae686d51e1b655c35b54aab3ce0160c27925dcf1e3a9"
+    },
+    {
+      "fileName": "mysql-connector-j-9.7.0-sources.jar",
+      "sha256": "163697c229756136569fab66ac5fe05b85134b05b674bd2bc507656015a987f7"
+    }
+  ],
+  "remoteMainReadOnly": "9cf178636edc4b03a5aa1d560f9cfe3c71f36568",
+  "millionFailureSha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b",
+  "dockerAfter": "only existing notification-lab-mysql-1 mysql:8.4.8 healthy"
+}

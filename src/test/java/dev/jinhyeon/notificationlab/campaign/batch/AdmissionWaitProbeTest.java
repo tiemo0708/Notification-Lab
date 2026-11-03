@@ -67,6 +67,9 @@ class AdmissionWaitProbeTest {
         report.put("startedAtUtc", Instant.now().toString());
         report.put("scope", "SQL-only real Spring transactional SubmissionService; normal, held gap lock, synthetic post-commit caller pause; no HTTP/Kafka/provider");
         boolean observe = Boolean.getBoolean("api.wait.observe");
+        boolean connectionCalls = Boolean.getBoolean("api.wait.connectionCalls");
+        report.put("connectionCallsEnabled", connectionCalls);
+        if (connectionCalls) report.put("scope", "SQL-only auto-commit method controls; baseline, before native setAutoCommit(false), after native setAutoCommit(true)");
         report.put("conditions", Map.of("mysql", "8.4.8", "mysqlCpu", 2, "mysqlMemoryMiB", 2048,
                 "mysqlBufferPoolMiB", 512, "applicationPoolMax", 4, "externalConnectionsMax", observe ? 3 : 2,
                 "warmupSubmissions", 3, "cases", 3, "holdMillis", HOLD_MILLIS));
@@ -88,17 +91,23 @@ class AdmissionWaitProbeTest {
                  var blocker = DriverManager.getConnection(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())) {
                 var observer = new JdbcTemplate(new SingleConnectionDataSource(observerConnection, true));
                 observer.setQueryTimeout(2);
-                var nativeGate = new AtomicReference<CommitGate>();
+                var nativeGate = new AtomicReference<CallGate>();
                 var capture = new ThreadLocal<Capture>();
-                DeliveryTiming.ApiObserver collector = (part, nanos, failed) -> {
-                    var active = capture.get();
-                    if (active == null) throw new IllegalStateException("Missing SQL calibration capture");
-                    active.record(part, nanos, failed);
+                DeliveryTiming.ApiObserver collector = new DeliveryTiming.ApiObserver() {
+                    @Override public void record(Part part, long nanos, boolean failed) {
+                        var active = capture.get();
+                        if (active == null) throw new IllegalStateException("Missing SQL calibration capture");
+                        active.record(part, nanos, failed);
+                    }
+                    @Override public boolean connectionCallsEnabled() { return connectionCalls; }
+                    @Override public void connectionCall(ApiConnectionTiming.Method method, ApiConnectionTiming.Boundary boundary, long nanos, boolean failed) {
+                        capture.get().connection.record(method, boundary, nanos, failed);
+                    }
                 };
                 if (observe) sessionObservation = ApiDbObservation.connect(
                         DriverManager.getConnection(mysql.getJdbcUrl(), "root", mysql.getPassword()), collector, () -> "CONTROL", true, Long.getLong("api.wait.dbMinCallMillis", 0));
                 var timing = new DeliveryTiming(sessionObservation == null ? collector : sessionObservation);
-                try (var context = context(timing.dataSource(new CommitDelayDataSource(pool, nativeGate)))) {
+                try (var context = context(timing.dataSource(new CallDelayDataSource(pool, nativeGate)))) {
                     var submissions = context.getBean(SubmissionService.class);
                     for (int i = 0; i < 3; i++) submissions.accept(request(), null);
                     assertRows(observer, 3);
@@ -106,10 +115,11 @@ class AdmissionWaitProbeTest {
                     var executor = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(1),
                             Thread.ofPlatform().daemon(true).factory());
                     try {
-                        for (String scenario : List.of("BASELINE", "OUTBOX_GAP_LOCK", "POST_COMMIT_CALLER_PAUSE")) {
+                        for (String scenario : connectionCalls ? List.of("BASELINE", "ENTRY_AUTOCOMMIT_PAUSE", "RESTORE_AUTOCOMMIT_PAUSE")
+                                : List.of("BASELINE", "OUTBOX_GAP_LOCK", "POST_COMMIT_CALLER_PAUSE")) {
                             var row = new LinkedHashMap<String, Object>(); row.put("scenario", scenario); cases.add(row);
                             int before = count(observer, "notification");
-                            var gate = new CommitGate();
+                            var gate = new CallGate(scenario);
                             try {
                                 if (scenario.equals("OUTBOX_GAP_LOCK")) {
                                     blocker.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
@@ -119,9 +129,9 @@ class AdmissionWaitProbeTest {
                                         try (var result = statement.executeQuery()) { while (result.next()) { /* No identifiers retained. */ } }
                                     }
                                 }
-                                if (scenario.equals("POST_COMMIT_CALLER_PAUSE")) nativeGate.set(gate);
+                                if (scenario.endsWith("PAUSE")) nativeGate.set(gate);
                                 var future = executor.submit(() -> {
-                                    var measured = new Capture(); capture.set(measured);
+                                    var measured = new Capture(connectionCalls); capture.set(measured);
                                     long cpuStart = cpu.getCurrentThreadCpuTime(); long start = System.nanoTime();
                                     try {
                                         timing.scope(DeliveryTiming.Phase.API_SUBMIT, () -> submissions.accept(request(), null));
@@ -143,11 +153,22 @@ class AdmissionWaitProbeTest {
                                     TimeUnit.MILLISECONDS.sleep(HOLD_MILLIS);
                                     blocker.rollback(); blocker.setAutoCommit(true);
                                 } else if (scenario.equals("POST_COMMIT_CALLER_PAUSE")) {
-                                    assertThat(gate.nativeReturned.await(3, TimeUnit.SECONDS)).isTrue();
+                                    assertThat(gate.reached.await(3, TimeUnit.SECONDS)).isTrue();
                                     assertThat(future.isDone()).isFalse(); assertRows(observer, before + 1);
                                     row.put("nativeCommitReturned", true); row.put("rowsVisibleWhileCallerBlocked", true);
                                     row.put("waitEdgesWhileCallerBlocked", waitEdges(observer));
                                     assertThat(waitEdges(observer)).isZero();
+                                    TimeUnit.MILLISECONDS.sleep(HOLD_MILLIS); gate.release.countDown();
+                                }
+                                if (scenario.equals("ENTRY_AUTOCOMMIT_PAUSE") || scenario.equals("RESTORE_AUTOCOMMIT_PAUSE")) {
+                                    assertThat(gate.reached.await(3, TimeUnit.SECONDS)).isTrue();
+                                    assertThat(future.isDone()).isFalse();
+                                    boolean restored = scenario.equals("RESTORE_AUTOCOMMIT_PAUSE");
+                                    assertRows(observer, before + (restored ? 1 : 0));
+                                    assertThat(waitEdges(observer)).isZero();
+                                    row.put("rowsVisibleWhileCallerBlocked", restored);
+                                    row.put("nativeStateMethodReturned", restored);
+                                    row.put("waitEdgesWhileCallerBlocked", 0);
                                     TimeUnit.MILLISECONDS.sleep(HOLD_MILLIS); gate.release.countDown();
                                 }
                                 var measured = future.get(8, TimeUnit.SECONDS);
@@ -155,6 +176,11 @@ class AdmissionWaitProbeTest {
                                 if (!scenario.equals("BASELINE")) assertThat(measured.wallMillis - measured.cpuMillis).isGreaterThan(100);
                                 if (scenario.equals("OUTBOX_GAP_LOCK")) assertThat(measured.executions[3] / 1_000_000.0).isGreaterThan(150);
                                 if (scenario.equals("POST_COMMIT_CALLER_PAUSE")) assertThat(measured.nanos[Part.COMMIT.ordinal()] / 1_000_000.0).isGreaterThan(150);
+                                if (scenario.equals("ENTRY_AUTOCOMMIT_PAUSE") || scenario.equals("RESTORE_AUTOCOMMIT_PAUSE")) {
+                                    String method = scenario.equals("ENTRY_AUTOCOMMIT_PAUSE") ? "SET_AUTO_COMMIT_FALSE" : "SET_AUTO_COMMIT_TRUE";
+                                    var delayed = measured.connection.snapshot().stream().filter(call -> call.get("method").equals(method)).findFirst().orElseThrow();
+                                    assertThat((Double) delayed.get("millis")).isGreaterThan(150);
+                                }
                                 assertRows(observer, before + 1); assertThat(waitEdges(observer)).isZero();
                                 row.put("result", "PASS");
                             } finally {
@@ -185,7 +211,7 @@ class AdmissionWaitProbeTest {
             }
             if (!cpuWasEnabled) cpu.setThreadCpuTimeEnabled(false);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path output = Path.of(observe ? "build/reports/api-session-probe/min-" + Long.getLong("api.wait.dbMinCallMillis", 0) + ".json" : "build/reports/api-wait-probe/result.json"); Files.createDirectories(output.getParent());
+            Path output = Path.of(connectionCalls ? "build/reports/api-connection-probe/result.json" : observe ? "build/reports/api-session-probe/min-" + Long.getLong("api.wait.dbMinCallMillis", 0) + ".json" : "build/reports/api-wait-probe/result.json"); Files.createDirectories(output.getParent());
             new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(output.toFile(), report);
         }
     }
@@ -207,6 +233,9 @@ class AdmissionWaitProbeTest {
     static class TransactionConfiguration { }
 
     private static final class Capture {
+        final ApiConnectionTiming connection = new ApiConnectionTiming();
+        final boolean connectionCalls;
+        Capture(boolean connectionCalls) { this.connectionCalls = connectionCalls; }
         final long[] nanos = new long[Part.values().length];
         final long[] counts = new long[nanos.length];
         final long[] executions = new long[4];
@@ -221,24 +250,45 @@ class AdmissionWaitProbeTest {
             assertThat(failed).isFalse(); assertThat(cpuMillis).isGreaterThanOrEqualTo(0);
             for (var part : List.of(Part.STORE_CALL, Part.ACQUIRE, Part.COMMIT, Part.RELEASE)) assertThat(counts[part.ordinal()]).isEqualTo(1);
             assertThat(counts[Part.EXECUTE.ordinal()]).isEqualTo(4); assertThat(counts[Part.ROLLBACK.ordinal()]).isZero();
+            if (connectionCalls) connection.verifySuccessfulAdmission(counts[Part.AUTOCOMMIT_STATE.ordinal()], nanos[Part.AUTOCOMMIT_STATE.ordinal()]);
         }
         Map<String, Object> summary() {
             var parts = new LinkedHashMap<String, Object>();
             for (var part : Part.values()) parts.put(part.name(), Map.of("count", counts[part.ordinal()], "millis", nanos[part.ordinal()] / 1_000_000.0));
-            return Map.of("wallMillis", wallMillis, "threadCpuMillis", cpuMillis,
-                    "wallMinusCpuMillis", wallMillis - cpuMillis, "jdbc", parts,
-                    "sqlExecutionMillis", Arrays.stream(executions).mapToDouble(n -> n / 1_000_000.0).boxed().toList());
+            var result = new LinkedHashMap<String, Object>();
+            result.put("wallMillis", wallMillis); result.put("threadCpuMillis", cpuMillis);
+            result.put("wallMinusCpuMillis", wallMillis - cpuMillis); result.put("jdbc", parts);
+            result.put("sqlExecutionMillis", Arrays.stream(executions).mapToDouble(n -> n / 1_000_000.0).boxed().toList());
+            if (connectionCalls) result.put("connectionCalls", connection.snapshot());
+            return result;
         }
     }
 
-    private static final class CommitGate {
-        final CountDownLatch nativeReturned = new CountDownLatch(1);
+    private static final class CallGate {
+        final String scenario;
+        CallGate(String scenario) { this.scenario = scenario; }
+        boolean matches(String method, Object[] args) {
+            return switch (scenario) {
+                case "ENTRY_AUTOCOMMIT_PAUSE" -> method.equals("setAutoCommit") && Boolean.FALSE.equals(args[0]);
+                case "RESTORE_AUTOCOMMIT_PAUSE" -> method.equals("setAutoCommit") && Boolean.TRUE.equals(args[0]);
+                default -> method.equals("commit");
+            };
+        }
+        void pause() throws SQLException {
+            reached.countDown();
+            try {
+                if (!release.await(3, TimeUnit.SECONDS)) throw new SQLException("Calibration release timed out");
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt(); throw new SQLException("Calibration interrupted");
+            }
+        }
+        final CountDownLatch reached = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
     }
 
-    private static final class CommitDelayDataSource extends DelegatingDataSource {
-        private final AtomicReference<CommitGate> gate;
-        CommitDelayDataSource(DataSource target, AtomicReference<CommitGate> gate) { super(target); this.gate = gate; }
+    private static final class CallDelayDataSource extends DelegatingDataSource {
+        private final AtomicReference<CallGate> gate;
+        CallDelayDataSource(DataSource target, AtomicReference<CallGate> gate) { super(target); this.gate = gate; }
         @Override public Connection getConnection() throws SQLException { return connection(obtainTargetDataSource().getConnection()); }
         @Override public Connection getConnection(String username, String password) throws SQLException { return connection(obtainTargetDataSource().getConnection(username, password)); }
         private Connection connection(Connection target) {
@@ -250,20 +300,14 @@ class AdmissionWaitProbeTest {
                         default -> "Commit calibration connection";
                     };
                 }
+                var candidate = gate.get();
+                var armed = candidate != null && candidate.matches(method.getName(), args) && gate.compareAndSet(candidate, null) ? candidate : null;
+                boolean before = armed != null && armed.scenario.equals("ENTRY_AUTOCOMMIT_PAUSE");
+                if (before) armed.pause();
                 Object result;
                 try { result = method.invoke(target, args); }
                 catch (InvocationTargetException failure) { throw failure.getCause(); }
-                if (method.getName().equals("commit")) {
-                    var armed = gate.getAndSet(null);
-                    if (armed != null) {
-                        armed.nativeReturned.countDown();
-                        try {
-                            if (!armed.release.await(3, TimeUnit.SECONDS)) throw new SQLException("Calibration release timed out");
-                        } catch (InterruptedException interrupted) {
-                            Thread.currentThread().interrupt(); throw new SQLException("Calibration interrupted");
-                        }
-                    }
-                }
+                if (armed != null && !before) armed.pause();
                 return result;
             });
         }

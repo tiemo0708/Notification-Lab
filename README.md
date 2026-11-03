@@ -347,6 +347,10 @@ HTTP/Kafka 발송 부하는 없고 기존 자연 발생 tail의 원인을 해결
 20ms 이상 진행 중인 execute/commit만 조회하는 실험이다. 생략 또는0은 기존 즉시 조회다.
 긴 호출 수도 별도 집계해 표본을 놓친 구간을 숨기지 않는다. 운영 설정은 그대로다.
 
+[연결 상태 변경의 메서드별 진단](docs/S7_API_CONNECTION_TIMING.md)은 `apiConnectionProbe`로 진입·복원 지연을 구분한다.
+`apiConnectionPilot -PconnectionCalls=OFF` 또는ON으로 정확히1천 건을 비교하며, ON은 getAutoCommit과setAutoCommit(false/true)를 따로 기록한다.
+제어군과 자연86개 접수의 호출 순서는 검증했으나 앞선127ms 상태 합계는 재현하지 못했다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

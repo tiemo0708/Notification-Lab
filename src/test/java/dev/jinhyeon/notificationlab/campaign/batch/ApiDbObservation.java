@@ -184,6 +184,11 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
         return request;
     }
 
+    @Override public boolean connectionCallsEnabled() { return delegate.connectionCallsEnabled(); }
+    @Override public void connectionCall(ApiConnectionTiming.Method method, ApiConnectionTiming.Boundary boundary, long nanos, boolean failed) {
+        delegate.connectionCall(method, boundary, nanos, failed);
+    }
+
     Candidate candidate() { synchronized (lock) { return active; } }
 
     void pollOnce() {

@@ -2418,3 +2418,42 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 고정소스7개해시/운영Java·resources diff0/기존100만건FAIL원본SHA불변/원본JSON과문서링크를확인했다.
   Git identity를유지했고원격main9cf1786을읽기전용확인했다. 푸시는하지않았다.
 - 최종Docker에는기존notification-lab-mysql-1만healthy로남았고임시검증컨테이너는정리됐다.
+
+## 2026-11-03 — S7 연결 상태 변경 메서드·복원 경계 진단
+
+- 시작6edb1b1/main. 테스트전용AUTOCOMMIT_STATE를getAutoCommit/setAutoCommit(false)/setAutoCommit(true)로분리했다.
+  기존합계·호출횟수는유지하며상세순번/메서드/관찰경계/wall millis/실패여부만보관한다.
+  BEFORE_FIRST_SQL/BEFORE_COMPLETION/AFTER_COMMIT/AFTER_ROLLBACK은JDBC proxy에서관찰한순서이며서버트랜잭션시각이아니다.
+  savepoint rollback을완료경계로취급하지않고기존delegate를한번만호출한다. 상세조회/재시도/관찰스레드는추가하지않는다.
+- 상세최대8개/요청, 기존API순차1개/최대5000요청을유지한다. 성공접수의3개메서드·경계·합계횟수와상세합계≤바깥합계를검증한다.
+  물리ID/SQL/인자전체/드라이버오류메시지를보관하지않는다. OFF는기존요청별합계계측을유지하고상세만끈다.
+- Spring6.2.19/DataSourceTransactionManager와Connector/J9.7.0의버전고정공식·로컬소스를대조했다.
+  진입에서auto-commit해제/완료후복원, 드라이버get의캐시상태조회와set의조건부내부SET명령을확인했다.
+  기존EXECUTE4회는애플리케이션DML이며드라이버내부제어명령을포함한서버전체SQL횟수가아니다. wall time은순수서버시간이아니다.
+- 선택20개는6초/종료코드0/실패·오류·스킵0이었다. 정상3메서드/rollback후복원/상태변경실패원래예외보존과본체미실행,
+  상세누락·잘못된완료경계·8개상한을검증했다. 기존17개+새3개다.
+- 고정소스9개에서apiConnectionProbe11초/테스트1개PASS/종료코드0/실패·오류·스킵0, 접수6건/공급자0이었다.
+  진입전합성보류는SET_FALSE206.024ms/BEFORE_FIRST_SQL/행증가없음, 복원반환후보류는SET_TRUE209.287ms/AFTER_COMMIT/3개테이블행증가를확인했다.
+  두조건모두관찰순간잠금대기관계0/호출자미완료였다. 합성보류로자연OS·네트워크원인을추정하지않는다.
+- 공유제어도구의기존apiSessionProbe(min20)도11초/1개PASS/종료코드0/실패·오류·스킵0이었다.
+  기존실제잠금/commit후보류3조건, 조회17회/잠금표본8개/오류0, 종료후열린요청0/대기작업0/스레드종료를확인했다.
+- 새인프라의자연apiConnectionPilot은같은소스/1천건/COUNT_TIME/실시간RECORD에서상세OFF→ON각1회비교했다.
+  각41초/39초·테스트1개PASS/종료코드0/실패·오류·스킵0, 캠페인완료8.594/8.257초였다.
+  혼합접수p95 11.962/13.744ms·최대12.730/14.392ms·표본38/36개였다.
+  HTTP2174건(캠페인2000+실시간174)의대상/시도이력1회/PUBLISHED/감사/partition별offset=end/quota를전수대조했다.
+  중복/잘못된매핑/Mock제한·오류0, SQL4회/획득·commit·반환1회/rollback0/상태호출3회, pool종료/consumer3개/activeCalls0을확인했다.
+- ON86요청/상세258개모두3메서드·경계가일치했고상세합계≤바깥합계를확인했다.
+  get/setfalse/settrue최대0.239/2.765/1.585ms, 상태합계최대OFF3.506/ON3.265ms로127.318ms는미재현이다.
+  ON전체최대접수86.389ms는서버41.025ms/store7.907ms/상태합계1.090ms로다른구간시간을이번계측만으로분해하지않았다.
+  각1회/공유호스트/순차probe/적은표본으로p95차이를계측비용의인과효과나개선으로해석하지않는다. 과거10만건tail/100만건timeout원인은미확정이다.
+- [호출흐름·공식참고·실제결과](S7_API_CONNECTION_TIMING.md), [고정소스·원본·실행메타데이터](experiments/s7-api-connection-2026-11-03-execution.json)를기록했다.
+  다음은고정계측의제한된1만건반복에서긴상태호출표본을확보할수있는지판단하는단계다.
+  운영Java/resources/기본정책/풀·격리수준·예산과사용자DB/.env/IntelliJ/volume을유지한다.
+  10만·100만건재실행/실제공급자/유료자원/푸시는하지않았다.
+
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **14분14초/종료코드0**이었다.
+  새39개클래스JUnit XML과콘솔에서 **317개통과/실패·오류·스킵0**을대조했다. 기존314개+새단위3개다.
+  기본회귀를재실행했고bootJar는UP-TO-DATE였다. 원격CI결과가아니다.
+- 고정소스9개/운영Java·resources diff0/기존100만건FAIL원본SHA불변/원본JSON·문서링크를확인했다.
+  기존Git identity와원격main9cf1786을읽기전용확인했다. 푸시는하지않았다.
+- 최종Docker에는기존notification-lab-mysql-1만healthy로남았고임시검증컨테이너는정리됐다.

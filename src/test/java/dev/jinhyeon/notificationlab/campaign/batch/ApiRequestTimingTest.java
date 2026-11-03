@@ -13,6 +13,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ApiRequestTimingTest {
     @Test
+    void rejectsMissingConnectionCallsWrongCompletionAndUnboundedDetails() {
+        var calls = new ApiConnectionTiming();
+        calls.record(ApiConnectionTiming.Method.GET_AUTO_COMMIT, ApiConnectionTiming.Boundary.BEFORE_FIRST_SQL, 1000, false);
+        calls.record(ApiConnectionTiming.Method.SET_AUTO_COMMIT_FALSE, ApiConnectionTiming.Boundary.BEFORE_FIRST_SQL, 1000, false);
+        assertThatThrownBy(() -> calls.verifySuccessfulAdmission(2, 2000)).isInstanceOf(IllegalStateException.class);
+        calls.record(ApiConnectionTiming.Method.SET_AUTO_COMMIT_TRUE, ApiConnectionTiming.Boundary.AFTER_ROLLBACK, 1000, false);
+        assertThatThrownBy(() -> calls.verifySuccessfulAdmission(3, 3000)).isInstanceOf(IllegalStateException.class);
+        for (int i = 3; i < 8; i++) calls.record(ApiConnectionTiming.Method.GET_AUTO_COMMIT, ApiConnectionTiming.Boundary.BEFORE_FIRST_SQL, 0, false);
+        assertThatThrownBy(() -> calls.record(ApiConnectionTiming.Method.GET_AUTO_COMMIT, ApiConnectionTiming.Boundary.BEFORE_FIRST_SQL, 0, false))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(calls.snapshot()).hasSize(8);
+    }
+
+    @Test
     void pairsDifferentClientAndServletThreadsAndDoesNotLeakTheServletScope() throws Exception {
         var timing = new ApiRequestTiming(1);
         var capture = timing.open(ApiRequestTiming.Window.MIXED);

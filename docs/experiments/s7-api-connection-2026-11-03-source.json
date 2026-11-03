@@ -1,0 +1,15 @@
+{
+  "base": "6edb1b18160f3a5d7c179c3c84690dc9954ff294",
+  "frozenAtUtc": "2026-11-03T01:46:55.470589+00:00",
+  "files": {
+    "build.gradle": "4dc6ad2ad724b38a837eda9e07cb07f194039845c6b01248b0d84bfbfd604304",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "68b92701b873f3469047fb7522e6ed31b25911abe05286a0b899ef1468f4d054",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTimingTest.java": "9bb9282e01c976c4e7bd8250a851aa5f9b5ae3b58d3f620fdc463de7ad548a81",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiConnectionTiming.java": "28be2771f5b1c1cb6b04049a6faf14366257dae1e73bdaef0f4653036a28be14",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiRequestTiming.java": "b9852bb6569aeae609189295834e734a086571b7f834053975f5632aa6d14b3a",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiRequestTimingTest.java": "d405e333425ac03fc5014c43c7c290777d7fd366d787cf4e90eadaa8c4268e6d",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiDbObservation.java": "8f811ccc26b3630a089bbd1a55e413fd22aba17c6dfc89a0ccfa1ad32ecad2fb",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/AdmissionWaitProbeTest.java": "4250f5a9daaf3974c4e422b541aeb31d400fd1007c52d68bc3307f00908c5216",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "4a4168adbac2a4a00a766cdc504fc2c792aec626f2413b59394a9ba02fdaf9a4"
+  }
+}

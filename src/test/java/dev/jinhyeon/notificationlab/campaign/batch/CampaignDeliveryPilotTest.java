@@ -88,6 +88,8 @@ class CampaignDeliveryPilotTest {
         boolean offsetComparison = Boolean.getBoolean("campaign.delivery.offsetComparison");
         boolean apiTiming = Boolean.getBoolean("campaign.delivery.apiTiming");
         boolean dbObservation = Boolean.getBoolean("campaign.delivery.dbObservation");
+        boolean connectionPilot = Boolean.getBoolean("campaign.delivery.connectionPilot");
+        if (connectionPilot && (!apiTiming || dbObservation || load)) throw new IllegalArgumentException("Connection pilot requires only bounded API timing");
         if (dbObservation && !apiTiming) throw new IllegalArgumentException("DB observation requires API timing");
         if (apiTiming && (load || !offsetComparison)) throw new IllegalArgumentException("API timing requires the small offset pilot");
         var offsetMode = offsetComparison ? OffsetCommitPolicy.mode(System.getProperty("campaign.delivery.offsetMode", "RECORD")) : OffsetCommitPolicy.Mode.RECORD;
@@ -119,6 +121,7 @@ class CampaignDeliveryPilotTest {
         report.put("relayScheduling", scaling ? "test-only-fixed-delay-group-v1" : "application-scheduled-bean");
         report.put("fineTimingEnabled", fineTiming);
         if (apiTiming) report.put("apiTimingEnabled", true);
+        if (connectionPilot) report.put("connectionCallsEnabled", Boolean.getBoolean("campaign.delivery.connectionCalls"));
         if (dbObservation) report.put("dbObservationEnabled", Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")));
         report.put("offsetComparison", offsetComparison);
         report.put("campaignOffsetMode", offsetMode.name());
@@ -289,10 +292,10 @@ class CampaignDeliveryPilotTest {
             }
             report.put("finishedAtUtc", Instant.now().toString());
             if (apiRequestTiming != null) report.put("apiRequestTiming", apiRequestTiming.snapshot());
-            Path directory = Path.of(dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
+            Path directory = Path.of(connectionPilot ? "build/reports/api-connection-pilot" : dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                     load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
-            String name = dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
+            String name = connectionPilot ? (Boolean.getBoolean("campaign.delivery.connectionCalls") ? "ON" : "OFF") + "-targets-" + targets : dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
                     : offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
             mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
         }
@@ -336,18 +339,18 @@ class CampaignDeliveryPilotTest {
         var builder = new SpringApplicationBuilder(NotificationLabApplication.class)
                 .web(live ? WebApplicationType.SERVLET : WebApplicationType.NONE);
         ApiRequestTiming api = live && lane.equals("REALTIME") && Boolean.getBoolean("campaign.delivery.apiTiming")
-                ? new ApiRequestTiming(maxProbes) : null;
+                ? new ApiRequestTiming(maxProbes, Boolean.getBoolean("campaign.delivery.connectionCalls")) : null;
         if (api != null) {
             apiRequestTiming = api;
             builder.sources(ApiRequestTiming.Wiring.class)
                     .initializers(context -> context.getBeanFactory().registerSingleton("apiRequestTiming", api));
         }
         if (live && Boolean.getBoolean("campaign.delivery.fineTiming")) {
-            DeliveryTiming.ApiObserver observer = api == null ? null : api::jdbc;
+            DeliveryTiming.ApiObserver observer = api == null ? null : api.observer();
             if (api != null && Boolean.getBoolean("campaign.delivery.dbObservation")) {
                 try {
                     apiDbObservation = ApiDbObservation.connect(DriverManager.getConnection(mysql.getJdbcUrl(), "root", mysql.getPassword()),
-                            api::jdbc, api::currentWindow, Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")),
+                            api.observer(), api::currentWindow, Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")),
                             Long.getLong("campaign.delivery.dbMinCallMillis", 0));
                     observer = apiDbObservation;
                 } catch (Exception failure) { throw new IllegalStateException("DB observation setup failed", failure); }

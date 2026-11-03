@@ -30,9 +30,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DeliveryTimingTest {
     @Test
     void pairsApiAcquisitionFourStatementsAndCommitAcrossTheTransactionBoundary() throws Exception {
-        var api = new ApiRequestTiming(1);
+        var api = new ApiRequestTiming(1, true);
         var driver = new JdbcDriver();
-        var timing = new DeliveryTiming(api::jdbc);
+        var timing = new DeliveryTiming(api.observer());
         var source = timing.dataSource(driver);
         var tx = new TransactionTemplate(new JdbcTransactionManager(source));
         var capture = api.open(ApiRequestTiming.Window.MIXED);
@@ -48,6 +48,54 @@ class DeliveryTimingTest {
         assertCount(timing, Phase.API_SUBMIT, Part.RELEASE, 1, 0);
         assertThat(driver.events).endsWith("commit", "release");
         assertThat(new ObjectMapper().writeValueAsString(api.snapshot())).doesNotContain("PRIVATE_SQL", "PRIVATE_ARG");
+    }
+
+    @Test
+    void recordsRestorationAfterRollbackWithoutTurningItIntoACommit() throws Exception {
+        var calls = new ApiConnectionTiming();
+        var driver = new JdbcDriver();
+        driver.sqlFailure = new SQLException("PRIVATE_SQL_FAILURE", "45000");
+        var timing = new DeliveryTiming(connectionObserver(calls));
+        var source = timing.dataSource(driver);
+        var tx = new TransactionTemplate(new JdbcTransactionManager(source));
+        assertThatThrownBy(() -> timing.scope(Phase.API_SUBMIT, () -> tx.execute(status -> {
+            new JdbcTemplate(source).update("PRIVATE_SQL", "PRIVATE_ARG"); return null;
+        }))).hasRootCause(driver.sqlFailure);
+        assertThat(calls.snapshot()).extracting(r -> r.get("method")).containsExactly("GET_AUTO_COMMIT", "SET_AUTO_COMMIT_FALSE", "SET_AUTO_COMMIT_TRUE");
+        assertThat(calls.snapshot()).extracting(r -> r.get("boundary")).containsExactly("BEFORE_FIRST_SQL", "BEFORE_FIRST_SQL", "AFTER_ROLLBACK");
+        assertCount(timing, Phase.API_SUBMIT, Part.COMMIT, 0, 0);
+        assertCount(timing, Phase.API_SUBMIT, Part.ROLLBACK, 1, 0);
+        assertThat(driver.events).endsWith("rollback", "release");
+        assertThat(new ObjectMapper().writeValueAsString(calls.snapshot())).doesNotContain("PRIVATE_SQL", "PRIVATE_ARG", "PRIVATE_SQL_FAILURE");
+    }
+
+    @Test
+    void preservesStateChangeFailureAndDoesNotInventSqlOrCompletionBoundaries() throws Exception {
+        var calls = new ApiConnectionTiming();
+        var driver = new JdbcDriver();
+        driver.stateFailure = new SQLException("PRIVATE_STATE_FAILURE", "45000");
+        var timing = new DeliveryTiming(connectionObserver(calls));
+        var source = timing.dataSource(driver);
+        var tx = new TransactionTemplate(new JdbcTransactionManager(source));
+        assertThatThrownBy(() -> timing.scope(Phase.API_SUBMIT, () -> tx.execute(status -> {
+            throw new AssertionError("Body must not run");
+        }))).hasRootCause(driver.stateFailure);
+        assertThat(calls.snapshot()).hasSize(2);
+        assertThat(calls.snapshot().get(1)).containsEntry("method", "SET_AUTO_COMMIT_FALSE")
+                .containsEntry("boundary", "BEFORE_FIRST_SQL").containsEntry("failed", true);
+        assertThat(driver.events).containsExactly("acquire", "release");
+        assertCount(timing, Phase.API_SUBMIT, Part.AUTOCOMMIT_STATE, 2, 1);
+        assertThat(new ObjectMapper().writeValueAsString(calls.snapshot())).doesNotContain("PRIVATE_STATE_FAILURE");
+    }
+
+    private static DeliveryTiming.ApiObserver connectionObserver(ApiConnectionTiming calls) {
+        return new DeliveryTiming.ApiObserver() {
+            @Override public void record(Part part, long nanos, boolean failed) { }
+            @Override public boolean connectionCallsEnabled() { return true; }
+            @Override public void connectionCall(ApiConnectionTiming.Method method, ApiConnectionTiming.Boundary boundary, long nanos, boolean failed) {
+                calls.record(method, boundary, nanos, failed);
+            }
+        };
     }
 
     @Test
@@ -170,6 +218,7 @@ class DeliveryTimingTest {
         private final List<String> events = new ArrayList<>();
         private boolean autoCommit = true;
         private SQLException sqlFailure;
+        private SQLException stateFailure;
         private final PreparedStatement statement = proxy(PreparedStatement.class, (object, method, args) -> {
             return switch (method.getName()) {
                 case "executeUpdate" -> { events.add("execute"); if (sqlFailure != null) throw sqlFailure; yield 1; }
@@ -182,7 +231,10 @@ class DeliveryTimingTest {
         private final Connection connection = proxy(Connection.class, (object, method, args) -> {
             return switch (method.getName()) {
                 case "getAutoCommit" -> autoCommit;
-                case "setAutoCommit" -> { autoCommit = (boolean) args[0]; yield null; }
+                case "setAutoCommit" -> {
+                    if (Boolean.FALSE.equals(args[0]) && stateFailure != null) throw stateFailure;
+                    autoCommit = (boolean) args[0]; yield null;
+                }
                 case "isReadOnly", "isClosed" -> false;
                 case "prepareStatement" -> { events.add("prepare"); yield statement; }
                 case "commit", "rollback" -> { events.add(method.getName()); yield null; }

@@ -26,6 +26,7 @@ final class ApiRequestTiming {
     enum Window { BASELINE, MIXED }
     @FunctionalInterface interface ServerAction { void run() throws IOException, ServletException; }
     private final int capacity;
+    private final boolean connectionCalls;
     private final AtomicReference<Capture> pending = new AtomicReference<>();
     private final ThreadLocal<Capture> serving = new ThreadLocal<>();
     private final List<Map<String, Object>> rows = new ArrayList<>();
@@ -33,8 +34,13 @@ final class ApiRequestTiming {
     private double drainStartAfterMillis = -1;
 
     ApiRequestTiming(int capacity) {
+        this(capacity, false);
+    }
+
+    ApiRequestTiming(int capacity, boolean connectionCalls) {
         if (capacity < 1 || capacity > 5000) throw new IllegalArgumentException("API timing capacity must be 1..5000");
         this.capacity = capacity;
+        this.connectionCalls = connectionCalls;
     }
 
     static final class Capture {
@@ -44,6 +50,7 @@ final class ApiRequestTiming {
         final long[] nanos = new long[DeliveryTiming.Part.values().length];
         final long[] counts = new long[nanos.length];
         final long[] executions = new long[4];
+        final ApiConnectionTiming connection = new ApiConnectionTiming();
         long startedNanos;
         long serverNanos;
         boolean failed;
@@ -86,6 +93,18 @@ final class ApiRequestTiming {
         capture.failed |= failed;
     }
 
+    DeliveryTiming.ApiObserver observer() {
+        return new DeliveryTiming.ApiObserver() {
+            @Override public void record(DeliveryTiming.Part part, long nanos, boolean failed) { jdbc(part, nanos, failed); }
+            @Override public boolean connectionCallsEnabled() { return connectionCalls; }
+            @Override public void connectionCall(ApiConnectionTiming.Method method, ApiConnectionTiming.Boundary boundary, long nanos, boolean failed) {
+                Capture capture = serving.get();
+                if (!connectionCalls || capture == null) throw new IllegalStateException("Missing connection call probe");
+                capture.connection.record(method, boundary, nanos, failed);
+            }
+        };
+    }
+
     void complete(Capture capture, double clientMillis, int status) throws InterruptedException {
         if (pending.get() != capture) throw new IllegalStateException("API probe does not match");
         try {
@@ -110,6 +129,11 @@ final class ApiRequestTiming {
                 parts.put(part.name(), Map.of("count", capture.counts[part.ordinal()], "millis", capture.nanos[part.ordinal()] / 1_000_000.0));
             }
             row.put("parts", parts);
+            if (connectionCalls) {
+                capture.connection.verifySuccessfulAdmission(capture.counts[DeliveryTiming.Part.AUTOCOMMIT_STATE.ordinal()],
+                        capture.nanos[DeliveryTiming.Part.AUTOCOMMIT_STATE.ordinal()]);
+                row.put("connectionCalls", capture.connection.snapshot());
+            }
             rows.add(row);
         } finally { pending.compareAndSet(capture, null); }
     }
@@ -125,7 +149,7 @@ final class ApiRequestTiming {
     void markDrainStart(long nanos) { drainStartAfterMillis = (nanos - originNanos) / 1_000_000.0; }
 
     Map<String, Object> snapshot() {
-        return Map.of("version", "paired-api-jdbc-v1", "capacity", capacity, "completed", rows.size(),
+        return Map.of("version", connectionCalls ? "paired-api-jdbc-v2" : "paired-api-jdbc-v1", "capacity", capacity, "completed", rows.size(),
                 "pending", pending.get() != null, "drainStartAfterMillis", drainStartAfterMillis, "rows", List.copyOf(rows));
     }
 

@@ -260,6 +260,33 @@ tasks.register('apiDbObservationPilot', Test) {
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
 
+tasks.register('apiConnectionPilot', Test) {
+    description = 'Bounded 1k admission pilot with ON/OFF per-method auto-commit call timing'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'campaign-delivery-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(25)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '20m'
+    systemProperty 'campaign.delivery.targets', '1000'
+    systemProperty 'campaign.delivery.load', 'false'
+    systemProperty 'campaign.delivery.scaling', 'true'
+    systemProperty 'campaign.delivery.relayInstances', '2'
+    systemProperty 'campaign.delivery.publishBatchSize', '10'
+    systemProperty 'campaign.delivery.fineTiming', 'true'
+    systemProperty 'campaign.delivery.offsetComparison', 'true'
+    systemProperty 'campaign.delivery.offsetMode', 'COUNT_TIME'
+    systemProperty 'campaign.delivery.apiTiming', 'true'
+    systemProperty 'campaign.delivery.connectionPilot', 'true'
+    def details = providers.gradleProperty('connectionCalls').getOrElse('ON')
+    if (!(details in ['ON', 'OFF'])) throw new GradleException('connectionCalls must be ON or OFF')
+    systemProperty 'campaign.delivery.connectionCalls', (details == 'ON').toString()
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
 // Explicit 100k only; no million-target offset comparison is enabled.
 tasks.register('offsetCommitLoad', Test) {
     description = 'Compare RECORD/COUNT_TIME for exactly 100,000 HTTP campaign deliveries'
@@ -388,6 +415,21 @@ tasks.register('apiSessionProbe', Test) {
     def minimumCallMillis = providers.gradleProperty('dbMinCallMillis').getOrElse('0')
     if (!(minimumCallMillis in ['0', '20'])) throw new GradleException('dbMinCallMillis must be 0 or 20')
     systemProperty 'api.wait.dbMinCallMillis', minimumCallMillis
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(3)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '2m'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+tasks.register('apiConnectionProbe', Test) {
+    description = 'Calibrate auto-commit entry and restoration call timing against real transactional admissions'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'api-wait-probe' }
+    systemProperty 'api.wait.connectionCalls', 'true'
     maxHeapSize = '512m'
     maxParallelForks = 1
     timeout = Duration.ofMinutes(3)
