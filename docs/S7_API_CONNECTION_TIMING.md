@@ -120,3 +120,5 @@ ON 전체 최대 접수86.389ms는 BASELINE에서 서버41.025ms/store7.907ms/�
 고정 소스9개 해시와 운영 Java/resources diff0, 기존100만 건FAIL 원본 SHA 불변을 확인했다.
 Git identity를 유지했고 원격 main9cf1786은 읽기 전용으로 확인했다.
 최종 Docker에는 기존 notification-lab-mysql-1만 healthy로 남았고 임시 검증 컨테이너는 정리됐다.
+
+후속 [고정 계측의1만 건 반복](S7_API_CONNECTION_10K.md)부터 `-PdeliveryTargets=10000`을 허용한다. 생략 시1000을 유지한다. 두 실행 모두127ms 상태 합계는 미재현이다.

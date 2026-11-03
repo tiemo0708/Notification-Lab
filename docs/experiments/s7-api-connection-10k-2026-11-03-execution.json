@@ -1,0 +1,70 @@
+{
+  "scope": "same Java instrumentation as bba081f; ON 10k twice on fresh infrastructure sequentially; input whitelist 1k/10k only; no 100k/million rerun",
+  "sourceManifest": "s7-api-connection-10k-2026-11-03-source.json",
+  "sourceManifestSha256": "e7dda392f2dd6d234e28641f1bc81ffcd8ba8130005658361ab13046fad13d76",
+  "analysisFile": "s7-api-connection-10k-2026-11-03-analysis.json",
+  "analysisSha256": "b77870e56c679b6d2b1de9e195c50554414efeb0d0ffbbc2663d063f59e6f0bb",
+  "runs": [
+    {
+      "run": 1,
+      "rawFile": "s7-api-connection-10k-2026-11-03-run-1.json",
+      "sha256": "36e85dd6d66cb6f97e3927daced224e932fe51e731bda6b4057b640f62acacdf",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiConnectionPilot -PconnectionCalls=ON -PdeliveryTargets=10000",
+      "exitCode": 0,
+      "gradleDuration": "1m 54s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T02:31:43.330475Z",
+      "finishedAtUtc": "2026-11-03T02:33:32.135424Z",
+      "httpRequests": 10351,
+      "pairedRequests": 351
+    },
+    {
+      "run": 2,
+      "rawFile": "s7-api-connection-10k-2026-11-03-run-2.json",
+      "sha256": "763d7ce5c8d74dad2a51ab1ec9a6f667b239c7d96025e9034cb63401338fc790",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiConnectionPilot -PconnectionCalls=ON -PdeliveryTargets=10000",
+      "exitCode": 0,
+      "gradleDuration": "1m 45s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T02:33:42.302945Z",
+      "finishedAtUtc": "2026-11-03T02:35:24.372632Z",
+      "httpRequests": 10333,
+      "pairedRequests": 333
+    }
+  ],
+  "fullBuild": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "exitCode": 0,
+    "duration": "14m 23s",
+    "classes": 39,
+    "tests": 317,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "freshXmlAfterLogBirth": true,
+    "consolePassed": 317,
+    "compileTestJavaUpToDate": true,
+    "artifactTasks": [
+      "> Task :bootJar UP-TO-DATE",
+      "> Task :jar SKIPPED"
+    ]
+  },
+  "remoteMainReadOnly": "9cf178636edc4b03a5aa1d560f9cfe3c71f36568",
+  "millionFailureSha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b",
+  "inputGuard": {
+    "command": "./gradlew --no-daemon --console=plain apiConnectionPilot -PdeliveryTargets=100000 --dry-run",
+    "expectedExitCode": 1,
+    "actualExitCode": 1,
+    "duration": "2s",
+    "result": "EXPECTED_REJECTION",
+    "reason": "deliveryTargets must be 1000 or 10000 for apiConnectionPilot",
+    "deliveryOrContainersStarted": false
+  },
+  "dockerAfter": "only existing notification-lab-mysql-1 mysql:8.4.8 healthy"
+}

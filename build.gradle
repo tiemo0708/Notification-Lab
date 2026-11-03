@@ -261,7 +261,7 @@ tasks.register('apiDbObservationPilot', Test) {
 }
 
 tasks.register('apiConnectionPilot', Test) {
-    description = 'Bounded 1k admission pilot with ON/OFF per-method auto-commit call timing'
+    description = 'Bounded 1k or 10k admission pilot with ON/OFF per-method auto-commit call timing'
     group = 'verification'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
@@ -270,7 +270,9 @@ tasks.register('apiConnectionPilot', Test) {
     maxParallelForks = 1
     timeout = Duration.ofMinutes(25)
     systemProperty 'junit.jupiter.execution.timeout.test.method.default', '20m'
-    systemProperty 'campaign.delivery.targets', '1000'
+    def targets = providers.gradleProperty('deliveryTargets').getOrElse('1000')
+    if (!(targets in ['1000', '10000'])) throw new GradleException('deliveryTargets must be 1000 or 10000 for apiConnectionPilot')
+    systemProperty 'campaign.delivery.targets', targets
     systemProperty 'campaign.delivery.load', 'false'
     systemProperty 'campaign.delivery.scaling', 'true'
     systemProperty 'campaign.delivery.relayInstances', '2'

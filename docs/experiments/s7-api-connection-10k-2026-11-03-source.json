@@ -1,0 +1,24 @@
+{
+  "base": "bba081fbadd85c8ee577f4de90f68658863f8bb6",
+  "frozenAtUtc": "2026-11-03T02:31:37.508775+00:00",
+  "protocol": {
+    "runs": 2,
+    "targetsPerRun": 10000,
+    "connectionCalls": "ON",
+    "sequence": "fresh infrastructure sequential, no concurrent experiments",
+    "stop": "two runs only; preserve failures; no escalation to 100k/million"
+  },
+  "previousInstrumentationSourceManifest": "s7-api-connection-2026-11-03-source.json",
+  "unchangedPreviousJavaSources": true,
+  "files": {
+    "build.gradle": "18647b5265b48f2a3afbeeed8c46b73fb10726e170c7c75669fed813dd20cba4",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "68b92701b873f3469047fb7522e6ed31b25911abe05286a0b899ef1468f4d054",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTimingTest.java": "9bb9282e01c976c4e7bd8250a851aa5f9b5ae3b58d3f620fdc463de7ad548a81",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiConnectionTiming.java": "28be2771f5b1c1cb6b04049a6faf14366257dae1e73bdaef0f4653036a28be14",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiRequestTiming.java": "b9852bb6569aeae609189295834e734a086571b7f834053975f5632aa6d14b3a",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiRequestTimingTest.java": "d405e333425ac03fc5014c43c7c290777d7fd366d787cf4e90eadaa8c4268e6d",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiDbObservation.java": "8f811ccc26b3630a089bbd1a55e413fd22aba17c6dfc89a0ccfa1ad32ecad2fb",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/AdmissionWaitProbeTest.java": "4250f5a9daaf3974c4e422b541aeb31d400fd1007c52d68bc3307f00908c5216",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "4a4168adbac2a4a00a766cdc504fc2c792aec626f2413b59394a9ba02fdaf9a4"
+  }
+}
