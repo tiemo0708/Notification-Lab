@@ -2584,3 +2584,38 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   고정소스10개/보존원본10개의SHA 일치, 운영Java/resources diff0, 기존100만건FAIL SHA 불변을 확인했다.
 - 기존 Git identity와 원격main9cf1786을 읽기 전용 확인했다. Docker에는 기존notification-lab-mysql-1만healthy로 남았다.
   사용자DB/.env/IntelliJ/volume을 유지했고 푸시는 하지 않았다.
+
+
+## 2026-11-03: S7 장시간 도구의 선택적 첫 실패 보존과 1천 건 리허설
+
+시작67269e3/main. `campaignDeliveryMillion -PfailureObservation=ON` 연결을 추가했으며 기본OFF를 유지한다.
+이번에 실제10만/100만 건 발송은 실행하지 않았다.
+
+- LONG_RUN은 대상100만/load=true/주입NONE만 허용한다. 전체 세부계측·Relay 병렬·offset비교·다른API계측과 혼용을 거절한다.
+  RECORD/기본 Relay1/publishBatchSize1/Worker3/역할별Hikari4/예산을 유지하며 실시간 앱에만 기록용 계측을 붙인다.
+  기존 publishBatchSize 옵션은 유지한다. 테스트 전용이며 운영Java/resources는 변경하지 않았다.
+- 기존 상한 probe150000/drain8h/JUnit11h/task12h/JVM512MiB/페이지1000/자원표본14402개를 유지한다.
+  기록기는최근32+진행1/첫파일256KiB다. 다른 전체 자료구조도 남아 있어 전체 프로세스 상수 메모리를 주장하지 않는다.
+- 새 REHEARSAL은 기존 장시간 기본 구성의1천 건만 허용한다. 오류 주입은 이 작은 프로필에서 검증한다.
+  관련 단위35개가6초에 실패·오류·스킵0으로 통과했다. 합성 callback5000/150000회 모두 최근32개 보관,
+  상한 다음open 거절/PROBE_LIMIT 동결/직렬화 크기상한을 검증했다. 실제15만 건 HTTP 발송이 아니다.
+- REHEARSAL NONE/TIMEOUT/STORAGE_FAILURE 각1회가45/36/36초·종료코드0으로 제어 검증을 통과했다.
+  NONE은 캠페인1000+실시간104=1104건 HTTP·DB·전체 참조·offset 대조, 중복/잘못된참조0이었다.
+  두 제어의 원래 harness는 FAIL/HttpTimeoutException을 유지한다. 첫MIXED(51번째)5초 timeout에서
+  완료50/evicted18/최근32+진행1, active AUTOCOMMIT_STATE/commitReturned=true/응답미관찰/클라이언트UNKNOWN이었다.
+  앱active/pool open/gate 대기 중 첫 저장을 확인했다. TIMEOUT 파일68395bytes는 정리 후 동결자료와 byte 일치했다.
+  STORAGE_FAILURE는 FileAlreadyExistsException/suppressed1개, 기존35bytes 보존을 확인했다.
+- 실제 장시간 task의 기본OFF/명시적ON 설정을 임시Gradle검사로 읽고 각각dry-run3/2초에 확인했다.
+  대상100만/RECORD/주입NONE/전체세부계측OFF/병렬Relay OFF/heap512m/fork1/JUnit11h/task12h였고 task는SKIPPED다.
+  실제 실행이나 장시간 보존 능력 검증이 아니다. 기존 PILOT도39초/1086건 전수대조를 통과했다.
+- [구성·실제 결과·미보장 경계](S7_LONG_RUN_WIRING.md), [고정 소스](experiments/s7-long-observation-2026-11-03-source.json),
+  [원본 SHA·명령](experiments/s7-long-observation-2026-11-03-execution.json)을 보존한다.
+  기존100만 건 timeout 원인은 여전히 미확정이며 성능 개선 주장도 하지 않는다.
+  초기화/preload/종료 중 오류·외부 강제종료의 종료 전 파일은 보장하지 않는다. 실제 장시간 실행은 별도다.
+
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`: **14분23초/종료코드0**.
+  새43개 클래스 XML과 콘솔에서 **338개통과/실패·오류·스킵0**을 대조했다. 기존332개+프로필5개+가상15만 회1조건이다.
+  기본회귀를 재실행했고bootJar는UP-TO-DATE였다. 별도pilot4회/설정확인2회와 원격CI 결과를 구분한다.
+  고정소스12개/보존원본13개 SHA일치, 운영Java/resources diff0/기존100만 건FAIL 원본SHA 불변을 확인했다.
+- 기존 Git identity/원격main9cf1786을 읽기 전용 확인했다. Docker에는 기존notification-lab-mysql-1만healthy로 남았다.
+  사용자DB/.env/IntelliJ/volume을 유지했고 실제장시간·유료자원·실제공급자·푸시는 실행하지 않았다.

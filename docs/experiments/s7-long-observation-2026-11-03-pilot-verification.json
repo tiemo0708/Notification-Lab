@@ -1,0 +1,9 @@
+{
+  "mode" : "NONE",
+  "profile" : "PILOT",
+  "verification" : "PASS",
+  "harnessResult" : "PASS",
+  "expectedPrimaryFailureType" : "NONE",
+  "primarySuppressedCount" : 0,
+  "failureFileExists" : false
+}

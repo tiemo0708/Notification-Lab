@@ -7,26 +7,33 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static dev.jinhyeon.notificationlab.campaign.batch.DeliveryTiming.Part;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ApiFailureWindowTest {
-    @Test
-    void retainsOnlyTheLast32CompletedRequestsAfter5000Admissions() {
-        var window = new ApiFailureWindow(6000);
-        for (int i = 0; i < 5000; i++) {
+    @ParameterizedTest
+    @ValueSource(ints = {5000, 150000})
+    void retainsOnlyTheLast32CompletedRequestsThroughTheConfiguredProbeLimit(int admissions) throws Exception {
+        var window = new ApiFailureWindow(admissions);
+        for (int i = 0; i < admissions; i++) {
             window.open(ApiFailureWindow.Window.MIXED); prefix(window); finish(window); window.complete(202, 1);
         }
         var state = window.snapshot();
-        assertThat(state).containsEntry("opened", 5000).containsEntry("completed", 5000).containsEntry("evicted", 4968)
+        assertThat(state).containsEntry("opened", admissions).containsEntry("completed", admissions).containsEntry("evicted", admissions - 32)
                 .containsEntry("activePresent", false).containsEntry("stopped", false);
         var recent = recent(state);
         assertThat(recent).hasSize(32);
-        assertThat(recent.getFirst()).containsEntry("ordinal", 4969).containsEntry("responseObserved", true);
-        assertThat(recent.getLast()).containsEntry("ordinal", 5000);
+        assertThat(recent.getFirst()).containsEntry("ordinal", admissions - 31).containsEntry("responseObserved", true);
+        assertThat(recent.getLast()).containsEntry("ordinal", admissions);
         assertThatThrownBy(() -> recent.getFirst().put("ordinal", 0)).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> window.open(ApiFailureWindow.Window.MIXED)).isInstanceOf(IllegalStateException.class);
+        assertThat(window.snapshot()).containsEntry("stopReason", "PROBE_LIMIT").containsEntry("opened", admissions);
+        assertThat(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsBytes(window.snapshot()).length)
+                .isLessThanOrEqualTo(FailureSnapshotStore.MAX_BYTES);
     }
 
     @Test

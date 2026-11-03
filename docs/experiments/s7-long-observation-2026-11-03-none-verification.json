@@ -1,0 +1,9 @@
+{
+  "mode" : "NONE",
+  "profile" : "REHEARSAL",
+  "verification" : "PASS",
+  "harnessResult" : "PASS",
+  "expectedPrimaryFailureType" : "NONE",
+  "primarySuppressedCount" : 0,
+  "failureFileExists" : false
+}

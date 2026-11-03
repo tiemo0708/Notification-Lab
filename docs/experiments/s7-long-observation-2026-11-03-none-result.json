@@ -1,0 +1,3796 @@
+{
+  "startedAtUtc" : "2026-11-03T06:21:29.056010Z",
+  "scope" : "preloaded campaign HTTP delivery pilot; same JVM independent app contexts",
+  "targets" : 1000,
+  "failureWindowMode" : "NONE",
+  "failureObservationProfile" : "REHEARSAL",
+  "bounds" : {
+    "latencyArrayBytes" : 40000,
+    "queryPageRows" : 1000,
+    "maxResourceSamples" : 452,
+    "maxRealtimeProbes" : 5000,
+    "campaignAuditBytes" : 128,
+    "drainLimitSeconds" : 900
+  },
+  "verificationVersion" : "paged-latency-and-target-mapping-v2",
+  "diagnosticsVersion" : "live-pools-and-cgroup-counters-v1",
+  "redisConnectionsPerLane" : 3,
+  "settings" : {
+    "totalRate" : 1000,
+    "httpConnectionsPerLane" : 3,
+    "mockDelayMillis" : 1,
+    "campaignBurst" : 20,
+    "probeDelayMillis" : 200,
+    "baselineProbes" : 50,
+    "totalBurst" : 100,
+    "workersPerLane" : 3,
+    "campaignRate" : 200
+  },
+  "publishBatchSize" : 1,
+  "campaignRelayInstances" : 1,
+  "relayScheduling" : "application-scheduled-bean",
+  "fineTimingEnabled" : false,
+  "offsetComparison" : false,
+  "campaignOffsetMode" : "RECORD",
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "availableProcessors" : 10,
+  "infra" : {
+    "redisMemoryMiB" : 256,
+    "kafkaCpu" : 1,
+    "kafkaMemoryMiB" : 1024,
+    "mysqlCpu" : 2,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlMemoryMiB" : 2048,
+    "redis" : "7.4.11",
+    "kafka" : "4.0.2",
+    "mysql" : "8.4.8"
+  },
+  "preloadSeconds" : 2.00505725,
+  "baselineSeconds" : 11.385047917,
+  "baselineLatencyMs" : {
+    "p99" : 586.217,
+    "p50" : 138.328,
+    "count" : 50,
+    "p95" : 534.314,
+    "max" : 586.217
+  },
+  "samples" : [ {
+    "seconds" : 0.437267375,
+    "campaignCompleted" : 3.0,
+    "heapUsedBytes" : 76035816,
+    "processCpuNanos" : 15591935000,
+    "gcMillis" : 104,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.5618,
+      "outbox.sample.age.seconds" : 0.113171208,
+      "notification.consumer.sample.age.seconds" : 0.095865792,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.5618,
+      "outbox.sample.age.seconds" : 0.113417292,
+      "notification.consumer.sample.age.seconds" : 0.096112084,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 3.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.897251708,
+      "notification.consumer.sample.age.seconds" : 1.889025791,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.8974405,
+      "notification.consumer.sample.age.seconds" : 1.889214416,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 50.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 402198528,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 5829227,
+      "user_usec" : 3869330,
+      "system_usec" : 1959897,
+      "nr_periods" : 253,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 2.5838135,
+    "campaignCompleted" : 154.0,
+    "heapUsedBytes" : 84743832,
+    "processCpuNanos" : 17684149000,
+    "gcMillis" : 108,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.5618,
+      "outbox.sample.age.seconds" : 2.258904625,
+      "notification.consumer.sample.age.seconds" : 2.241598209,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.5618,
+      "outbox.sample.age.seconds" : 2.259077792,
+      "notification.consumer.sample.age.seconds" : 2.241770542,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 154.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 3,
+        "waiting" : 0,
+        "idle" : 1,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.042759042,
+      "notification.consumer.sample.age.seconds" : 4.03454075,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.042947583,
+      "notification.consumer.sample.age.seconds" : 4.034720208,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 59.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 405966848,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 6797855,
+      "user_usec" : 4589148,
+      "system_usec" : 2208706,
+      "nr_periods" : 275,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 4.7211095,
+    "campaignCompleted" : 338.0,
+    "heapUsedBytes" : 90974912,
+    "processCpuNanos" : 19332005000,
+    "gcMillis" : 112,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.5618,
+      "outbox.sample.age.seconds" : 4.396141417,
+      "notification.consumer.sample.age.seconds" : 4.378820959,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1000.0,
+      "outbox.oldest.age.seconds" : 14.5618,
+      "outbox.sample.age.seconds" : 4.396213958,
+      "notification.consumer.sample.age.seconds" : 4.378892917,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 338.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.169217584,
+      "notification.consumer.sample.age.seconds" : 1.162682083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.169286459,
+      "notification.consumer.sample.age.seconds" : 1.162751166,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 69.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 410349568,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 7847932,
+      "user_usec" : 5407049,
+      "system_usec" : 2440882,
+      "nr_periods" : 296,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 6.846862375,
+    "campaignCompleted" : 550.0,
+    "heapUsedBytes" : 107903432,
+    "processCpuNanos" : 20734681000,
+    "gcMillis" : 119,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 64.0,
+      "outbox.unpublished" : 542.0,
+      "outbox.oldest.age.seconds" : 18.6684,
+      "outbox.sample.age.seconds" : 1.50035025,
+      "notification.consumer.sample.age.seconds" : 1.494227875,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 64.0,
+      "outbox.unpublished" : 542.0,
+      "outbox.oldest.age.seconds" : 18.6684,
+      "outbox.sample.age.seconds" : 1.5004245,
+      "notification.consumer.sample.age.seconds" : 1.494301666,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 550.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.295085709,
+      "notification.consumer.sample.age.seconds" : 3.288557875,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.295172625,
+      "notification.consumer.sample.age.seconds" : 3.288636875,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 79.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 413650944,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 8927765,
+      "user_usec" : 6200414,
+      "system_usec" : 2727351,
+      "nr_periods" : 318,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 9.0360415,
+    "campaignCompleted" : 744.0,
+    "heapUsedBytes" : 72482840,
+    "processCpuNanos" : 22049849000,
+    "gcMillis" : 129,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 64.0,
+      "outbox.unpublished" : 542.0,
+      "outbox.oldest.age.seconds" : 18.6684,
+      "outbox.sample.age.seconds" : 3.689484167,
+      "notification.consumer.sample.age.seconds" : 3.683363125,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 64.0,
+      "outbox.unpublished" : 542.0,
+      "outbox.oldest.age.seconds" : 18.6684,
+      "outbox.sample.age.seconds" : 3.689599375,
+      "notification.consumer.sample.age.seconds" : 3.683476416,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 744.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.474635292,
+      "notification.consumer.sample.age.seconds" : 0.464507417,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.474725458,
+      "notification.consumer.sample.age.seconds" : 0.464598084,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 90.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 414605312,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 10240104,
+      "user_usec" : 7212520,
+      "system_usec" : 3027584,
+      "nr_periods" : 339,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 11.210136,
+    "campaignCompleted" : 947.0,
+    "heapUsedBytes" : 84268856,
+    "processCpuNanos" : 23381075000,
+    "gcMillis" : 132,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 58.0,
+      "outbox.unpublished" : 74.0,
+      "outbox.oldest.age.seconds" : 22.831,
+      "outbox.sample.age.seconds" : 0.855828625,
+      "notification.consumer.sample.age.seconds" : 0.851627625,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 58.0,
+      "outbox.unpublished" : 74.0,
+      "outbox.oldest.age.seconds" : 22.831,
+      "outbox.sample.age.seconds" : 0.855882041,
+      "notification.consumer.sample.age.seconds" : 0.851680875,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 947.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.648543292,
+      "notification.consumer.sample.age.seconds" : 2.638412875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.648592208,
+      "notification.consumer.sample.age.seconds" : 2.638461917,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 100.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 415313920,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 11296806,
+      "user_usec" : 8025463,
+      "system_usec" : 3271343,
+      "nr_periods" : 361,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 12.0856405,
+    "campaignCompleted" : 1000.0,
+    "heapUsedBytes" : 104191800,
+    "processCpuNanos" : 23629528000,
+    "gcMillis" : 132,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 58.0,
+      "outbox.unpublished" : 74.0,
+      "outbox.oldest.age.seconds" : 22.831,
+      "outbox.sample.age.seconds" : 1.731418041,
+      "notification.consumer.sample.age.seconds" : 1.727218125,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "notification.consumer.lag" : 58.0,
+      "outbox.unpublished" : 74.0,
+      "outbox.oldest.age.seconds" : 22.831,
+      "outbox.sample.age.seconds" : 1.731498333,
+      "notification.consumer.sample.age.seconds" : 1.7272985,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 1000.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.524211458,
+      "notification.consumer.sample.age.seconds" : 3.514081625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.524265292,
+      "notification.consumer.sample.age.seconds" : 3.514136834,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 104.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 415215616,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 11536972,
+      "user_usec" : 8212717,
+      "system_usec" : 3324254,
+      "nr_periods" : 370,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  } ],
+  "campaignDrainSeconds" : 12.08561175,
+  "campaignPerSecond" : 82.74301878016229,
+  "mixedProbes" : 54,
+  "mixedLatencyMs" : {
+    "p99" : 510.391,
+    "p50" : 126.435,
+    "count" : 54,
+    "p95" : 498.885,
+    "max" : 510.391
+  },
+  "campaignCreatedToCompletedMs" : {
+    "p99" : 24230.124,
+    "p50" : 19592.78,
+    "count" : 1000,
+    "p95" : 23668.261,
+    "max" : 24383.187
+  },
+  "verifiedTargetMappings" : 1000,
+  "mappingJoinPlan" : "eq_ref/PRIMARY for n,t,o,a",
+  "httpAudit" : {
+    "uniqueRealtime" : 104,
+    "uniqueCampaign" : 1000,
+    "duplicates" : 0,
+    "invalid" : 0
+  },
+  "baselineApiLatencyMs" : {
+    "p99" : 101.50533300000001,
+    "p50" : 16.509167,
+    "count" : 50,
+    "p95" : 24.342333,
+    "max" : 101.50533300000001
+  },
+  "mixedApiLatencyMs" : {
+    "p99" : 26.513916,
+    "p50" : 6.553209,
+    "count" : 54,
+    "p95" : 14.037,
+    "max" : 26.513916
+  },
+  "verificationSeconds" : 0.194136166,
+  "campaignOffsets" : [ {
+    "committed" : 301,
+    "end" : 301,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.retry.campaign"
+  }, {
+    "committed" : 347,
+    "end" : 347,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "committed" : 352,
+    "end" : 352,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.dlq.campaign"
+  } ],
+  "realtimeOffsets" : [ {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.retry"
+  }, {
+    "committed" : 30,
+    "end" : 30,
+    "partition" : 2,
+    "topic" : "notification.requested.v1"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0,
+    "topic" : "notification.requested.v1.dlq"
+  }, {
+    "committed" : 34,
+    "end" : 34,
+    "partition" : 1,
+    "topic" : "notification.requested.v1"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1,
+    "topic" : "notification.requested.v1.dlq"
+  }, {
+    "committed" : 40,
+    "end" : 40,
+    "partition" : 0,
+    "topic" : "notification.requested.v1"
+  }, {
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2,
+    "topic" : "notification.requested.v1.dlq"
+  } ],
+  "mockStats" : {
+    "requests" : 1104,
+    "accepted" : 1104,
+    "rateLimited" : 0,
+    "serverErrors" : 0,
+    "permanentFailures" : 0,
+    "busy" : 0,
+    "active" : 0,
+    "maxActive" : 4
+  },
+  "campaignAllowed" : 1000.0,
+  "realtimeAllowed" : 104.0,
+  "stageTimingVersion" : "caller-side-transaction-and-ack-v1",
+  "campaignStageTimings" : {
+    "relay.claim" : {
+      "meanMillis" : 4.709942336945812,
+      "count" : 1015,
+      "totalMillis" : 4780.591472
+    },
+    "relay.ack" : {
+      "meanMillis" : 1.2823975049999998,
+      "count" : 1000,
+      "totalMillis" : 1282.397505
+    },
+    "relay.mark.published" : {
+      "meanMillis" : 2.7159842789999997,
+      "count" : 1000,
+      "totalMillis" : 2715.984279
+    },
+    "relay.run" : {
+      "meanMillis" : 251.2874072857143,
+      "count" : 35,
+      "totalMillis" : 8795.059255
+    },
+    "worker.handler" : {
+      "meanMillis" : 17.545210242,
+      "count" : 1000,
+      "totalMillis" : 17545.210242
+    },
+    "worker.claim.initial" : {
+      "meanMillis" : 3.433319139,
+      "count" : 1000,
+      "totalMillis" : 3433.319139
+    },
+    "worker.claim.admitted" : {
+      "meanMillis" : 6.588649078,
+      "count" : 1000,
+      "totalMillis" : 6588.649078
+    },
+    "worker.provider" : {
+      "meanMillis" : 2.059099249,
+      "count" : 1000,
+      "totalMillis" : 2059.099249
+    },
+    "worker.complete" : {
+      "meanMillis" : 4.770084921,
+      "count" : 1000,
+      "totalMillis" : 4770.084921
+    }
+  },
+  "realtimeStageTimings" : {
+    "relay.claim" : {
+      "meanMillis" : 6.752468323624596,
+      "count" : 309,
+      "totalMillis" : 2086.512712
+    },
+    "relay.ack" : {
+      "meanMillis" : 4.237872240384616,
+      "count" : 104,
+      "totalMillis" : 440.738713
+    },
+    "relay.mark.published" : {
+      "meanMillis" : 5.49133375,
+      "count" : 104,
+      "totalMillis" : 571.09871
+    },
+    "relay.run" : {
+      "meanMillis" : 15.161509360975609,
+      "count" : 205,
+      "totalMillis" : 3108.109419
+    },
+    "worker.handler" : {
+      "meanMillis" : 25.160444365384613,
+      "count" : 104,
+      "totalMillis" : 2616.686214
+    },
+    "worker.claim.initial" : {
+      "meanMillis" : 6.033576538461538,
+      "count" : 104,
+      "totalMillis" : 627.49196
+    },
+    "worker.claim.admitted" : {
+      "meanMillis" : 9.098640942307693,
+      "count" : 104,
+      "totalMillis" : 946.258658
+    },
+    "worker.provider" : {
+      "meanMillis" : 3.3047427403846155,
+      "count" : 104,
+      "totalMillis" : 343.693245
+    },
+    "worker.complete" : {
+      "meanMillis" : 5.613384971153847,
+      "count" : 104,
+      "totalMillis" : 583.792037
+    }
+  },
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-03T06:22:10.817994Z",
+  "apiFailureWindow" : {
+    "evicted" : 72,
+    "active" : { },
+    "activePresent" : false,
+    "stopped" : false,
+    "stopReason" : "NONE",
+    "version" : "bounded-api-failure-window-prototype-v1",
+    "maxProbes" : 5000,
+    "historyCapacity" : 32,
+    "completed" : 104,
+    "opened" : 104,
+    "recent" : [ {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 4.450417,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.405959
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.003625
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.003084
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.614876
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.044083
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005124
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 0.734541
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.006
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 2.969958
+        }
+      },
+      "ageMillis" : 4.396417,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.637584, 0.28525, 0.354834, 0.337208 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002959,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.228084,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.170083,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 73,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 4.3721250000000005,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.4485
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.004833
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002291
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.361417
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.042751
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005208
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.139709
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.005
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.175583
+        }
+      },
+      "ageMillis" : 4.34825,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.398875, 0.31125, 0.292667, 0.358625 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002917,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.279625,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.161416,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 74,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 5.710292,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 1.258458
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.005583
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.003792
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.435083
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.042958
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.006833
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.384542
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.004875
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 4.315458
+        }
+      },
+      "ageMillis" : 5.647458,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.525042, 0.3345, 0.267458, 0.308083 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003208,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.911792,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.336459,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 75,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 7.782833,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.737624
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.006459
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.004042
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.281001
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.056125
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.006042
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.573875
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.389667
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 6.239875
+        }
+      },
+      "ageMillis" : 7.737166,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.021459, 0.376208, 0.407125, 0.476209 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.004292,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.44575,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.279417,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 76,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 7.634667,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 1.176749
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.026624
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.003583
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 3.366334
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.084291
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.013917
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.004084
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.008875
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 5.968875
+        }
+      },
+      "ageMillis" : 7.585042,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.304625, 1.02725, 0.575417, 0.459042 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003917,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.649375,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.510416,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 77,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 5.273042,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.651541
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.005709
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.0025
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.492331
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.041459
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005001
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.286458
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.004166
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.662125
+        }
+      },
+      "ageMillis" : 5.224916,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.410291, 0.286166, 0.374458, 0.421416 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002583,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.33,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.31275,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 78,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 5.422042,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.7245
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.006167
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002792
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.507917
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.050084
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.006125
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.439458
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.005375
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.92725
+        }
+      },
+      "ageMillis" : 5.375583,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.433625, 0.374667, 0.334458, 0.365167 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.004041,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.454709,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.25575,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 79,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 7.134083,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.685875
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.019333
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.005125
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.080709
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.081666
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.007167
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.028334
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.006833
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 5.205333
+        }
+      },
+      "ageMillis" : 7.046375,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.442, 0.573584, 0.517875, 0.54725 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003708,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.325458,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.346292,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 80,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 6.86925,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.88375
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.010666
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.001959
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.166125
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.039
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.006833
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.741125
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.004458
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 5.065583
+        }
+      },
+      "ageMillis" : 6.799917,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.613166, 0.66625, 0.37575, 0.510959 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003084,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.531625,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.34275,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 81,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 5.400459,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.838167
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.010167
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002666
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.154291
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.043791
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.0055
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 0.699416
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.008458
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.950209
+        }
+      },
+      "ageMillis" : 5.345667,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.428667, 0.700541, 0.429833, 0.59525 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003875,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.643333,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.183625,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 82,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 15.30175,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 1.739374
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.057375
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.008542
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 6.268582
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.217375
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.05025
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 3.260583
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.013834
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 12.263208
+        }
+      },
+      "ageMillis" : 15.271834,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.444958, 1.487, 1.364333, 1.972291 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.0065,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 1.017541,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.680167,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 83,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 26.513916,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 2.779166
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.043917
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.004959
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 8.427625
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.284376
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.010208
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 7.413791
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.013875
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 19.486375
+        }
+      },
+      "ageMillis" : 26.365375,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.1545, 0.933375, 1.798042, 4.541708 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.007292,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 1.652958,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 1.1,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 84,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 4.360333,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.748501
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.006959
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002417
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.430334
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.045541
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.004959
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 0.6705
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.003875
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.060542
+        }
+      },
+      "ageMillis" : 4.308208,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.329459, 0.408333, 0.372667, 0.319875 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002958,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.243167,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.497208,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 85,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 5.624167,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.557084
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.004499
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.00225
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.315333
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.040748
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005125
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 0.872208
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.388083
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 4.328875
+        }
+      },
+      "ageMillis" : 5.577417,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.409875, 1.223875, 0.282458, 0.399125 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002208,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.244666,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.289,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 86,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 9.092625,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 1.317334
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.010625
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.003542
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.801458
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.096875
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.016458
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.466375
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.005792
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 7.162792
+        }
+      },
+      "ageMillis" : 9.052625,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.058792, 0.470958, 0.584375, 0.687333 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002542,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.632459,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.678459,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 87,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 7.485292,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 2.166084
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.013458
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.003375
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.934916
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.052458
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005167
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.335708
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.008166
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 5.7365
+        }
+      },
+      "ageMillis" : 7.339375,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.514, 0.373708, 0.42375, 0.623458 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.004708,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.870083,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 1.287583,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 88,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 4.973458,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.516458
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.035126
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002791
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.798582
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.051166
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.004334
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 0.998583
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.005125
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.603208
+        }
+      },
+      "ageMillis" : 4.915541,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.480708, 0.359833, 0.522625, 0.435416 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003667,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.304125,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.206959,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 89,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 9.202083,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.927167
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.021417
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.004833
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 3.935709
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.104834
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.01275
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.116375
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.00675
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 7.496417
+        }
+      },
+      "ageMillis" : 9.1435,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.452375, 1.271833, 0.662667, 0.548834 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003916,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.622209,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.297625,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 90,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 7.581875,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.423584
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.017666
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.005584
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.366416
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.077417
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005001
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.859375
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.003708
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 5.960541
+        }
+      },
+      "ageMillis" : 7.535791,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.338625, 0.557541, 0.513167, 0.957083 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002792,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.222458,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.194417,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 91,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 6.700875,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 1.103249
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.01525
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002334
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.388042
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.048417
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005667
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.270666
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.004625
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 5.016792
+        }
+      },
+      "ageMillis" : 6.680708,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.661, 0.573583, 0.471042, 0.682417 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003167,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.364584,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.732417,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 92,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 8.509625,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.966333
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.005501
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.00675
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 3.853375
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.041957
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.006083
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.774916
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.005542
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 6.859833
+        }
+      },
+      "ageMillis" : 8.415166,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.476084, 1.151542, 0.695333, 0.530416 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003625,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.426209,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.532375,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 93,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 6.468,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.653291
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.012709
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.003875
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.673334
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.053125
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005583
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.156292
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.005584
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 4.728458
+        }
+      },
+      "ageMillis" : 6.402708,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.453834, 0.446625, 0.278, 0.494875 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002458,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.222541,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.425708,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 94,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 7.942417,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.943709
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.007542
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.004
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.385416
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.048709
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005793
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.722166
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.007416
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 6.328833
+        }
+      },
+      "ageMillis" : 7.885,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.539666, 0.59875, 0.78875, 0.45825 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003917,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.600333,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.336042,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 95,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 9.093125,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 1.201667
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.006749
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.001916
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 3.2865
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.046626
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.006917
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.650625
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.002208
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 7.412833
+        }
+      },
+      "ageMillis" : 9.028083,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.382833, 0.551792, 0.606208, 0.745667 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.002541,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.811708,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.384,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 96,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 4.546833,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.459208
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.006249
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002709
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.460792
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.040375
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005499
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.034917
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.006917
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.175584
+        }
+      },
+      "ageMillis" : 4.508958,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.35775, 0.365875, 0.359625, 0.377542 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003125,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.251958,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.202208,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 97,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 9.900333000000002,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.599541
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.006083
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.004834
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.626416
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.077209
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.004625
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 5.815708
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.00775
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 8.326625
+        }
+      },
+      "ageMillis" : 9.840417,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.522708, 0.340083, 0.296708, 0.466917 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003417,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.396833,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.197292,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 98,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 7.210249999999999,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.906957
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.009166
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002625
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 2.389251
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.05254
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.004833
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 2.216666
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.007959
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 5.7555
+        }
+      },
+      "ageMillis" : 7.145583,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.817208, 0.53075, 0.519584, 0.521709 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.0035,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.566625,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.334125,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 99,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 4.606041,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.390291
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.006958
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.481375
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.068083
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005667
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 0.734416
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.00725
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 2.887958
+        }
+      },
+      "ageMillis" : 4.573417,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.330583, 0.404625, 0.438875, 0.307292 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003583,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.200375,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.184667,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 100,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 5.085292,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.673333
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.005209
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.002167
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.702709
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.050082
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.0055
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 0.9085
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.008666
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.496417
+        }
+      },
+      "ageMillis" : 5.039375,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.407459, 0.30025, 0.657042, 0.337958 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.260083,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.40825,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 101,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 5.102291999999999,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.543667
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.009292
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.0025
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.345292
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.10125
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.01025
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 0.877666
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.010916
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 3.160292
+        }
+      },
+      "ageMillis" : 4.986166,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.3055, 0.30575, 0.437792, 0.29625 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.004708,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.324875,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.211083,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 102,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 14.037,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 3.282583
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.028792
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.004708
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 4.0185
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.061667
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.011541
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 3.709125
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.010375
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 11.528458
+        }
+      },
+      "ageMillis" : 13.863,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 1.027208, 0.679542, 0.566875, 1.744875 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.006792,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 2.440917,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.829042,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 103,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    }, {
+      "activePart" : "STORE_RETURNED",
+      "storeReturned" : true,
+      "window" : "MIXED",
+      "responseObserved" : true,
+      "clientMillis" : 5.834,
+      "parts" : {
+        "ISOLATION_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "AUTOCOMMIT_STATE" : {
+          "count" : 3,
+          "millis" : 0.49425
+        },
+        "STATEMENT_CLOSE" : {
+          "count" : 4,
+          "millis" : 0.019084
+        },
+        "RELEASE" : {
+          "count" : 1,
+          "millis" : 0.003625
+        },
+        "READ_ONLY_STATE" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "EXECUTE" : {
+          "count" : 4,
+          "millis" : 1.530918
+        },
+        "ROLLBACK" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "PREPARE" : {
+          "count" : 4,
+          "millis" : 0.047249
+        },
+        "COMMIT_ASYNC_SUBMIT" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "COMMIT_SYNC" : {
+          "count" : 0,
+          "millis" : 0.0
+        },
+        "CONNECTION_STATE" : {
+          "count" : 2,
+          "millis" : 0.005084
+        },
+        "COMMIT" : {
+          "count" : 1,
+          "millis" : 1.895583
+        },
+        "ACQUIRE" : {
+          "count" : 1,
+          "millis" : 0.00875
+        },
+        "STORE_CALL" : {
+          "count" : 1,
+          "millis" : 4.17125
+        }
+      },
+      "ageMillis" : 5.794584,
+      "clientStatus" : 202,
+      "rollbackReturned" : false,
+      "sqlExecutionMillis" : [ 0.511875, 0.336792, 0.317792, 0.364459 ],
+      "connectionCalls" : [ {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "GET_AUTO_COMMIT",
+        "millis" : 0.003083,
+        "ordinal" : 1,
+        "failed" : false
+      }, {
+        "boundary" : "BEFORE_FIRST_SQL",
+        "method" : "SET_AUTO_COMMIT_FALSE",
+        "millis" : 0.285959,
+        "ordinal" : 2,
+        "failed" : false
+      }, {
+        "boundary" : "AFTER_COMMIT",
+        "method" : "SET_AUTO_COMMIT_TRUE",
+        "millis" : 0.202166,
+        "ordinal" : 3,
+        "failed" : false
+      } ],
+      "ordinal" : 104,
+      "failed" : false,
+      "commitReturned" : true,
+      "activePartAgeMillis" : 0.0
+    } ],
+    "activeServerOutcome" : "NOT_APPLICABLE"
+  },
+  "failureWindowControl" : {
+    "gateReached" : false,
+    "mode" : "NONE",
+    "injected" : false,
+    "fileExists" : false,
+    "captured" : false,
+    "gateAwaitActive" : false,
+    "gateReleased" : false
+  }
+}

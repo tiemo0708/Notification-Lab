@@ -24,6 +24,14 @@ class ApiFailurePilotControlTest {
         if (mode == ApiFailurePilotSupport.Mode.NONE) pilot.reconcilesHttpDeliveryAndComparesRealtimeLatencyDuringCampaignDrain();
         else failure = assertThrows(HttpTimeoutException.class, pilot::reconcilesHttpDeliveryAndComparesRealtimeLatencyDuringCampaignDrain);
         var report = pilot.failureReport(); var window = map(report.get("apiFailureWindow"));
+        String profile = System.getProperty("campaign.delivery.failureProfile", "PILOT");
+        assertThat(report).containsEntry("failureObservationProfile", profile);
+        if (profile.equals("REHEARSAL")) {
+            assertThat(report).containsEntry("targets", 1000).containsEntry("fineTimingEnabled", false)
+                    .containsEntry("offsetComparison", false).containsEntry("campaignOffsetMode", "RECORD")
+                    .containsEntry("campaignRelayInstances", 1).containsEntry("publishBatchSize", 1)
+                    .containsEntry("relayScheduling", "application-scheduled-bean").doesNotContainKey("fineTimings");
+        }
         var control = map(report.get("failureWindowControl")); var file = pilot.failureDirectory().resolve("failure.json");
         assertThat(window.get("recent")).asList().hasSize(32);
         if (mode == ApiFailurePilotSupport.Mode.NONE) {
@@ -57,6 +65,7 @@ class ApiFailurePilotControlTest {
             }
         }
         var verified = new LinkedHashMap<String, Object>(); verified.put("mode", mode.name());
+        verified.put("profile", profile);
         verified.put("verification", "PASS"); verified.put("harnessResult", report.get("result"));
         verified.put("expectedPrimaryFailureType", failure == null ? "NONE" : failure.getClass().getSimpleName());
         verified.put("primarySuppressedCount", failure == null ? 0 : failure.getSuppressed().length);

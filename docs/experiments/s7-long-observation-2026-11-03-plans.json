@@ -1,0 +1,47 @@
+{
+  "task": "campaignDeliveryMillion",
+  "dryRunOnly": true,
+  "plans": [
+    {
+      "observation": false,
+      "targets": 1000000,
+      "load": true,
+      "profile": "LONG_RUN",
+      "failureMode": "NONE",
+      "publishBatchSize": "1",
+      "fineTiming": false,
+      "scaling": false,
+      "offsetComparison": false,
+      "offsetMode": "RECORD",
+      "gradleTimeoutSeconds": 43200,
+      "junitTimeout": "11h",
+      "maxHeap": "512m",
+      "maxParallelForks": 1,
+      "executedLoad": false
+    },
+    {
+      "observation": true,
+      "targets": 1000000,
+      "load": true,
+      "profile": "LONG_RUN",
+      "failureMode": "NONE",
+      "publishBatchSize": "1",
+      "fineTiming": false,
+      "scaling": false,
+      "offsetComparison": false,
+      "offsetMode": "RECORD",
+      "gradleTimeoutSeconds": 43200,
+      "junitTimeout": "11h",
+      "maxHeap": "512m",
+      "maxParallelForks": 1,
+      "executedLoad": false
+    }
+  ],
+  "unchangedJavaBounds": {
+    "maxRealtimeProbes": 150000,
+    "drainLimitSeconds": 28800,
+    "maxResourceSamples": 14402,
+    "campaignAuditBytes": 125008,
+    "latencyArrayBytes": 8000000
+  }
+}

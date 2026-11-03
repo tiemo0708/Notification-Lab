@@ -28,7 +28,7 @@ import org.springframework.core.Ordered;
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Opt-in 1k pilot adapter. No production wiring, request contents, identifiers or diagnostic database queries. */
+/** Opt-in admission observation adapter; fault injection is restricted by the run profile. No production wiring, request contents, identifiers or diagnostic database queries. */
 final class ApiFailurePilotSupport {
     enum Mode { NONE, TIMEOUT, STORAGE_FAILURE }
     static final String EARLIER_EVIDENCE = "earlier synthetic evidence retained";

@@ -1,0 +1,17 @@
+{
+  "baseCommit": "67269e3491b660c2b4c96e67525157dca98c7bda",
+  "files": {
+    "build.gradle": "b529bb81880d895dc8b83d7132ad3a883ade7203d27d7bb5ebe5954b8241df77",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "b1c1ff65bbe0325569098bcc68c7eec02a41c4c16e35d64d0970e48cda69e79b",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "6c33dca910d3b2afd573511f5f631f1cc89107ed3f439897e27b7fe0fbf955ba",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailureObservationPlan.java": "2257957044258b60a8c8c9ced450b7c93dce46a79122ba184ba87d72240fe0e8",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailureObservationPlanTest.java": "cb9e9ee4d168132e9e2dbe0c833a64c2d6c2239d1e5e6a19846cd78c603a922e",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailurePilotSupport.java": "d99eeefcb9c2e6095302f5e2ba1ac6edb74d894b13c98c6d4bb5f56df9d900e7",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailurePilotSupportTest.java": "ec3a01b9911c33cd83eae9164c8dce0eb2c98c09b97d2eb6c91aa8ea19932a52",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailurePilotControlTest.java": "3a30f55d1776fd4610ab45bd7df3cc3380cf89ae7900b3fd71e2972f487fa79c",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailureWindow.java": "3747f1117f0d7fe0ba86e3d7417e542fe4af90e91d3ef682497f7b48c7ccba2a",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailureWindowTest.java": "f6deb54256ec75abe89950cb9675d23ac0e1e054c1f6097b0e15e4f3677e7765",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/FailureSnapshotStore.java": "d9853e1405e2c1235d6b4f59ee4c4076cf6408de1a143ad41659aff6af6dfdff",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryBounds.java": "758314965742d6e388b338ba9e131199e81e62f5e2597881c9617702d59abd68"
+  }
+}

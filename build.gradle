@@ -315,6 +315,29 @@ tasks.register('apiFailurePilot', Test) {
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
 
+// Same application settings as the million task, with only 1000 targets and bounded controls.
+tasks.register('apiFailureLongRunRehearsal', Test) {
+    description = 'Rehearse long-run admission failure observation with only 1000 campaign targets'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'api-failure-pilot-controls' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(5)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '4m'
+    systemProperty 'campaign.delivery.targets', '1000'
+    systemProperty 'campaign.delivery.load', 'false'
+    systemProperty 'campaign.delivery.publishBatchSize', '1'
+    systemProperty 'campaign.delivery.failureWindow', 'true'
+    systemProperty 'campaign.delivery.failureProfile', 'REHEARSAL'
+    def mode = providers.gradleProperty('failureMode').getOrElse('NONE')
+    if (!(mode in ['NONE', 'TIMEOUT', 'STORAGE_FAILURE'])) throw new GradleException('failureMode must be NONE, TIMEOUT or STORAGE_FAILURE')
+    systemProperty 'campaign.delivery.failureMode', mode
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
 // Explicit 100k only; no million-target offset comparison is enabled.
 tasks.register('offsetCommitLoad', Test) {
     description = 'Compare RECORD/COUNT_TIME for exactly 100,000 HTTP campaign deliveries'
@@ -370,6 +393,11 @@ tasks.register('campaignDeliveryMillion', Test) {
     systemProperty 'campaign.delivery.load', 'true'
     systemProperty 'campaign.delivery.targets', '1000000'
     systemProperty 'campaign.delivery.publishBatchSize', providers.gradleProperty('publishBatchSize').getOrElse('1')
+    def observation = providers.gradleProperty('failureObservation').getOrElse('OFF')
+    if (!(observation in ['OFF', 'ON'])) throw new GradleException('failureObservation must be OFF or ON')
+    systemProperty 'campaign.delivery.failureWindow', (observation == 'ON').toString()
+    systemProperty 'campaign.delivery.failureProfile', 'LONG_RUN'
+    systemProperty 'campaign.delivery.failureMode', 'NONE'
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }

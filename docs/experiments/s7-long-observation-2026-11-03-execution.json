@@ -1,0 +1,164 @@
+{
+  "baseCommit": "67269e3491b660c2b4c96e67525157dca98c7bda",
+  "dateKst": "2026-11-03",
+  "commands": [
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*ApiFailureObservationPlanTest' --tests '*ApiFailureWindowTest' --tests '*ApiFailurePilotSupportTest' --tests '*FailureSnapshotStoreTest' --tests '*DeliveryTimingTest' --tests '*CampaignDeliveryBoundsTest'",
+      "exitCode": 0,
+      "gradleElapsed": "6s",
+      "tests": 35,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailureLongRunRehearsal -PfailureMode=NONE",
+      "exitCode": 0,
+      "gradleElapsed": "45s",
+      "controlVerification": "PASS",
+      "harnessResult": "PASS"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailureLongRunRehearsal -PfailureMode=TIMEOUT",
+      "exitCode": 0,
+      "gradleElapsed": "36s",
+      "controlVerification": "PASS",
+      "harnessResult": "FAIL"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailureLongRunRehearsal -PfailureMode=STORAGE_FAILURE",
+      "exitCode": 0,
+      "gradleElapsed": "36s",
+      "controlVerification": "PASS",
+      "harnessResult": "FAIL"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailurePilot -PfailureMode=NONE",
+      "exitCode": 0,
+      "gradleElapsed": "39s",
+      "harnessResult": "PASS",
+      "mockAccepted": 1086
+    },
+    {
+      "command": "./gradlew --no-daemon --console=plain -I <temporary-copy-of-plan-inspector.gradle> campaignDeliveryMillion --dry-run",
+      "configurationInspection": "asserted actual configured task properties through temporary Gradle init script",
+      "exitCode": 0,
+      "gradleElapsed": "3s",
+      "allTasksSkipped": true,
+      "loadExecuted": false,
+      "reproduceCommand": "./gradlew --no-daemon --console=plain -I docs/experiments/s7-long-observation-2026-11-03-plan-inspector.gradle campaignDeliveryMillion --dry-run",
+      "temporaryInspectorSource": "docs/experiments/s7-long-observation-2026-11-03-plan-inspector.gradle"
+    },
+    {
+      "command": "./gradlew --no-daemon --console=plain -I <temporary-copy-of-plan-inspector.gradle> campaignDeliveryMillion -PfailureObservation=ON --dry-run",
+      "configurationInspection": "asserted actual configured task properties through temporary Gradle init script",
+      "exitCode": 0,
+      "gradleElapsed": "2s",
+      "allTasksSkipped": true,
+      "loadExecuted": false,
+      "reproduceCommand": "./gradlew --no-daemon --console=plain -I docs/experiments/s7-long-observation-2026-11-03-plan-inspector.gradle campaignDeliveryMillion -PfailureObservation=ON --dry-run",
+      "temporaryInspectorSource": "docs/experiments/s7-long-observation-2026-11-03-plan-inspector.gradle"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+      "exitCode": 0,
+      "gradleElapsed": "14m 23s",
+      "classes": 43,
+      "tests": 338,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "freshXmlFiles": true,
+      "bootJar": "UP-TO-DATE",
+      "remoteCiClaimed": false
+    }
+  ],
+  "artifactMapping": {
+    "s7-long-observation-2026-11-03-none-result.json": {
+      "bytes": 97050,
+      "sha256": "80c9ec098aa01931dd10f7f528bec9f2ad591febd26aad55e7b78660a68bc53b",
+      "originalFileName": "result.json",
+      "profile": "REHEARSAL"
+    },
+    "s7-long-observation-2026-11-03-none-verification.json": {
+      "bytes": 207,
+      "sha256": "a887687d076f34f5c9992bc6ba618f0d63aa3e2d87522ece1c639f8b31860899",
+      "originalFileName": "verification.json",
+      "profile": "REHEARSAL"
+    },
+    "s7-long-observation-2026-11-03-pilot-result.json": {
+      "bytes": 138913,
+      "sha256": "4395228622d6de76852d990b3c1e538c855057192c1b09a140f750e3b1e1a6c2",
+      "originalFileName": "result.json",
+      "profile": "PILOT"
+    },
+    "s7-long-observation-2026-11-03-pilot-verification.json": {
+      "bytes": 203,
+      "sha256": "75d81425abaf7e1aa0ace329d6d1068ddcb65b34d46a03802e69a8b83446494e",
+      "originalFileName": "verification.json",
+      "profile": "PILOT"
+    },
+    "s7-long-observation-2026-11-03-plans.json": {
+      "bytes": 1151,
+      "sha256": "f676ca2872eae60d1abc5024bde10514829a03f595f3c48c4b7cd9ef5400072e"
+    },
+    "s7-long-observation-2026-11-03-source.json": {
+      "bytes": 1942,
+      "sha256": "cb34ebb99eebb70ccf862173daa2589b03cd3f4089beb1958ade1418d5514e8a"
+    },
+    "s7-long-observation-2026-11-03-storage-earlier-evidence.txt": {
+      "bytes": 35,
+      "sha256": "e7536d46df8883c96b251feb7240d25e4ed0fae0686205c02e0bdc33fa2c6a15",
+      "originalFileName": "failure.json",
+      "profile": "REHEARSAL"
+    },
+    "s7-long-observation-2026-11-03-storage-result.json": {
+      "bytes": 78783,
+      "sha256": "6ec48cd55e1c5e4273bdff4ae28c923c541b7692378aec06c61ad5b2292421ba",
+      "originalFileName": "result.json",
+      "profile": "REHEARSAL"
+    },
+    "s7-long-observation-2026-11-03-storage-verification.json": {
+      "bytes": 233,
+      "sha256": "18897fcbc5a64be432f54db66d8f5d0ead361954f914393ba0d99a600fec9730",
+      "originalFileName": "verification.json",
+      "profile": "REHEARSAL"
+    },
+    "s7-long-observation-2026-11-03-timeout-failure.json": {
+      "bytes": 68395,
+      "sha256": "c893f7a718df14b7ce7a4d4fc6b189b9be80f5e10d2b42fbca801891eb593adb",
+      "originalFileName": "failure.json",
+      "profile": "REHEARSAL"
+    },
+    "s7-long-observation-2026-11-03-timeout-result.json": {
+      "bytes": 78681,
+      "sha256": "c8cd56c0508087fbb50e769d2ec43338f1c4c11512379b95dc35ae778d2a8482",
+      "originalFileName": "result.json",
+      "profile": "REHEARSAL"
+    },
+    "s7-long-observation-2026-11-03-timeout-verification.json": {
+      "bytes": 225,
+      "sha256": "793539a0ed93d569213781ad1fe59a47e1b6edd5380692094c38602cc9f8dc93",
+      "originalFileName": "verification.json",
+      "profile": "REHEARSAL"
+    },
+    "s7-long-observation-2026-11-03-plan-inspector.gradle": {
+      "bytes": 1447,
+      "sha256": "3d21d017fffcb25836ae9e7f1278b60450d49ee9d158dab46ba61fbd32b512fc",
+      "originalFileName": "temporary Gradle init script; identical source preserved"
+    }
+  },
+  "productionSourceChanges": false,
+  "millionLoadExecuted": false,
+  "hundredThousandLoadExecuted": false,
+  "pushPerformed": false,
+  "originalMillionFailureSha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b",
+  "limitations": [
+    "No actual long-run execution or reproduction of the original timeout",
+    "Synthetic 150000 admissions exercise bounded in-memory callbacks, not HTTP or provider delivery",
+    "Default OFF retained; injected faults forbidden in LONG_RUN",
+    "First-file guarantee is scoped to observed live realtime-app body failures; initialization/preload/teardown/forced-kill limits remain",
+    "Filesystem and power-loss limits of existing persistence contract remain",
+    "Legacy final report write failure can mask the original outward exception; this path was not fault-injected or changed"
+  ]
+}

@@ -100,9 +100,11 @@ class CampaignDeliveryPilotTest {
         if (scaling && load && !offsetComparison) throw new IllegalArgumentException("Relay scaling load requires the explicit offset comparison");
         relayInstances = scaling ? CampaignRelayGroup.validate(Integer.parseInt(System.getProperty("campaign.delivery.relayInstances", "1"))) : 0;
         int targets = Integer.getInteger("campaign.delivery.targets", 10_000);
-        if (failureWindow && (load || !fineTiming || !offsetComparison || !scaling || apiTiming || dbObservation || connectionPilot || targets != 1000)) {
-            throw new IllegalArgumentException("Failure window is limited to the dedicated 1k fine-timing pilot");
-        }
+        ApiFailureObservationPlan observation = failureWindow ? new ApiFailureObservationPlan(
+                ApiFailureObservationPlan.Profile.valueOf(System.getProperty("campaign.delivery.failureProfile", "PILOT")),
+                ApiFailurePilotSupport.Mode.valueOf(System.getProperty("campaign.delivery.failureMode", "NONE"))) : null;
+        if (observation != null) observation.validate(load, targets, fineTiming, offsetComparison, scaling,
+                apiTiming || dbObservation || connectionPilot);
         var bounds = offsetComparison ? CampaignDeliveryBounds.forOffsetRun(load, targets) : CampaignDeliveryBounds.forRun(load, targets);
         if (offsetComparison && relayInstances != 2) throw new IllegalArgumentException("Offset comparison requires exactly two campaign relays");
         maxProbes = bounds.maxRealtimeProbes();
@@ -112,7 +114,10 @@ class CampaignDeliveryPilotTest {
         report.put("startedAtUtc", Instant.now().toString());
         report.put("scope", "preloaded campaign HTTP delivery " + (load ? targets + " target load" : "pilot") + "; same JVM independent app contexts");
         report.put("targets", targets);
-        if (failureWindow) report.put("failureWindowMode", System.getProperty("campaign.delivery.failureMode", "NONE"));
+        if (observation != null) {
+            report.put("failureWindowMode", observation.mode().name());
+            report.put("failureObservationProfile", observation.profile().name());
+        }
         report.put("bounds", Map.of("maxRealtimeProbes", maxProbes, "drainLimitSeconds", drainLimitSeconds,
                 "queryPageRows", QUERY_PAGE, "campaignAuditBytes", bounds.campaignAuditBytes(),
                 "latencyArrayBytes", bounds.latencyArrayBytes(), "maxResourceSamples", bounds.maxResourceSamples()));
@@ -154,8 +159,7 @@ class CampaignDeliveryPilotTest {
                      .withCommand("redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction")
                      .withCreateContainerCmdModifier(cmd -> limit(cmd, 256, 1));
              var http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()) {
-            if (failureWindow) failureSupport = ApiFailurePilotSupport.create(maxProbes,
-                    ApiFailurePilotSupport.Mode.valueOf(System.getProperty("campaign.delivery.failureMode", "NONE")));
+            if (observation != null) failureSupport = ApiFailurePilotSupport.create(maxProbes, observation.mode());
             mysql.start(); kafka.start(); redis.start();
             UUID campaignId;
             try (var batch = application(mysql, kafka, redis, "CAMPAIGN", false)) {
@@ -371,7 +375,7 @@ class CampaignDeliveryPilotTest {
             builder.sources(ApiFailurePilotSupport.Wiring.class)
                     .initializers(context -> context.getBeanFactory().registerSingleton("apiFailureSupport", failure));
         }
-        if (live && Boolean.getBoolean("campaign.delivery.fineTiming")) {
+        if (live && (Boolean.getBoolean("campaign.delivery.fineTiming") || failure != null)) {
             DeliveryTiming.ApiObserver observer = failure != null ? failure.window : api == null ? null : api.observer();
             if (api != null && Boolean.getBoolean("campaign.delivery.dbObservation")) {
                 try {
