@@ -1,0 +1,80 @@
+{
+  "startedAtUtc" : "2026-11-03T04:52:44.964625Z",
+  "scope" : "controlled production HTTP/MySQL admission only; test pauses, not natural failure reproduction; no Kafka/relay/worker/provider",
+  "conditions" : {
+    "gateMaxSeconds" : 10,
+    "fixtureTimeoutMillis" : 1000,
+    "mysql" : "8.4.8",
+    "serverThreadsMax" : 4,
+    "poolMax" : 4,
+    "warmupRequestsPerCase" : 40,
+    "mysqlMemoryMiB" : 2048,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlCpu" : 2
+  },
+  "cases" : [ {
+    "point" : "BEFORE_COMMIT",
+    "probeFailure" : {
+      "phase" : "MIXED",
+      "acceptedResponses" : 40,
+      "timeoutMillis" : 1000,
+      "serverOutcome" : "UNKNOWN",
+      "ordinal" : 41,
+      "responseObserved" : false
+    },
+    "failureSnapshotStorage" : {
+      "written" : true,
+      "fileName" : "BEFORE_COMMIT.json",
+      "maxBytes" : 262144,
+      "bytes" : 68271
+    },
+    "committedRowsWhileBlocked" : 40,
+    "baselineRowsBeforeCase" : 0,
+    "savedBeforeTeardown" : true,
+    "savedWhileServerBlocked" : true,
+    "snapshotFile" : "BEFORE_COMMIT.json",
+    "snapshotSha256" : "2c933b6f3dfca623b2cd160b07410b5c36053339d5df0a9ebcefb3a869a71554",
+    "snapshotBytes" : 68271,
+    "serverRequests" : 41,
+    "providerCalls" : 0,
+    "committedRowsAfterRelease" : 41,
+    "lateCompletionPreservedFile" : true,
+    "result" : "EXPECTED_TIMEOUT_VERIFIED",
+    "fileStillPresentAfterAppClose" : true
+  }, {
+    "point" : "AFTER_RESTORE",
+    "probeFailure" : {
+      "phase" : "MIXED",
+      "acceptedResponses" : 40,
+      "timeoutMillis" : 1000,
+      "serverOutcome" : "UNKNOWN",
+      "ordinal" : 41,
+      "responseObserved" : false
+    },
+    "failureSnapshotStorage" : {
+      "written" : true,
+      "fileName" : "AFTER_RESTORE.json",
+      "maxBytes" : 262144,
+      "bytes" : 68275
+    },
+    "committedRowsWhileBlocked" : 82,
+    "baselineRowsBeforeCase" : 41,
+    "savedBeforeTeardown" : true,
+    "savedWhileServerBlocked" : true,
+    "snapshotFile" : "AFTER_RESTORE.json",
+    "snapshotSha256" : "79e941ada33247d3f22ef29c9730779e66d56abd774455fcc95dc91941fcb407",
+    "snapshotBytes" : 68275,
+    "serverRequests" : 41,
+    "providerCalls" : 0,
+    "committedRowsAfterRelease" : 82,
+    "lateCompletionPreservedFile" : true,
+    "result" : "EXPECTED_TIMEOUT_VERIFIED",
+    "fileStillPresentAfterAppClose" : true
+  } ],
+  "acceptedDatabaseSubmissions" : 82,
+  "observedHttp202" : 80,
+  "httpTimeouts" : 2,
+  "providerCalls" : 0,
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-03T04:52:57.311439Z"
+}

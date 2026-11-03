@@ -133,3 +133,5 @@ freeze는 짧은 메모리 임계 구역에서 현재 요청과 최근 이력을
 새40개 클래스의 JUnit XML과 콘솔에서 **325개 통과/실패·오류·스킵0**을 다시 대조했다.
 기본 회귀는 실제 재실행했고 bootJar는UP-TO-DATE였다. 수정 전 결과와 구분하며 원격CI 결과가 아니다.
 최종 Docker에는 기존notification-lab-mysql-1만healthy로 남았다. Git identity와 원격main9cf1786을 읽기 전용으로 확인했고 푸시는 하지 않았다.
+
+후속 [실제 HTTP/MySQL 접수와 첫 실패 파일 보존](S7_FAILURE_PERSISTENCE.md)에서 commit 전/복원 후 timeout을 제어하고 앱 종료 전 저장을 검증했다. 기존 캠페인/장시간 task 연결은 아직 하지 않았다.

@@ -1,0 +1,88 @@
+{
+  "startedAtUtc" : "2026-11-03T04:55:21.896799Z",
+  "java" : "Amazon.com Inc. 21.0.6",
+  "jvmMaxHeapBytes" : 536870912,
+  "scope" : "controlled production HTTP/MySQL admission only; test pauses, not natural failure reproduction; no Kafka/relay/worker/provider",
+  "conditions" : {
+    "fixtureTimeoutMillis" : 1000,
+    "mysql" : "8.4.8",
+    "serverThreadsMax" : 4,
+    "poolMax" : 4,
+    "warmupRequestsPerCase" : 40,
+    "mysqlMemoryMiB" : 2048,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlCpu" : 2,
+    "gateMaxSeconds" : 10
+  },
+  "cases" : [ {
+    "point" : "BEFORE_COMMIT",
+    "actualServerThreadsMax" : 4,
+    "actualServerConnectionsMax" : 16,
+    "probeFailure" : {
+      "acceptedResponses" : 40,
+      "timeoutMillis" : 1000,
+      "serverOutcome" : "UNKNOWN",
+      "ordinal" : 41,
+      "responseObserved" : false,
+      "phase" : "MIXED"
+    },
+    "failureSnapshotStorage" : {
+      "written" : true,
+      "fileName" : "BEFORE_COMMIT.json",
+      "maxBytes" : 262144,
+      "bytes" : 68289
+    },
+    "committedRowsWhileBlocked" : 40,
+    "baselineRowsBeforeCase" : 0,
+    "savedBeforeTeardown" : true,
+    "savedWhileServerBlocked" : true,
+    "snapshotPublishedObservedAtUtc" : "2026-11-03T04:55:30.851708Z",
+    "snapshotFile" : "BEFORE_COMMIT.json",
+    "snapshotSha256" : "6ac8a880d85444c2e7dc6a009c314f126eebe0f687331c5bd9554fc9754f7c65",
+    "snapshotBytes" : 68289,
+    "serverRequests" : 41,
+    "providerCalls" : 0,
+    "committedRowsAfterRelease" : 41,
+    "lateCompletionPreservedFile" : true,
+    "result" : "EXPECTED_TIMEOUT_VERIFIED",
+    "fileStillPresentAfterAppClose" : true
+  }, {
+    "point" : "AFTER_RESTORE",
+    "actualServerThreadsMax" : 4,
+    "actualServerConnectionsMax" : 16,
+    "probeFailure" : {
+      "acceptedResponses" : 40,
+      "timeoutMillis" : 1000,
+      "serverOutcome" : "UNKNOWN",
+      "ordinal" : 41,
+      "responseObserved" : false,
+      "phase" : "MIXED"
+    },
+    "failureSnapshotStorage" : {
+      "written" : true,
+      "fileName" : "AFTER_RESTORE.json",
+      "maxBytes" : 262144,
+      "bytes" : 68282
+    },
+    "committedRowsWhileBlocked" : 82,
+    "baselineRowsBeforeCase" : 41,
+    "savedBeforeTeardown" : true,
+    "savedWhileServerBlocked" : true,
+    "snapshotPublishedObservedAtUtc" : "2026-11-03T04:55:32.351338Z",
+    "snapshotFile" : "AFTER_RESTORE.json",
+    "snapshotSha256" : "28cca6a94f14e081f0d4802e88898a2e5f6a99fbaff16667085500e63e98b173",
+    "snapshotBytes" : 68282,
+    "serverRequests" : 41,
+    "providerCalls" : 0,
+    "committedRowsAfterRelease" : 82,
+    "lateCompletionPreservedFile" : true,
+    "result" : "EXPECTED_TIMEOUT_VERIFIED",
+    "fileStillPresentAfterAppClose" : true
+  } ],
+  "acceptedDatabaseSubmissions" : 82,
+  "observedHttp202" : 80,
+  "httpTimeouts" : 2,
+  "providerCalls" : 0,
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-03T04:55:32.778026Z"
+}

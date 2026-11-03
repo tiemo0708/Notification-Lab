@@ -2519,3 +2519,35 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
 - 응답관찰보완후최종build는 **14분23초/종료코드0**이었다. 새40개클래스XML/콘솔에서 **325개통과/실패·오류·스킵0**을다시대조했다.
   기본회귀를실제로재실행했고bootJar는UP-TO-DATE였다. 수정전첫전체회귀와구분하며원격CI결과가아니다.
 - 기존Git identity/원격main9cf1786을읽기전용확인했다. Docker는기존notification-lab-mysql-1만healthy이며임시검증컨테이너는정리됐다. 푸시는하지않았다.
+
+## 2026-11-03 — S7 실제 HTTP/MySQL 접수의 첫 실패 파일 보존
+
+- 시작99ce59d/main. FailureSnapshotStore와opt-in apiFailurePersistenceProbe를추가했다. 운영코드/기존혼합pilot/장시간task는변경하지않았다.
+  실제NotificationController→IdempotentSubmissionService→SubmissionService와JDBC/MySQL을사용하고Kafka/Relay/Worker/공급자발송은제외했다.
+- 첫snapshot동결→같은디렉터리temp전체쓰기→FileChannel.force(true)→기존이름을바꾸지않는새hard link공개→temp정리순서다.
+  256KiB쓰기상한과기록기32+1구조를유지하며첫저장후재호출은기존결과를반환한다. 실패후자동재시도나unsafe move/copy우회는없다.
+  parent directory fsync는하지않아전원장애보존을보장하지않는다. 정리실패시주된결과를바꾸지않고temp가남을수있다.
+- 파일저장실패는report에종류만기록하고내용·경로없는suppressed예외를붙여원래timeout객체를유지한다.
+  기존파일미덮어쓰기/실패후재시도없음/동시저장자중정확히하나성공/원래예외보존을검증했다.
+- 선택24개는초기7초/최종4초, 모두종료코드0/실패·오류·스킵0이었다.
+  HTTP/MySQL제어는초기16초/최종15초, 각테스트1개PASS/종료코드0/실패·오류·스킵0이었다.
+  첫실행후Java·heap/실제connector상한·파일관찰시각을추가했고초기·최종소스와원본은분리보존했다.
+- 최종Java Amazon.com Inc.21.0.6/heap512MiB, MySQL8.4.8 2CPU/2GiB/buffer512MiB/pool4/외부관찰1,
+  실제Tomcat maxThreads4/maxConnections16을확인했다. 각조건HTTP202 40건뒤제어요청1건, 총HTTP82건이다.
+  일반요청5초/fixture timeout1초/gate최대10초, 공급자호출은0이다. 기존장시간HTTP5초제한을바꾼결과가아니다.
+- BEFORE_COMMIT은active COMMIT/commitReturned=false/DB행40, AFTER_RESTORE는active AUTOCOMMIT_STATE/commitReturned=true/DB행82였다.
+  두조건모두클라이언트결과UNKNOWN이며기록기는최근32건/진행1건/완료40/evicted8을보관했다.
+  앱과pool이살아있고서버가gate에서대기중인동안첫파일68289/68282bytes를저장했다.
+  gate해제후DB행41/82와세테이블일치, 늦은처리/재저장후파일SHA불변/앱종료후파일존재를확인했다.
+- 최종DB접수82건/관찰HTTP202 80건/timeout2건/provider0/delivery_attempt0, Outbox82개는PENDING이었다.
+  접수제어이며발송완료나단말도착의검증이아니다. 실제장시간timeout이나127ms지연의원인은계속미확정이다.
+  result=PASS는주입한예상timeout의검증이며실제부하실패를PASS로바꾼것이아니다.
+- [순서·상한·공식참고·실제결과](S7_FAILURE_PERSISTENCE.md)와[원본/파일명대응/실행메타데이터](experiments/s7-api-failure-persistence-2026-11-03-execution.json)를기록했다.
+  다음은작은기존Kafka캠페인혼합pilot의opt-in연결과보존실패처리검증이다. 운영설정과사용자DB/.env/IntelliJ/volume을유지했다.
+  10만·100만건/실제공급자/유료자원/푸시는실행하지않았다.
+
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **15분3초/종료코드0**이었다.
+  새41개클래스JUnit XML과콘솔에서 **329개통과/실패·오류·스킵0**을대조했다. 기존325개+새단위4개다.
+  기본회귀를실제로재실행했고bootJar는UP-TO-DATE였다. 별도opt-in제어와구분하며원격CI결과가아니다.
+- 고정소스8개/운영Java·resources diff0/기존100만건FAIL SHA불변을확인했다.
+- 기존Git identity/원격main9cf1786을읽기전용확인했다. Docker는기존notification-lab-mysql-1만healthy로남았고임시검증컨테이너는정리됐다. 푸시는하지않았다.

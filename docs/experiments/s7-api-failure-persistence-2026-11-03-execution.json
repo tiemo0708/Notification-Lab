@@ -1,0 +1,115 @@
+{
+  "scope": "opt-in real production MVC/MySQL admission-only controls; deliberate test JDBC pauses; immediate first-file persistence; no natural timeout reproduction or campaign/long-run wiring",
+  "sourceManifest": "s7-api-failure-persistence-2026-11-03-source.json",
+  "sourceManifestSha256": "e3b27602ffebd2b45a44c23545371ede48416dea3be78170f44bc7ee613eec62",
+  "initialSourceManifest": "s7-api-failure-persistence-2026-11-03-source-initial.json",
+  "initialSourceManifestSha256": "098e3303c8499b1be97b6ccf20d945b5de3f7901bce4495f1402f2be8939ef57",
+  "units": [
+    {
+      "stage": "initial",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*FailureSnapshotStoreTest' --tests '*ApiFailureWindowTest' --tests '*CampaignDeliveryDiagnosticsTest' --tests '*DeliveryTimingTest'",
+      "duration": "7s",
+      "exitCode": 0,
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "stage": "final",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*FailureSnapshotStoreTest' --tests '*ApiFailureWindowTest' --tests '*CampaignDeliveryDiagnosticsTest' --tests '*DeliveryTimingTest'",
+      "duration": "4s",
+      "exitCode": 0,
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "runs": [
+    {
+      "stage": "initial",
+      "rawFile": "s7-api-failure-persistence-2026-11-03-initial-result.json",
+      "sha256": "30e6801b870ab7c53ae0c0d21c50f1531f157177edbfa73fe8b97b735e4fb328",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailurePersistenceProbe",
+      "exitCode": 0,
+      "duration": "16s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T04:52:44.964625Z",
+      "finishedAtUtc": "2026-11-03T04:52:57.311439Z",
+      "artifactMapping": [
+        {
+          "originalFileName": "BEFORE_COMMIT.json",
+          "rawFile": "s7-api-failure-persistence-2026-11-03-initial-before.json",
+          "sha256": "2c933b6f3dfca623b2cd160b07410b5c36053339d5df0a9ebcefb3a869a71554",
+          "bytes": 68271
+        },
+        {
+          "originalFileName": "AFTER_RESTORE.json",
+          "rawFile": "s7-api-failure-persistence-2026-11-03-initial-after.json",
+          "sha256": "79e941ada33247d3f22ef29c9730779e66d56abd774455fcc95dc91941fcb407",
+          "bytes": 68275
+        }
+      ],
+      "sourceRelation": "before environment/actual connector metadata addition"
+    },
+    {
+      "stage": "final",
+      "rawFile": "s7-api-failure-persistence-2026-11-03-result.json",
+      "sha256": "34d00c2af9a136998f13388595aa38d702b003f986e7d7cbe52995abbd68a89b",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailurePersistenceProbe",
+      "exitCode": 0,
+      "duration": "15s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T04:55:21.896799Z",
+      "finishedAtUtc": "2026-11-03T04:55:32.778026Z",
+      "artifactMapping": [
+        {
+          "originalFileName": "BEFORE_COMMIT.json",
+          "rawFile": "s7-api-failure-persistence-2026-11-03-before.json",
+          "sha256": "6ac8a880d85444c2e7dc6a009c314f126eebe0f687331c5bd9554fc9754f7c65",
+          "bytes": 68289
+        },
+        {
+          "originalFileName": "AFTER_RESTORE.json",
+          "rawFile": "s7-api-failure-persistence-2026-11-03-after.json",
+          "sha256": "28cca6a94f14e081f0d4802e88898a2e5f6a99fbaff16667085500e63e98b173",
+          "bytes": 68282
+        }
+      ],
+      "sourceRelation": "frozen source.json"
+    }
+  ],
+  "fullBuild": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "exitCode": 0,
+    "duration": "15m 3s",
+    "classes": 41,
+    "tests": 329,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "freshXmlAfterLogBirth": true,
+    "consolePassed": 329,
+    "artifactTasks": [
+      "> Task :bootJar UP-TO-DATE",
+      "> Task :jar SKIPPED"
+    ]
+  },
+  "limits": [
+    "hard-link support required; no unsafe fallback",
+    "file force performed, parent directory not fsynced; no power-loss guarantee",
+    "synthetic gates and fixture timeout 1s; normal probe timeout remains 5s",
+    "writer bound 256KiB and ring bound 32+1; not whole-process fixed memory",
+    "not yet connected to existing Kafka campaign pilot or million task"
+  ],
+  "remoteMainReadOnly": "9cf178636edc4b03a5aa1d560f9cfe3c71f36568",
+  "millionFailureSha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b",
+  "dockerAfter": "only existing notification-lab-mysql-1 mysql:8.4.8 healthy"
+}

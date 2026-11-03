@@ -1,0 +1,15 @@
+{
+  "base": "99ce59df68f41eda601e5f60816ea5d7822a3ac0",
+  "capturedAtUtc": "2026-11-03T04:57:04.679027+00:00",
+  "scope": "frozen final sources; actual HTTP/MySQL admission-only controlled timeouts, no campaign load",
+  "files": {
+    "build.gradle": "fd48b548019862d87e0a79c1527b079b73bc109ede737e1972888a2a9e0a682c",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/FailureSnapshotStore.java": "b71c0e5149d0ed15aa3b56a8f8eb3fd5578d76be9c113d935b6383f6b17de83b",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/FailureSnapshotStoreTest.java": "9b3667216a989a3b27e6f3e1418b1aa23100b0fa3329678933010e40de9a5856",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailurePersistenceProbeTest.java": "61c4b2a7f46035d009cc7e75d75fcf599ca900267d1e2baf3edd0482c071d0c9",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailureWindow.java": "3747f1117f0d7fe0ba86e3d7417e542fe4af90e91d3ef682497f7b48c7ccba2a",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "68b92701b873f3469047fb7522e6ed31b25911abe05286a0b899ef1468f4d054",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryDiagnostics.java": "c9f8c6aee1e02717447692a10ade0a25db87fda1105ce5eede17301cd7b53753",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiConnectionTiming.java": "28be2771f5b1c1cb6b04049a6faf14366257dae1e73bdaef0f4653036a28be14"
+  }
+}

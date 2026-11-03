@@ -50,7 +50,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe', 'api-wait-probe' }
+    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe', 'api-wait-probe', 'api-failure-persistence' }
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
@@ -436,6 +436,20 @@ tasks.register('apiConnectionProbe', Test) {
     maxParallelForks = 1
     timeout = Duration.ofMinutes(3)
     systemProperty 'junit.jupiter.execution.timeout.test.method.default', '2m'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+tasks.register('apiFailurePersistenceProbe', Test) {
+    description = 'Bounded real HTTP/MySQL timeout controls with immediate first-failure snapshot persistence'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'api-failure-persistence' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(4)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '3m'
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
