@@ -38,6 +38,10 @@ final class DeliveryTiming {
     enum Part { STORE_CALL, ACQUIRE, PREPARE, EXECUTE, COMMIT, ROLLBACK, AUTOCOMMIT_STATE, ISOLATION_STATE, READ_ONLY_STATE, CONNECTION_STATE, RELEASE, STATEMENT_CLOSE, COMMIT_SYNC, COMMIT_ASYNC_SUBMIT }
     @FunctionalInterface interface Action<T, E extends Throwable> { T run() throws E; }
     @FunctionalInterface interface ApiObserver { void record(Part part, long nanos, boolean failed); }
+    interface ApiIoObserver extends ApiObserver {
+        void starting(Part part);
+        void connection(Connection connection) throws SQLException;
+    }
 
     private final ThreadLocal<Phase> current = new ThreadLocal<>();
     private final Stats[][] stats = new Stats[Phase.values().length][Part.values().length];
@@ -60,6 +64,7 @@ final class DeliveryTiming {
         active.incrementAndGet();
         boolean failed = true;
         try {
+            if (phase == Phase.API_SUBMIT && apiObserver instanceof ApiIoObserver observer) observer.starting(part);
             T value = action.run();
             failed = false;
             return value;
@@ -139,6 +144,12 @@ final class DeliveryTiming {
             Phase phase = current.get();
             if (phase == null) return action.run();
             Connection connection = measure(phase, Part.ACQUIRE, action);
+            try {
+                if (phase == Phase.API_SUBMIT && apiObserver instanceof ApiIoObserver observer) observer.connection(connection);
+            } catch (SQLException | RuntimeException failure) {
+                try { connection.close(); } catch (SQLException closeFailure) { failure.addSuppressed(closeFailure); }
+                throw failure;
+            }
             return wrapConnection(connection, phase);
         }
         @Override public void close() throws Exception {

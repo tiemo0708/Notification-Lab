@@ -339,6 +339,10 @@ HTTP41910건 전수 대조와 동기 커밋10000→2163/2019회 감소를 확인
 실제 Outbox 잠금 대기와 native commit 이후 합성 호출자 지연을 DB 가시성/대기 관계/CPU·wall로 구분했다.
 HTTP/Kafka 발송 부하는 없고 기존 자연 발생 tail의 원인을 해결한 결과가 아니다. 운영 설정과 기본 정책을 유지한다.
 
+[같은 접수 연결의DB 관찰 대응](docs/S7_API_DB_OBSERVATION.md)은 `apiSessionProbe`로 세션 대응을 검증하고
+`apiDbObservationPilot -PdbObservation=OFF` 또는ON으로정확히1천 건을 비교한다. API연결에진단SQL을추가하지 않는다.
+호출이끝난표본은버리고 전체512조회/요청당8표본으로제한한다. 자연ON은87요청중4개만관측돼과거지연의원인은미확정이다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

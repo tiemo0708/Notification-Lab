@@ -1,0 +1,13 @@
+{
+  "baseCommit": "cfdab26de8eb63a455fa5d265e0b0d48dcc3a158",
+  "scope": "final observer runtime for control; natural report-path isolation added after final control; frozen sources for OFF/ON natural pilots and regression; production sources unchanged",
+  "filesSha256": {
+    "build.gradle": "e874ca19817aae4338f3872bedff94e3a8ccff12a9e984b98c0dcbeb5cffed60",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiDbObservation.java": "41ac92355b7c66c321fdf4449458f9ff27b07c2cc99808d5eaa76b16f1b78464",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiDbObservationTest.java": "b1cd564efa403681154c450a5070efde14f2a9e6a0b3afdda753eee37a944578",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "c55119434dd5bb035b2be6d186527b8eccaf920e340bafe24d3c7e8208d4cfab",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiRequestTiming.java": "340df3a1374c046a21d571f288e1d034d7bfc65489e6dd5f856ef1cee6c6fc9d",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryPilotTest.java": "f74317f44375a8ed77219e1fa851b1acff0ddcd77ea3fc135360080ce11262a1",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/AdmissionWaitProbeTest.java": "1eb536ddad688f20a84dbd19f7c78d00817b5ab078bf5e4cc5ce1bc252bef78e"
+  }
+}

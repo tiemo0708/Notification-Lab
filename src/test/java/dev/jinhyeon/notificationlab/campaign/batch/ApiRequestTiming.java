@@ -116,6 +116,12 @@ final class ApiRequestTiming {
 
     void abort(Capture capture) { pending.compareAndSet(capture, null); }
 
+    String currentWindow() {
+        Capture capture = serving.get();
+        if (capture == null) throw new IllegalStateException("No servlet timing scope");
+        return capture.window.name();
+    }
+
     void markDrainStart(long nanos) { drainStartAfterMillis = (nanos - originNanos) / 1_000_000.0; }
 
     Map<String, Object> snapshot() {

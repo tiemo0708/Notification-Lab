@@ -1,0 +1,375 @@
+{
+  "startedAtUtc" : "2026-11-03T00:56:14.778050Z",
+  "scope" : "SQL-only real Spring transactional SubmissionService; normal, held gap lock, synthetic post-commit caller pause; no HTTP/Kafka/provider",
+  "conditions" : {
+    "mysql" : "8.4.8",
+    "holdMillis" : 200,
+    "mysqlCpu" : 2,
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlMemoryMiB" : 2048,
+    "externalConnectionsMax" : 3,
+    "cases" : 3,
+    "warmupSubmissions" : 3,
+    "applicationPoolMax" : 4
+  },
+  "bounds" : {
+    "queryTimeoutSeconds" : 5,
+    "observerQuerySeconds" : 2,
+    "futureSeconds" : 8,
+    "lockWaitSeconds" : 5,
+    "gateSeconds" : 3,
+    "executorQueue" : 1,
+    "observationSeconds" : 2
+  },
+  "java" : "Amazon.com Inc. 21.0.6",
+  "jvmMaxHeapBytes" : 536870912,
+  "limitations" : [ "synthetic controls calibrate evidence, not the cause of previous 100k/million latency", "wall minus thread CPU includes all off-CPU intervals, not pure scheduler or database time", "post-commit latch is not a physical network fault or an actual OS scheduling event", "wait edges are transient snapshots; none observed does not prove absence throughout execution" ],
+  "cases" : [ {
+    "scenario" : "BASELINE",
+    "wallMinusCpuMillis" : 8.577124999999999,
+    "jdbc" : {
+      "STORE_CALL" : {
+        "millis" : 14.803125,
+        "count" : 1
+      },
+      "ACQUIRE" : {
+        "millis" : 0.027084,
+        "count" : 1
+      },
+      "PREPARE" : {
+        "millis" : 0.301291,
+        "count" : 4
+      },
+      "EXECUTE" : {
+        "millis" : 2.845709,
+        "count" : 4
+      },
+      "COMMIT" : {
+        "millis" : 5.142083,
+        "count" : 1
+      },
+      "ROLLBACK" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "AUTOCOMMIT_STATE" : {
+        "millis" : 1.911374,
+        "count" : 3
+      },
+      "ISOLATION_STATE" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "READ_ONLY_STATE" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "CONNECTION_STATE" : {
+        "millis" : 0.038458,
+        "count" : 2
+      },
+      "RELEASE" : {
+        "millis" : 0.033958,
+        "count" : 1
+      },
+      "STATEMENT_CLOSE" : {
+        "millis" : 0.080582,
+        "count" : 4
+      },
+      "COMMIT_SYNC" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "COMMIT_ASYNC_SUBMIT" : {
+        "millis" : 0.0,
+        "count" : 0
+      }
+    },
+    "threadCpuMillis" : 6.341,
+    "wallMillis" : 14.918125,
+    "sqlExecutionMillis" : [ 0.998417, 0.5115, 0.741167, 0.594625 ],
+    "result" : "PASS"
+  }, {
+    "scenario" : "OUTBOX_GAP_LOCK",
+    "observedOutboxWaitEdges" : 1,
+    "heldSessionLockSampleConfirmed" : true,
+    "uncommittedRowsInvisible" : true,
+    "wallMinusCpuMillis" : 284.62141699999995,
+    "jdbc" : {
+      "STORE_CALL" : {
+        "millis" : 286.90425,
+        "count" : 1
+      },
+      "ACQUIRE" : {
+        "millis" : 0.026459,
+        "count" : 1
+      },
+      "PREPARE" : {
+        "millis" : 0.354209,
+        "count" : 4
+      },
+      "EXECUTE" : {
+        "millis" : 281.165541,
+        "count" : 4
+      },
+      "COMMIT" : {
+        "millis" : 3.195917,
+        "count" : 1
+      },
+      "ROLLBACK" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "AUTOCOMMIT_STATE" : {
+        "millis" : 1.101333,
+        "count" : 3
+      },
+      "ISOLATION_STATE" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "READ_ONLY_STATE" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "CONNECTION_STATE" : {
+        "millis" : 0.024417,
+        "count" : 2
+      },
+      "RELEASE" : {
+        "millis" : 0.011875,
+        "count" : 1
+      },
+      "STATEMENT_CLOSE" : {
+        "millis" : 0.102291,
+        "count" : 4
+      },
+      "COMMIT_SYNC" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "COMMIT_ASYNC_SUBMIT" : {
+        "millis" : 0.0,
+        "count" : 0
+      }
+    },
+    "threadCpuMillis" : 2.29,
+    "wallMillis" : 286.911417,
+    "sqlExecutionMillis" : [ 1.111958, 1.756875, 1.257042, 277.039666 ],
+    "result" : "PASS"
+  }, {
+    "scenario" : "POST_COMMIT_CALLER_PAUSE",
+    "nativeCommitReturned" : true,
+    "rowsVisibleWhileCallerBlocked" : true,
+    "waitEdgesWhileCallerBlocked" : 0,
+    "wallMinusCpuMillis" : 216.122167,
+    "jdbc" : {
+      "STORE_CALL" : {
+        "millis" : 217.905917,
+        "count" : 1
+      },
+      "ACQUIRE" : {
+        "millis" : 0.020292,
+        "count" : 1
+      },
+      "PREPARE" : {
+        "millis" : 0.184292,
+        "count" : 4
+      },
+      "EXECUTE" : {
+        "millis" : 4.247208,
+        "count" : 4
+      },
+      "COMMIT" : {
+        "millis" : 210.757125,
+        "count" : 1
+      },
+      "ROLLBACK" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "AUTOCOMMIT_STATE" : {
+        "millis" : 1.949875,
+        "count" : 3
+      },
+      "ISOLATION_STATE" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "READ_ONLY_STATE" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "CONNECTION_STATE" : {
+        "millis" : 0.014209,
+        "count" : 2
+      },
+      "RELEASE" : {
+        "millis" : 0.024584,
+        "count" : 1
+      },
+      "STATEMENT_CLOSE" : {
+        "millis" : 0.033751,
+        "count" : 4
+      },
+      "COMMIT_SYNC" : {
+        "millis" : 0.0,
+        "count" : 0
+      },
+      "COMMIT_ASYNC_SUBMIT" : {
+        "millis" : 0.0,
+        "count" : 0
+      }
+    },
+    "threadCpuMillis" : 1.794,
+    "wallMillis" : 217.916167,
+    "sqlExecutionMillis" : [ 1.13575, 1.193041, 1.070459, 0.847958 ],
+    "result" : "PASS"
+  } ],
+  "acceptedSubmissions" : 6,
+  "providerCalls" : 0,
+  "result" : "PASS",
+  "sessionObservation" : {
+    "version" : "held-session-call-window-v1",
+    "enabled" : true,
+    "closed" : true,
+    "pollMillis" : 20,
+    "maxQueries" : 512,
+    "maxSamplesPerRequest" : 8,
+    "queries" : 19,
+    "errors" : 0,
+    "staleDiscarded" : 2,
+    "queryTotalMillis" : 44.888289,
+    "queryMaxMillis" : 8.199958,
+    "samplerTerminated" : true,
+    "queuedTasks" : 0,
+    "queryBudgetReached" : false,
+    "lockSamples" : 8,
+    "openRequests" : 0,
+    "rows" : [ {
+      "failed" : false,
+      "samples" : [ ],
+      "samplesNotRetained" : 0,
+      "status" : "NOT_OBSERVED",
+      "window" : "CONTROL"
+    }, {
+      "failed" : false,
+      "samples" : [ {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 4,
+        "part" : "EXECUTE",
+        "rowWaitEdges" : 1,
+        "statementKind" : "INSERT",
+        "serverStatementActive" : true
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 4,
+        "part" : "EXECUTE",
+        "rowWaitEdges" : 1,
+        "statementKind" : "INSERT",
+        "serverStatementActive" : true
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 4,
+        "part" : "EXECUTE",
+        "rowWaitEdges" : 1,
+        "statementKind" : "INSERT",
+        "serverStatementActive" : true
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 4,
+        "part" : "EXECUTE",
+        "rowWaitEdges" : 1,
+        "statementKind" : "INSERT",
+        "serverStatementActive" : true
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 4,
+        "part" : "EXECUTE",
+        "rowWaitEdges" : 1,
+        "statementKind" : "INSERT",
+        "serverStatementActive" : true
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 4,
+        "part" : "EXECUTE",
+        "rowWaitEdges" : 1,
+        "statementKind" : "INSERT",
+        "serverStatementActive" : true
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 4,
+        "part" : "EXECUTE",
+        "rowWaitEdges" : 1,
+        "statementKind" : "INSERT",
+        "serverStatementActive" : true
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 4,
+        "part" : "EXECUTE",
+        "rowWaitEdges" : 1,
+        "statementKind" : "INSERT",
+        "serverStatementActive" : true
+      } ],
+      "samplesNotRetained" : 2,
+      "status" : "OBSERVED",
+      "window" : "CONTROL"
+    }, {
+      "failed" : false,
+      "samples" : [ {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 0,
+        "part" : "COMMIT",
+        "rowWaitEdges" : 0,
+        "statementKind" : "COMMIT",
+        "serverStatementActive" : false
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 0,
+        "part" : "COMMIT",
+        "rowWaitEdges" : 0,
+        "statementKind" : "COMMIT",
+        "serverStatementActive" : false
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 0,
+        "part" : "COMMIT",
+        "rowWaitEdges" : 0,
+        "statementKind" : "COMMIT",
+        "serverStatementActive" : false
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 0,
+        "part" : "COMMIT",
+        "rowWaitEdges" : 0,
+        "statementKind" : "COMMIT",
+        "serverStatementActive" : false
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 0,
+        "part" : "COMMIT",
+        "rowWaitEdges" : 0,
+        "statementKind" : "COMMIT",
+        "serverStatementActive" : false
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 0,
+        "part" : "COMMIT",
+        "rowWaitEdges" : 0,
+        "statementKind" : "COMMIT",
+        "serverStatementActive" : false
+      }, {
+        "sessionPresent" : true,
+        "sqlOrdinal" : 0,
+        "part" : "COMMIT",
+        "rowWaitEdges" : 0,
+        "statementKind" : "COMMIT",
+        "serverStatementActive" : false
+      } ],
+      "samplesNotRetained" : 0,
+      "status" : "OBSERVED",
+      "window" : "CONTROL"
+    } ]
+  },
+  "finishedAtUtc" : "2026-11-03T00:56:26.145035Z"
+}

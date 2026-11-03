@@ -2341,3 +2341,46 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   기존Git identity와원격main9cf1786을읽기전용으로확인했다. 사용자DB/.env/IntelliJ/volume과기본정책을변경하지 않았다.
   10만·100만건/실제공급자/유료자원/푸시는 실행하지 않았다.
 - 새 원본의비유한값/UUID/민감필드미포함과문서링크를확인했다. Docker에는기존notification-lab-mysql-1만healthy로남았다.
+
+
+## 2026-11-03 — S7 접수 물리 세션과 유효 호출 구간의 DB 관찰 대응
+
+- 시작cfdab26/main/원격추적보다18개앞선깨끗한상태에서AGENTS/CONTRIBUTING/PLAN/README/직전제어군결과를확인했다.
+  API연결에진단SQL을추가하지않고 Connector/J9.7.0의캐시된getId를읽어별도observer연결에서대상세션만관찰한다.
+  원본드라이버소스의session.getThreadId반환을로컬동일버전sources와공식소스에서대조했다.
+- 각native execute/commit 호출의새구간객체를전후확인한다. 조회중구간이끝나거나연결이재사용되면결과를버린다.
+  같은연결번호를다음요청이재사용해도이전결과를붙이지않는단위검증을추가했다.
+  SQL원문·digest·수신자·ID·예외메시지는보관하지않고고정statement분류/실행중여부/대기관계수만보관한다.
+- 샘플러는별도연결1개/스레드1개/20ms fixed delay, 전체조회512회/요청당8표본/최대5000요청,
+  쿼리1초/network2초/오류3회후조회중단/종료3+2초상한이다. 미관찰/세션부재/OFF를대기0과구분한다.
+  시작시statement consumer와기본3개instrument활성상태만읽고서버계측설정은변경하지않는다.
+- 요청대응/관찰상한·오류/기존트랜잭션선택15개는6초/실패·오류·스킵0으로통과했다.
+  apiSessionProbe는기존SQL3조건의제어군에세션관찰을붙인다. 초기21초통과후관찰비용·종료상태를추가했고,
+  최종17초/종료코드0/테스트1개통과/실패·오류·스킵0이었다. 접수6건/공급자호출0이다.
+- 최종세션제어군조회19회/오류0/늦은표본2개버림/잠금표본8개였다. 잠금구간의대상접수세션을확인했다.
+  정상은NOT_OBSERVED, 잠금/커밋후보류는OBSERVED였다. 관찰호출44.888ms/최대8.200ms,
+  종료후queuedTasks0/samplerTerminated=true/openRequests0을확인했다.
+- 이후자연실험출력경로를분리하고소스7개해시를고정했다. apiDbObservationPilot은정확히1000건/COUNT_TIME만실행한다.
+  같은코드/자원/기존발송예산·pool상한으로새인프라에서OFF→ON각1회실행했다. observer연결/설정검증은동일하고주기조회만다르다.
+  두task는47초/39초·각1개통과/실패·오류·스킵0/종료코드0이었다. 캠페인발송8.743/8.450초,
+  혼합접수p95 16.774/16.524ms·최대22.338/17.130ms·표본38/37개였다.
+- 캠페인2000+실시간175=HTTP2175건의전체대상/시도이력1회/Outbox PUBLISHED/HTTP감사/각partition offset=end/quota를대조했다.
+  중복·매핑·Mock제한/오류0이었다. API배열/관찰배열의175개요청수와window순서가일치했다.
+  각역할pool종료/consumer3개wrapping/activeCalls0을확인했다. 운영Java/resources와기본RECORD는변경하지않았다.
+- OFF88개요청은전부DISABLED였다. ON87개중OBSERVED4개/NOT_OBSERVED83개, 혼합37개중관측2개/미관측35개였다.
+  ON조회22회중18개는늦어버렸고오류0/보관4개/쿼리예산초과0이었다. 4개모두대상연결의commit구간에서COMMIT실행중이었고순간대기관계0이었다.
+  전체관찰호출44.055ms/최대5.274ms, 종료후스레드/대기작업0을확인했다. 현재statement는겹친연결구간의맥락이며개별서버이벤트완전추적이아니다.
+- [설계·실제수치·관찰범위·질문·공식참고](S7_API_DB_OBSERVATION.md)와원본/소스해시/[실행메타데이터](experiments/s7-api-db-2026-11-03-execution.json)를기록했다.
+  짧은요청대부분은미관측이었다. 4개시점의대기0을전체요청·과거10만건의대기부재로해석하지않는다.
+  각1회/공유호스트/적은표본/공통계측비용이있어ON의p95감소를오버헤드0이나성능개선으로주장하지않는다.
+  다음은긴호출우선관찰의예산·커버리지검증이다. 과거10만건p95/100만건timeout 원인은계속미확정이다.
+  풀/인덱스/격리수준/기본발송정책변경,10만·100만건재실행/실제공급자/유료자원/푸시는하지않았다.
+
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **15분6초/종료코드0**이었다.
+  새39개클래스JUnit XML과콘솔에서 **312개통과/실패·오류·스킵0**을대조했다. 기존308개+새단위4개다.
+  기본회귀는실제재실행했고두실행JAR task는UP-TO-DATE였다. 별도세션제어/자연OFF·ON결과와구분한다.
+- 고정소스7개해시와운영Java/resources diff0을확인했다. 드라이버캐시조회는CoreSession→NativeCapabilities.threadId반환까지대조했다.
+  원래100만건FAIL원본불변과새원본의비유한값/UUID/민감필드미포함,문서링크를확인했다.
+  기존Git identity와원격main9cf1786을읽기전용확인했다. 사용자DB/.env/IntelliJ/volume과기본정책을유지했다.
+  10만·100만건/실제공급자/유료자원/푸시는실행하지않았다.
+- 최종Docker에는기존notification-lab-mysql-1만healthy로남았고임시검증컨테이너는정리됐다.

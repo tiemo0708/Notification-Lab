@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -76,6 +77,7 @@ class CampaignDeliveryPilotTest {
     private int maxProbes;
     private int relayInstances;
     private ApiRequestTiming apiRequestTiming;
+    private ApiDbObservation apiDbObservation;
     private final Map<String, DeliveryTiming> timings = new LinkedHashMap<>();
 
     @Test
@@ -85,6 +87,8 @@ class CampaignDeliveryPilotTest {
         boolean fineTiming = Boolean.getBoolean("campaign.delivery.fineTiming");
         boolean offsetComparison = Boolean.getBoolean("campaign.delivery.offsetComparison");
         boolean apiTiming = Boolean.getBoolean("campaign.delivery.apiTiming");
+        boolean dbObservation = Boolean.getBoolean("campaign.delivery.dbObservation");
+        if (dbObservation && !apiTiming) throw new IllegalArgumentException("DB observation requires API timing");
         if (apiTiming && (load || !offsetComparison)) throw new IllegalArgumentException("API timing requires the small offset pilot");
         var offsetMode = offsetComparison ? OffsetCommitPolicy.mode(System.getProperty("campaign.delivery.offsetMode", "RECORD")) : OffsetCommitPolicy.Mode.RECORD;
         if (offsetComparison && !fineTiming) throw new IllegalArgumentException("Offset comparison requires fine timing");
@@ -115,6 +119,7 @@ class CampaignDeliveryPilotTest {
         report.put("relayScheduling", scaling ? "test-only-fixed-delay-group-v1" : "application-scheduled-bean");
         report.put("fineTimingEnabled", fineTiming);
         if (apiTiming) report.put("apiTimingEnabled", true);
+        if (dbObservation) report.put("dbObservationEnabled", Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")));
         report.put("offsetComparison", offsetComparison);
         report.put("campaignOffsetMode", offsetMode.name());
         if (offsetComparison) report.put("offsetSettings", Map.of("ackCount", OffsetCommitPolicy.ACK_COUNT,
@@ -278,12 +283,17 @@ class CampaignDeliveryPilotTest {
             throw failure;
         } finally {
             TimeZone.setDefault(originalZone);
+            if (apiDbObservation != null) {
+                apiDbObservation.close();
+                report.put("apiDbObservation", apiDbObservation.snapshot());
+            }
             report.put("finishedAtUtc", Instant.now().toString());
             if (apiRequestTiming != null) report.put("apiRequestTiming", apiRequestTiming.snapshot());
-            Path directory = Path.of(apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
+            Path directory = Path.of(dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                     load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
-            String name = offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
+            String name = dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-targets-" + targets
+                    : offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
             mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
         }
     }
@@ -333,7 +343,15 @@ class CampaignDeliveryPilotTest {
                     .initializers(context -> context.getBeanFactory().registerSingleton("apiRequestTiming", api));
         }
         if (live && Boolean.getBoolean("campaign.delivery.fineTiming")) {
-            var timing = new DeliveryTiming(api == null ? null : api::jdbc);
+            DeliveryTiming.ApiObserver observer = api == null ? null : api::jdbc;
+            if (api != null && Boolean.getBoolean("campaign.delivery.dbObservation")) {
+                try {
+                    apiDbObservation = ApiDbObservation.connect(DriverManager.getConnection(mysql.getJdbcUrl(), "root", mysql.getPassword()),
+                            api::jdbc, api::currentWindow, Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")));
+                    observer = apiDbObservation;
+                } catch (Exception failure) { throw new IllegalStateException("DB observation setup failed", failure); }
+            }
+            var timing = new DeliveryTiming(observer);
             timings.put(lane, timing);
             builder.sources(DeliveryTiming.Wiring.class)
                     .initializers(context -> context.getBeanFactory().registerSingleton("deliveryTiming", timing));
@@ -404,6 +422,10 @@ class CampaignDeliveryPilotTest {
         report.put("mixedApiLatencyMs", percentiles(probes.subList(BASELINE_PROBES, probes.size()).stream().map(Probe::apiMillis).toList()));
         if (apiRequestTiming != null) {
             assertThat(apiRequestTiming.snapshot()).containsEntry("completed", probes.size()).containsEntry("pending", false);
+            if (apiDbObservation != null) {
+                assertThat(apiDbObservation.snapshot()).containsEntry("errors", 0).containsEntry("openRequests", 0);
+                assertThat((List<?>) apiDbObservation.snapshot().get("rows")).hasSize(probes.size());
+            }
         }
     }
 

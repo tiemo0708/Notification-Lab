@@ -55,6 +55,7 @@ import static org.awaitility.Awaitility.await;
 class AdmissionWaitProbeTest {
     private static final int HOLD_MILLIS = 200;
     private final Map<String, Object> report = new LinkedHashMap<>();
+    private ApiDbObservation sessionObservation;
 
     @Test
     @Timeout(120)
@@ -65,8 +66,9 @@ class AdmissionWaitProbeTest {
         if (!cpuWasEnabled) cpu.setThreadCpuTimeEnabled(true);
         report.put("startedAtUtc", Instant.now().toString());
         report.put("scope", "SQL-only real Spring transactional SubmissionService; normal, held gap lock, synthetic post-commit caller pause; no HTTP/Kafka/provider");
+        boolean observe = Boolean.getBoolean("api.wait.observe");
         report.put("conditions", Map.of("mysql", "8.4.8", "mysqlCpu", 2, "mysqlMemoryMiB", 2048,
-                "mysqlBufferPoolMiB", 512, "applicationPoolMax", 4, "externalConnectionsMax", 2,
+                "mysqlBufferPoolMiB", 512, "applicationPoolMax", 4, "externalConnectionsMax", observe ? 3 : 2,
                 "warmupSubmissions", 3, "cases", 3, "holdMillis", HOLD_MILLIS));
         report.put("bounds", Map.of("lockWaitSeconds", 5, "queryTimeoutSeconds", 5, "observerQuerySeconds", 2,
                 "observationSeconds", 2, "gateSeconds", 3, "futureSeconds", 8, "executorQueue", 1));
@@ -88,11 +90,14 @@ class AdmissionWaitProbeTest {
                 observer.setQueryTimeout(2);
                 var nativeGate = new AtomicReference<CommitGate>();
                 var capture = new ThreadLocal<Capture>();
-                var timing = new DeliveryTiming((part, nanos, failed) -> {
+                DeliveryTiming.ApiObserver collector = (part, nanos, failed) -> {
                     var active = capture.get();
                     if (active == null) throw new IllegalStateException("Missing SQL calibration capture");
                     active.record(part, nanos, failed);
-                });
+                };
+                if (observe) sessionObservation = ApiDbObservation.connect(
+                        DriverManager.getConnection(mysql.getJdbcUrl(), "root", mysql.getPassword()), collector, () -> "CONTROL", true);
+                var timing = new DeliveryTiming(sessionObservation == null ? collector : sessionObservation);
                 try (var context = context(timing.dataSource(new CommitDelayDataSource(pool, nativeGate)))) {
                     var submissions = context.getBean(SubmissionService.class);
                     for (int i = 0; i < 3; i++) submissions.accept(request(), null);
@@ -129,6 +134,10 @@ class AdmissionWaitProbeTest {
                                     await().pollInterval(Duration.ofMillis(25)).atMost(Duration.ofSeconds(2))
                                             .until(() -> outboxInsertWaits(observer) > 0);
                                     row.put("observedOutboxWaitEdges", outboxInsertWaits(observer));
+                                    if (sessionObservation != null) {
+                                        await().pollInterval(Duration.ofMillis(20)).atMost(Duration.ofSeconds(1)).until(sessionObservation::hasLockSample);
+                                        row.put("heldSessionLockSampleConfirmed", true);
+                                    }
                                     assertThat(future.isDone()).isFalse(); assertRows(observer, before);
                                     row.put("uncommittedRowsInvisible", true);
                                     TimeUnit.MILLISECONDS.sleep(HOLD_MILLIS);
@@ -161,13 +170,22 @@ class AdmissionWaitProbeTest {
                     report.put("acceptedSubmissions", 6); report.put("providerCalls", 0);
                 }
             }
+            if (sessionObservation != null) {
+                sessionObservation.close();
+                assertThat(sessionObservation.snapshot()).containsEntry("errors", 0).containsEntry("openRequests", 0).containsEntry("closed", true);
+                assertThat((List<?>) sessionObservation.snapshot().get("rows")).hasSize(3);
+            }
             report.put("result", "PASS");
         } catch (Exception | AssertionError failure) {
             report.put("result", "FAIL"); report.put("failureType", failure.getClass().getSimpleName()); throw failure;
         } finally {
+            if (sessionObservation != null) {
+                sessionObservation.close();
+                report.put("sessionObservation", sessionObservation.snapshot());
+            }
             if (!cpuWasEnabled) cpu.setThreadCpuTimeEnabled(false);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path output = Path.of("build/reports/api-wait-probe/result.json"); Files.createDirectories(output.getParent());
+            Path output = Path.of(observe ? "build/reports/api-session-probe/result.json" : "build/reports/api-wait-probe/result.json"); Files.createDirectories(output.getParent());
             new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(output.toFile(), report);
         }
     }
