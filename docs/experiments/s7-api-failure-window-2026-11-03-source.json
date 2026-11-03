@@ -1,0 +1,15 @@
+{
+  "base": "392b130bd4b070e147b4d124b1bce700975e97a8",
+  "frozenAtUtc": "2026-11-03T03:14:03.416818+00:00",
+  "scope": "prototype and stop protocol only; not wired into million task; no large run",
+  "files": {
+    "build.gradle": "18647b5265b48f2a3afbeeed8c46b73fb10726e170c7c75669fed813dd20cba4",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailureWindow.java": "c671a282c9ccadae3c28d9b9156535d5228f5e0edfc357a47d591274b51f0263",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiFailureWindowTest.java": "344fc0216daf4aeeb476ad3df08eddd896816d91226cd35daafca82e5012a1f5",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryDiagnostics.java": "c9f8c6aee1e02717447692a10ade0a25db87fda1105ce5eede17301cd7b53753",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/CampaignDeliveryDiagnosticsTest.java": "18e733ec705b4d178cd600849cb3f42f63c66bba3979e185a5804c8b90cedb24",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTiming.java": "68b92701b873f3469047fb7522e6ed31b25911abe05286a0b899ef1468f4d054",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/DeliveryTimingTest.java": "4aa81ee08a5b2647c7a624ce68a099b90ada018c66e0336896057f56a25309dd",
+    "src/test/java/dev/jinhyeon/notificationlab/campaign/batch/ApiConnectionTiming.java": "28be2771f5b1c1cb6b04049a6faf14366257dae1e73bdaef0f4653036a28be14"
+  }
+}

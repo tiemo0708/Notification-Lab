@@ -1,0 +1,95 @@
+{
+  "scope": "bounded recorder prototype and stop protocol; no wiring into campaignDeliveryMillion or live pilot; no 100k/million execution",
+  "sourceManifest": "s7-api-failure-window-2026-11-03-source-final.json",
+  "sourceManifestSha256": "1fd9ab25f4bd6a3af659ed15d258bd5e8751bbafc6e825dd3c28067636b0d0fd",
+  "units": [
+    {
+      "stage": "unit",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*ApiFailureWindowTest' --tests '*DeliveryTimingTest' --tests '*CampaignDeliveryDiagnosticsTest' --tests '*ApiRequestTimingTest' --tests '*ApiDbObservationTest'",
+      "exitCode": 0,
+      "duration": "5s",
+      "tests": 31,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceRelation": "before SQL failure preservation test addition"
+    },
+    {
+      "stage": "unit-final",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*ApiFailureWindowTest' --tests '*DeliveryTimingTest' --tests '*CampaignDeliveryDiagnosticsTest' --tests '*ApiRequestTimingTest' --tests '*ApiDbObservationTest'",
+      "exitCode": 0,
+      "duration": "5s",
+      "tests": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceRelation": "initial frozen source.json before response observation correction"
+    },
+    {
+      "stage": "response-observation correction",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*ApiFailureWindowTest' --tests '*DeliveryTimingTest' --tests '*CampaignDeliveryDiagnosticsTest' --tests '*ApiRequestTimingTest' --tests '*ApiDbObservationTest'",
+      "exitCode": 0,
+      "duration": "6s",
+      "tests": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceRelation": "frozen final source-final.json"
+    }
+  ],
+  "checks": {
+    "evidenceType": "JUnit-verified synthetic controls; no real MySQL/HTTP combined calibration",
+    "historyAfter5000": 32,
+    "evictedAfter5000": 4968,
+    "fakeClockActiveCommitAgeMillis": 5000,
+    "loopbackHttpTimeoutMillis": 500,
+    "loopbackRequestsIncludingWarmup": 2,
+    "lateCompletionCannotMutateFirstSnapshot": true,
+    "originalSqlFailurePreservedWithRollback": true
+  },
+  "fullBuild": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "exitCode": 0,
+    "duration": "14m 23s",
+    "classes": 40,
+    "tests": 325,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "freshXmlAfterLogBirth": true,
+    "consolePassed": 325,
+    "artifactTasks": [
+      "> Task :bootJar UP-TO-DATE",
+      "> Task :jar SKIPPED"
+    ]
+  },
+  "millionFailureSha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b",
+  "initialSourceManifest": "s7-api-failure-window-2026-11-03-source.json",
+  "initialSourceManifestSha256": "93dc9877a50af5553eddcc010567c82d29d40221748792d622678a5e9c995097",
+  "initialFullBuild": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "exitCode": 0,
+    "duration": "14m 10s",
+    "classes": 40,
+    "tests": 325,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "freshXmlAfterLogBirth": true,
+    "consolePassed": 325,
+    "artifactTasks": [
+      "> Task :bootJar UP-TO-DATE",
+      "> Task :jar SKIPPED"
+    ]
+  },
+  "reviewCorrection": "Observed non-202 status and incomplete observed 202 must remain responseObserved=true; server outcome stays UNKNOWN; source-final.json is authoritative",
+  "limitations": [
+    "not wired into a live pilot or million task",
+    "memory freeze only; immediate file persistence not implemented",
+    "Spring plus synthetic JDBC and separate loopback HTTP controls; no combined real MySQL/HTTP calibration",
+    "active auto-commit group shown; active exact state method not yet tracked",
+    "external stop reasons require caller integration; ring bounds apply to recorder only"
+  ],
+  "remoteMainReadOnly": "9cf178636edc4b03a5aa1d560f9cfe3c71f36568",
+  "dockerAfter": "only existing notification-lab-mysql-1 mysql:8.4.8 healthy"
+}

@@ -2488,3 +2488,34 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   기존Git identity와원격main9cf1786을읽기전용확인했다. 푸시는하지않았다.
 - 범위밖100000 입력의dry-run은기대대로설정단계에서2초/종료코드1로거부됐다. 발송·컨테이너는시작하지않았다.
   이는상한검증의예상거부이며실험·회귀실패와구분한다. 최종Docker에는기존notification-lab-mysql-1만healthy로남았다.
+
+## 2026-11-03 — S7 장시간 실패 관찰·중단 기준과 고정 용량 프로토타입
+
+- 시작392b130/main. 별도테스트용ApiFailureWindow를추가했다. 최근완료32건+진행1건/호출중첩2단계/고정Part배열/
+  SQL시간4개/상태상세8개/전체probe1..150000으로제한한다. 내부보관상한이며기존harness전체메모리O(1)을주장하지않는다.
+- 완료합계와진행중activePart·경과시간을분리한다. commit/rollback정상반환은관찰표시이며HTTP미관찰이면결과UNKNOWN을유지한다.
+  첫중단을불변Map/List로동결하고늦은callback·202·다른중단이유가바꾸지못하게했다. 중단후새probe는거부한다.
+  JDBC/HTTP/추가연결/진단SQL/새스레드를생성하지않는다. 서버실행을취소하거나timeout을미접수로간주하지않는다.
+- [설계·상한·중단표·미구현범위](S7_LONG_RUN_OBSERVATION.md)를정의했다. HTTP5초/최대probe150000/drain8h/JUnit11h/task12h는변경하지않았다.
+  HTTP202외응답/불완전경계/상한중단은프로토타입이처리하며, I/O·인프라·실행상한의실제장시간연결은별도미구현으로구분했다.
+  메모리freeze는디스크보존이나SIGKILL/OOM후생존을보장하지않는다. 다음은작은실제HTTP/MySQL pilot의opt-in연결·즉시파일보존검증이다.
+- 최초선택31개는5초/종료코드0/실패·오류·스킵0이었다. SQL원래예외/rollback증거보존1개를추가한최종선택32개도5초/동일하게통과했다.
+  합성접수5000개후최근32개/evicted4968/마지막ordinal5000, 가짜단조시계의진행중COMMIT5초와완료횟수0,
+  commit반환후에도HTTP결과UNKNOWN, 첫중단후늦은완료불변, 겹침/다른서버스레드/중첩상한/불완전202를검증했다.
+- 실제Spring TransactionTemplate+합성JDBC의정상DML4회/commit과원래SQL예외/rollback을확인했다. 추가드라이버호출과민감문자열보관은없었다.
+  실제loopback HTTP는warmup후500ms timeout/합성COMMIT마커를사용했다. 총HTTP2건(단독warmup1+실패probe1), 늦은응답이첫증거를덮지않음을확인했다.
+  이fixture에는DB가없으며실제MySQL·HTTP결합실험이나장시간원인의재현으로주장하지않는다.
+- [최종고정소스](experiments/s7-api-failure-window-2026-11-03-source-final.json)와[실행메타데이터](experiments/s7-api-failure-window-2026-11-03-execution.json)를기록했다.
+  기존ApiRequestTiming/CampaignDeliveryPilotTest와장시간task는바꾸지않았다. 기본정책/풀·격리수준·예산/사용자DB/.env/IntelliJ/volume을유지한다.
+  10만·100만건실행/실제공급자/유료자원/푸시는하지않았다. 기존timeout원인은계속미확정이다.
+
+- 응답관찰여부보완전첫 `caffeinate -i ./gradlew --no-daemon --console=plain build`는 **14분10초/종료코드0**이었다.
+  새40개클래스JUnit XML과콘솔에서 **325개통과/실패·오류·스킵0**을대조했다. 기존317개+새8개다.
+  기본회귀는실제로재실행했고bootJar는UP-TO-DATE였다. 원격CI결과가아니다.
+- 고정소스8개/기존100만건FAIL SHA불변/운영Java·resources diff0을확인했다.
+- 최종검토에서202외응답의responseObserved=false표시를발견해status/관찰여부와서버결과UNKNOWN을분리했다.
+  실제503과불완전202는응답관찰true/status를보관하며, timeout은미관찰상태를유지하고늦은응답이덮지못한다.
+  수정후선택32개는6초/종료코드0/실패·오류·스킵0이었다. 수정전소스·첫전체회귀는별도보존했고최종고정소스는source-final.json이다.
+- 응답관찰보완후최종build는 **14분23초/종료코드0**이었다. 새40개클래스XML/콘솔에서 **325개통과/실패·오류·스킵0**을다시대조했다.
+  기본회귀를실제로재실행했고bootJar는UP-TO-DATE였다. 수정전첫전체회귀와구분하며원격CI결과가아니다.
+- 기존Git identity/원격main9cf1786을읽기전용확인했다. Docker는기존notification-lab-mysql-1만healthy이며임시검증컨테이너는정리됐다. 푸시는하지않았다.

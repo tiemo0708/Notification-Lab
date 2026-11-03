@@ -353,6 +353,9 @@ ON은 getAutoCommit과setAutoCommit(false/true)를 따로 기록한다.
 제어군과 자연86개 접수의 호출 순서는 검증했으나 앞선127ms 상태 합계는 재현하지 못했다.
 [같은 계측의1만 건2회 반복](docs/S7_API_CONNECTION_10K.md)도 접수684개/상태 상세2052개를 대조했지만20ms 이상 상태 호출은 없었다.
 
+[장시간 실패 직전 관찰·중단 기준](docs/S7_LONG_RUN_OBSERVATION.md)은 최근32건과 진행 중1건을 보관하는 테스트 프로토타입이다.
+첫 실패 snapshot을 늦은 응답이 바꾸지 않는지 검증했다. 실제 장시간 task 연결·파일 보존과100만 건 재실행은 아직 하지 않았다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

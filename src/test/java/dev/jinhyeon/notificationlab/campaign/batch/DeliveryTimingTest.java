@@ -29,6 +29,44 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DeliveryTimingTest {
     @Test
+    void boundedFailureWindowReceivesRealSpringJdbcCallbacksWithoutExtraDriverCalls() throws Exception {
+        var window = new ApiFailureWindow(2);
+        var driver = new JdbcDriver();
+        var timing = new DeliveryTiming(window);
+        var source = timing.dataSource(driver);
+        var tx = new TransactionTemplate(new JdbcTransactionManager(source));
+        window.open(ApiFailureWindow.Window.CONTROL);
+        timing.scope(Phase.API_SUBMIT, () -> tx.execute(status -> {
+            for (int i = 0; i < 4; i++) new JdbcTemplate(source).update("PRIVATE_SQL", "PRIVATE_ARG");
+            return null;
+        }));
+        window.complete(202, 1);
+        assertThat(window.snapshot()).containsEntry("completed", 1).containsEntry("activePresent", false);
+        assertThat(driver.events).hasSize(15).endsWith("commit", "release");
+        assertThat(new ObjectMapper().writeValueAsString(window.snapshot())).doesNotContain("PRIVATE_SQL", "PRIVATE_ARG", "threadId", "sessionId");
+    }
+
+    @Test
+    void boundedWindowPreservesOriginalSqlFailureAndRecordsRollbackWithoutInventingAcceptance() throws Exception {
+        var window = new ApiFailureWindow(2);
+        var driver = new JdbcDriver(); driver.sqlFailure = new SQLException("PRIVATE_FAILURE", "45000");
+        var timing = new DeliveryTiming(window);
+        var source = timing.dataSource(driver);
+        var tx = new TransactionTemplate(new JdbcTransactionManager(source));
+        window.open(ApiFailureWindow.Window.CONTROL);
+        assertThatThrownBy(() -> timing.scope(Phase.API_SUBMIT, () -> tx.execute(status -> {
+            new JdbcTemplate(source).update("PRIVATE_SQL", "PRIVATE_ARG"); return null;
+        }))).hasRootCause(driver.sqlFailure);
+        var frozen = window.freeze(ApiFailureWindow.Stop.SERVER_FAILURE);
+        @SuppressWarnings("unchecked") var active = (Map<String, Object>) frozen.get("active");
+        assertThat(active).containsEntry("failed", true).containsEntry("rollbackReturned", true)
+                .containsEntry("commitReturned", false).containsEntry("responseObserved", false);
+        assertThat(frozen).containsEntry("completed", 0).containsEntry("activeServerOutcome", "UNKNOWN");
+        assertThat(driver.events).containsExactly("acquire", "prepare", "execute", "statement.close", "rollback", "release");
+        assertThat(new ObjectMapper().writeValueAsString(frozen)).doesNotContain("PRIVATE_FAILURE", "PRIVATE_SQL", "PRIVATE_ARG");
+    }
+
+    @Test
     void pairsApiAcquisitionFourStatementsAndCommitAcrossTheTransactionBoundary() throws Exception {
         var api = new ApiRequestTiming(1, true);
         var driver = new JdbcDriver();

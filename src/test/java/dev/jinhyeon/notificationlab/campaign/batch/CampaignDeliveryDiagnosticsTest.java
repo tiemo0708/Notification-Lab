@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -16,6 +17,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +32,59 @@ class CampaignDeliveryDiagnosticsTest {
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(1), Thread.ofPlatform().daemon(true).factory());
     private HttpServer server;
+
+    @Test
+    void httpTimeoutFreezesTheSyntheticActiveCallAndLateResponseCannotReplaceTheEvidence() throws Exception {
+        var window = new ApiFailureWindow(2);
+        var armed = new AtomicBoolean();
+        var requests = new AtomicInteger();
+        var entered = new CountDownLatch(1);
+        var lateCompleted = new CountDownLatch(1);
+        var lateReturned = new AtomicBoolean();
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 1);
+        server.setExecutor(executor);
+        server.createContext("/notifications", exchange -> {
+            boolean capture = armed.get(); requests.incrementAndGet();
+            try {
+                exchange.getRequestBody().readAllBytes();
+                if (capture) {
+                    window.starting(DeliveryTiming.Part.STORE_CALL);
+                    window.starting(DeliveryTiming.Part.COMMIT); // Synthetic marker only: this HTTP fixture has no database.
+                    entered.countDown();
+                    if (!releaseResponse.await(5, TimeUnit.SECONDS)) throw new IllegalStateException("Test release timed out");
+                    window.record(DeliveryTiming.Part.COMMIT, 1, false);
+                    window.record(DeliveryTiming.Part.STORE_CALL, 1, false);
+                    window.complete(202, 1); lateReturned.set(true);
+                }
+                byte[] body = "synthetic-private-response".getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(202, body.length); exchange.getResponseBody().write(body);
+            } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+            finally { exchange.close(); if (capture) lateCompleted.countDown(); }
+        });
+        server.start();
+        var uri = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/notifications");
+        var report = new LinkedHashMap<String, Object>();
+        try (var client = HttpClient.newHttpClient()) {
+            assertThat(client.send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5)).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(202); // Warm up the transport before the timed fixture.
+            window.open(ApiFailureWindow.Window.MIXED); armed.set(true);
+            var request = HttpRequest.newBuilder(uri).timeout(Duration.ofMillis(500))
+                    .POST(HttpRequest.BodyPublishers.ofString("synthetic-private-body")).build();
+            try {
+                assertThatThrownBy(() -> CampaignDeliveryDiagnostics.sendProbe(client, request, report, "MIXED", 1, 0))
+                        .isInstanceOf(HttpTimeoutException.class);
+                assertThat(entered.getCount()).isZero();
+                var frozen = window.freeze(ApiFailureWindow.Stop.HTTP_TIMEOUT);
+                assertThat(frozen).containsEntry("activeServerOutcome", "UNKNOWN").containsEntry("completed", 0);
+                @SuppressWarnings("unchecked") var active = (Map<String, Object>) frozen.get("active");
+                assertThat(active).containsEntry("activePart", "COMMIT").containsEntry("commitReturned", false);
+                releaseResponse.countDown();
+                assertThat(lateCompleted.await(2, TimeUnit.SECONDS)).isTrue(); assertThat(lateReturned).isTrue();
+                assertThat(window.snapshot()).isSameAs(frozen); assertThat(requests.get()).isEqualTo(2);
+                assertThat(frozen.toString() + report).doesNotContain(uri.toString(), "synthetic-private-response", "synthetic-private-body");
+            } finally { releaseResponse.countDown(); }
+        }
+    }
 
     @Test
     void successfulProbeReturnsResponseWithoutInventingFailure() throws Exception {
