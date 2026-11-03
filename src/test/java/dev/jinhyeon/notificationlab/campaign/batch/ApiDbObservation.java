@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
@@ -32,6 +33,10 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
         long session;
         int executions;
         int overflow;
+        int eligibleCalls;
+        int observedEligibleCalls;
+        int longCalls;
+        int observedLongCalls;
         boolean failed;
         Request(String window) { this.window = window; }
     }
@@ -39,13 +44,20 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
         final Request request;
         final Part part;
         final int ordinal;
-        Candidate(Request request, Part part, int ordinal) { this.request = request; this.part = part; this.ordinal = ordinal; }
+        final long startedNanos;
+        boolean sampled;
+        Candidate(Request request, Part part, int ordinal, long startedNanos) {
+            this.request = request; this.part = part; this.ordinal = ordinal; this.startedNanos = startedNanos;
+        }
     }
     private final Object lock = new Object();
     private final Reader reader;
     private final DeliveryTiming.ApiObserver delegate;
     private final Supplier<String> window;
     private final boolean enabled;
+    private final long minimumCallNanos;
+    private final LongSupplier clock;
+    private int youngPollsSkipped;
     private final ThreadLocal<Request> current = new ThreadLocal<>();
     private final List<Request> requests = new ArrayList<>();
     private Candidate active;
@@ -61,11 +73,18 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
     private ScheduledFuture<?> periodic;
 
     ApiDbObservation(Reader reader, DeliveryTiming.ApiObserver delegate, Supplier<String> window, boolean enabled) {
+        this(reader, delegate, window, enabled, 0, System::nanoTime);
+    }
+
+    ApiDbObservation(Reader reader, DeliveryTiming.ApiObserver delegate, Supplier<String> window,
+                     boolean enabled, long minimumCallMillis, LongSupplier clock) {
+        if (minimumCallMillis != 0 && minimumCallMillis != 20) throw new IllegalArgumentException("Minimum call age must be 0 or 20 ms");
         this.reader = reader; this.delegate = delegate; this.window = window; this.enabled = enabled;
+        this.minimumCallNanos = TimeUnit.MILLISECONDS.toNanos(minimumCallMillis); this.clock = clock;
     }
 
     static ApiDbObservation connect(Connection connection, DeliveryTiming.ApiObserver delegate,
-                                    Supplier<String> window, boolean enabled) throws Exception {
+                                    Supplier<String> window, boolean enabled, long minimumCallMillis) throws Exception {
         try {
             connection.setNetworkTimeout(Runnable::run, 2000);
             var jdbc = new JdbcTemplate(new SingleConnectionDataSource(connection, true));
@@ -96,7 +115,7 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
                 }
                 @Override public void close() throws SQLException { connection.close(); }
             };
-            var observation = new ApiDbObservation(reader, delegate, window, enabled);
+            var observation = new ApiDbObservation(reader, delegate, window, enabled, minimumCallMillis, System::nanoTime);
             if (enabled) observation.start();
             return observation;
         } catch (Exception failure) { connection.close(); throw failure; }
@@ -121,7 +140,7 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
                 if (active != null || request.session <= 0) throw new IllegalStateException("Native call observation overlap");
                 int ordinal = part == Part.EXECUTE ? ++request.executions : 0;
                 if (ordinal > 4) throw new IllegalStateException("Unexpected admission statement count");
-                active = new Candidate(request, part, ordinal);
+                active = new Candidate(request, part, ordinal, clock.getAsLong());
             }
         }
     }
@@ -140,6 +159,15 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
             Request request = requireRequest(); request.failed |= failed;
             if (part == Part.EXECUTE || part == Part.COMMIT) {
                 if (active == null || active.request != request || active.part != part) throw new IllegalStateException("Native call boundary mismatch");
+                long age = clock.getAsLong() - active.startedNanos;
+                if (age >= TimeUnit.MILLISECONDS.toNanos(20)) {
+                    request.longCalls++;
+                    if (active.sampled) request.observedLongCalls++;
+                }
+                if (age >= minimumCallNanos) {
+                    request.eligibleCalls++;
+                    if (active.sampled) request.observedEligibleCalls++;
+                }
                 active = null;
             }
             if (part == Part.STORE_CALL) {
@@ -160,12 +188,15 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
 
     void pollOnce() {
         Candidate candidate;
+        long callAgeNanos;
         synchronized (lock) {
             if (!enabled || closed || active == null || queries >= MAX_QUERIES || errors >= 3) return;
+            callAgeNanos = clock.getAsLong() - active.startedNanos;
+            if (callAgeNanos < minimumCallNanos) { youngPollsSkipped++; return; }
             candidate = active; queries++;
         }
         long start = System.nanoTime();
-        try { accept(candidate, reader.read(candidate.request.session)); }
+        try { accept(candidate, reader.read(candidate.request.session), callAgeNanos); }
         catch (Exception failure) { synchronized (lock) { errors++; } } // Only a count; never retain a driver message or arguments.
         finally {
             long nanos = System.nanoTime() - start;
@@ -173,13 +204,14 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
         }
     }
 
-    void accept(Candidate candidate, Observation observation) {
+    private void accept(Candidate candidate, Observation observation, long callAgeNanos) {
         synchronized (lock) {
             if (closed || active != candidate) { stale++; return; }
             var request = candidate.request;
             if (request.samples.size() >= MAX_SAMPLES_PER_REQUEST) { request.overflow++; return; }
             if (observation.rowWaitEdges() < 0) throw new IllegalArgumentException("Invalid wait count");
-            request.samples.add(Map.of("part", candidate.part.name(), "sqlOrdinal", candidate.ordinal,
+            candidate.sampled |= observation.sessionPresent();
+            request.samples.add(Map.of("callAgeAtQueryStartMillis", callAgeNanos / 1_000_000.0, "part", candidate.part.name(), "sqlOrdinal", candidate.ordinal,
                     "sessionPresent", observation.sessionPresent(), "serverStatementActive", observation.statementActive(),
                     "statementKind", observation.kind().name(), "rowWaitEdges", observation.rowWaitEdges()));
             if (observation.rowWaitEdges() > 0) lockSamples++;
@@ -194,9 +226,17 @@ final class ApiDbObservation implements DeliveryTiming.ApiIoObserver, AutoClosea
             for (var request : requests) rows.add(Map.of("window", request.window,
                     "status", !enabled ? "DISABLED" : request.samples.isEmpty() ? "NOT_OBSERVED"
                             : request.samples.stream().anyMatch(s -> Boolean.TRUE.equals(s.get("sessionPresent"))) ? "OBSERVED" : "SESSION_UNAVAILABLE",
-                    "failed", request.failed, "samples", List.copyOf(request.samples), "samplesNotRetained", request.overflow));
+                    "failed", request.failed, "samples", List.copyOf(request.samples), "samplesNotRetained", request.overflow, "eligibleCalls", request.eligibleCalls, "observedEligibleCalls", request.observedEligibleCalls,
+                    "longCalls", request.longCalls, "observedLongCalls", request.observedLongCalls));
             var result = new LinkedHashMap<String, Object>();
-            result.put("version", "held-session-call-window-v1"); result.put("enabled", enabled); result.put("closed", closed);
+            result.put("version", "held-session-call-window-v2"); result.put("enabled", enabled); result.put("closed", closed);
+            result.put("minimumCallMillis", TimeUnit.NANOSECONDS.toMillis(minimumCallNanos));
+            result.put("youngPollsSkipped", youngPollsSkipped);
+            result.put("eligibleCalls", requests.stream().mapToInt(r -> r.eligibleCalls).sum());
+            result.put("observedEligibleCalls", requests.stream().mapToInt(r -> r.observedEligibleCalls).sum());
+            result.put("longCallMillis", 20);
+            result.put("longCalls", requests.stream().mapToInt(r -> r.longCalls).sum());
+            result.put("observedLongCalls", requests.stream().mapToInt(r -> r.observedLongCalls).sum());
             result.put("pollMillis", 20); result.put("maxQueries", MAX_QUERIES); result.put("maxSamplesPerRequest", MAX_SAMPLES_PER_REQUEST);
             result.put("queries", queries); result.put("errors", errors); result.put("staleDiscarded", stale);
             result.put("queryTotalMillis", queryNanos / 1_000_000.0); result.put("queryMaxMillis", maxQueryNanos / 1_000_000.0);

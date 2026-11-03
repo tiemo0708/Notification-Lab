@@ -292,7 +292,7 @@ class CampaignDeliveryPilotTest {
             Path directory = Path.of(dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                     load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
-            String name = dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-targets-" + targets
+            String name = dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
                     : offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
             mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
         }
@@ -347,7 +347,8 @@ class CampaignDeliveryPilotTest {
             if (api != null && Boolean.getBoolean("campaign.delivery.dbObservation")) {
                 try {
                     apiDbObservation = ApiDbObservation.connect(DriverManager.getConnection(mysql.getJdbcUrl(), "root", mysql.getPassword()),
-                            api::jdbc, api::currentWindow, Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")));
+                            api::jdbc, api::currentWindow, Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")),
+                            Long.getLong("campaign.delivery.dbMinCallMillis", 0));
                     observer = apiDbObservation;
                 } catch (Exception failure) { throw new IllegalStateException("DB observation setup failed", failure); }
             }

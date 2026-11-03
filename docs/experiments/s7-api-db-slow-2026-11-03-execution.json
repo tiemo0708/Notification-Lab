@@ -1,0 +1,107 @@
+{
+  "scope": "same-source 0/20ms observer age comparison; each once, SQL controls and natural 1k, no 100k/million rerun",
+  "sourceManifest": "s7-api-db-slow-2026-11-03-source.json",
+  "sourceManifestSha256": "f23704ebd2df9c695078973cbd95209f33160060d26876ac7c7d27c9c51fe3e8",
+  "unit": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*ApiDbObservationTest' --tests '*ApiRequestTimingTest' --tests '*DeliveryTimingTest'",
+    "duration": "6s",
+    "exitCode": 0,
+    "tests": 17,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "runs": [
+    {
+      "rawFile": "s7-api-db-slow-2026-11-03-control-0.json",
+      "sha256": "b1a6de620bd84ea07ea1be3b0f38bf8a80df8b76f03b850ccd2520d2a0c53b49",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiSessionProbe -PdbMinCallMillis=0",
+      "exitCode": 0,
+      "gradleDuration": "11s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T01:22:05.104742Z",
+      "finishedAtUtc": "2026-11-03T01:22:13.178727Z"
+    },
+    {
+      "rawFile": "s7-api-db-slow-2026-11-03-control-20.json",
+      "sha256": "51ea20497f617b5b1254ef585e900e182b05f87240461936df3dd7e36e1a114e",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiSessionProbe -PdbMinCallMillis=20",
+      "exitCode": 0,
+      "gradleDuration": "11s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T01:22:21.926418Z",
+      "finishedAtUtc": "2026-11-03T01:22:29.982862Z"
+    },
+    {
+      "rawFile": "s7-api-db-slow-2026-11-03-natural-0.json",
+      "sha256": "33b3699270578bf8fbfc5e55c1d884ace6c322cc714b89d395dc84e14aa90244",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiDbObservationPilot -PdbObservation=ON -PdbMinCallMillis=0",
+      "exitCode": 0,
+      "gradleDuration": "42s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T01:22:47.821199Z",
+      "finishedAtUtc": "2026-11-03T01:23:26.409344Z",
+      "httpRequests": 1095,
+      "pairedRequests": 95,
+      "statusCounts": {
+        "NOT_OBSERVED": 89,
+        "OBSERVED": 6
+      },
+      "mixedStatusCounts": {
+        "NOT_OBSERVED": 40,
+        "OBSERVED": 5
+      },
+      "retainedSamples": 6
+    },
+    {
+      "rawFile": "s7-api-db-slow-2026-11-03-natural-20.json",
+      "sha256": "2bf5bf125b748bdd69434a55aed079be7452540154bdee3f58bc183cb586858b",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiDbObservationPilot -PdbObservation=ON -PdbMinCallMillis=20",
+      "exitCode": 0,
+      "gradleDuration": "45s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "startedAtUtc": "2026-11-03T01:23:37.513744Z",
+      "finishedAtUtc": "2026-11-03T01:24:18.361608Z",
+      "httpRequests": 1086,
+      "pairedRequests": 86,
+      "statusCounts": {
+        "NOT_OBSERVED": 86
+      },
+      "mixedStatusCounts": {
+        "NOT_OBSERVED": 36
+      },
+      "retainedSamples": 0
+    }
+  ],
+  "fullBuild": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "exitCode": 0,
+    "duration": "14m 18s",
+    "classes": 39,
+    "tests": 314,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "freshXmlAfterLogBirth": true,
+    "consolePassed": 314,
+    "artifactTasks": [
+      "> Task :bootJar UP-TO-DATE",
+      "> Task :jar SKIPPED"
+    ]
+  },
+  "remoteMainReadOnly": "9cf178636edc4b03a5aa1d560f9cfe3c71f36568",
+  "millionFailureSha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b",
+  "dockerAfter": "only existing notification-lab-mysql-1 mysql:8.4.8 healthy"
+}

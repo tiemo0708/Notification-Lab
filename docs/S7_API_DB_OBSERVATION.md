@@ -91,7 +91,8 @@ caffeinate -i ./gradlew --no-daemon --console=plain apiDbObservationPilot -PdbOb
 OFF/ON 모두 observer 연결과시작 시상태 검증은 같고 주기적관찰 조회만 끄고 켠다.
 따라서 OFF는 모든 계측이 없는 기준선이 아니다. 설정 확인/세션 대응 자체와새 요청 계측의비용은 남아 있다.
 
-출력은 `build/reports/api-db-observation-pilot/OFF-targets-1000.json`와ON 파일이다.
+당시 출력은 `build/reports/api-db-observation-pilot/OFF-targets-1000.json`와ON 파일이었다.
+[긴 호출 우선 관찰 후속](S7_API_SLOW_OBSERVATION.md)부터 파일명에 `-min-0-` 또는 `-min-20-`을 넣어 조건을 구분한다.
 요청별 API 시간의배열과DB관찰 배열의순서·window·총수가 일치하는지 확인한다. 전체DB/HTTP/대상 매핑/partition offset 대조도 유지한다.
 조건별1회/짧은실험/공유호스트/적은혼합표본으로 통계적유의성이나 운영 오버헤드를 확정하지 않는다.
 기존10만 건p95/100만 건timeout의원인을 해결한 결과가 아니다.

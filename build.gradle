@@ -253,6 +253,9 @@ tasks.register('apiDbObservationPilot', Test) {
     def sampler = providers.gradleProperty('dbObservation').getOrElse('ON')
     if (!(sampler in ['ON', 'OFF'])) throw new GradleException('dbObservation must be ON or OFF')
     systemProperty 'campaign.delivery.dbObserveEnabled', (sampler == 'ON').toString()
+    def minimumCallMillis = providers.gradleProperty('dbMinCallMillis').getOrElse('0')
+    if (!(minimumCallMillis in ['0', '20'])) throw new GradleException('dbMinCallMillis must be 0 or 20')
+    systemProperty 'campaign.delivery.dbMinCallMillis', minimumCallMillis
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
@@ -382,6 +385,9 @@ tasks.register('apiSessionProbe', Test) {
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform { includeTags 'api-wait-probe' }
     systemProperty 'api.wait.observe', 'true'
+    def minimumCallMillis = providers.gradleProperty('dbMinCallMillis').getOrElse('0')
+    if (!(minimumCallMillis in ['0', '20'])) throw new GradleException('dbMinCallMillis must be 0 or 20')
+    systemProperty 'api.wait.dbMinCallMillis', minimumCallMillis
     maxHeapSize = '512m'
     maxParallelForks = 1
     timeout = Duration.ofMinutes(3)

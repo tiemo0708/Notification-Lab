@@ -96,7 +96,7 @@ class AdmissionWaitProbeTest {
                     active.record(part, nanos, failed);
                 };
                 if (observe) sessionObservation = ApiDbObservation.connect(
-                        DriverManager.getConnection(mysql.getJdbcUrl(), "root", mysql.getPassword()), collector, () -> "CONTROL", true);
+                        DriverManager.getConnection(mysql.getJdbcUrl(), "root", mysql.getPassword()), collector, () -> "CONTROL", true, Long.getLong("api.wait.dbMinCallMillis", 0));
                 var timing = new DeliveryTiming(sessionObservation == null ? collector : sessionObservation);
                 try (var context = context(timing.dataSource(new CommitDelayDataSource(pool, nativeGate)))) {
                     var submissions = context.getBean(SubmissionService.class);
@@ -185,7 +185,7 @@ class AdmissionWaitProbeTest {
             }
             if (!cpuWasEnabled) cpu.setThreadCpuTimeEnabled(false);
             report.put("finishedAtUtc", Instant.now().toString());
-            Path output = Path.of(observe ? "build/reports/api-session-probe/result.json" : "build/reports/api-wait-probe/result.json"); Files.createDirectories(output.getParent());
+            Path output = Path.of(observe ? "build/reports/api-session-probe/min-" + Long.getLong("api.wait.dbMinCallMillis", 0) + ".json" : "build/reports/api-wait-probe/result.json"); Files.createDirectories(output.getParent());
             new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(output.toFile(), report);
         }
     }
