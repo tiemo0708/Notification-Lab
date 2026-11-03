@@ -78,6 +78,7 @@ class CampaignDeliveryPilotTest {
     private int relayInstances;
     private ApiRequestTiming apiRequestTiming;
     private ApiDbObservation apiDbObservation;
+    private ApiFailurePilotSupport failureSupport;
     private final Map<String, DeliveryTiming> timings = new LinkedHashMap<>();
 
     @Test
@@ -89,6 +90,7 @@ class CampaignDeliveryPilotTest {
         boolean apiTiming = Boolean.getBoolean("campaign.delivery.apiTiming");
         boolean dbObservation = Boolean.getBoolean("campaign.delivery.dbObservation");
         boolean connectionPilot = Boolean.getBoolean("campaign.delivery.connectionPilot");
+        boolean failureWindow = Boolean.getBoolean("campaign.delivery.failureWindow");
         if (connectionPilot && (!apiTiming || dbObservation || load)) throw new IllegalArgumentException("Connection pilot requires only bounded API timing");
         if (dbObservation && !apiTiming) throw new IllegalArgumentException("DB observation requires API timing");
         if (apiTiming && (load || !offsetComparison)) throw new IllegalArgumentException("API timing requires the small offset pilot");
@@ -98,6 +100,9 @@ class CampaignDeliveryPilotTest {
         if (scaling && load && !offsetComparison) throw new IllegalArgumentException("Relay scaling load requires the explicit offset comparison");
         relayInstances = scaling ? CampaignRelayGroup.validate(Integer.parseInt(System.getProperty("campaign.delivery.relayInstances", "1"))) : 0;
         int targets = Integer.getInteger("campaign.delivery.targets", 10_000);
+        if (failureWindow && (load || !fineTiming || !offsetComparison || !scaling || apiTiming || dbObservation || connectionPilot || targets != 1000)) {
+            throw new IllegalArgumentException("Failure window is limited to the dedicated 1k fine-timing pilot");
+        }
         var bounds = offsetComparison ? CampaignDeliveryBounds.forOffsetRun(load, targets) : CampaignDeliveryBounds.forRun(load, targets);
         if (offsetComparison && relayInstances != 2) throw new IllegalArgumentException("Offset comparison requires exactly two campaign relays");
         maxProbes = bounds.maxRealtimeProbes();
@@ -107,6 +112,7 @@ class CampaignDeliveryPilotTest {
         report.put("startedAtUtc", Instant.now().toString());
         report.put("scope", "preloaded campaign HTTP delivery " + (load ? targets + " target load" : "pilot") + "; same JVM independent app contexts");
         report.put("targets", targets);
+        if (failureWindow) report.put("failureWindowMode", System.getProperty("campaign.delivery.failureMode", "NONE"));
         report.put("bounds", Map.of("maxRealtimeProbes", maxProbes, "drainLimitSeconds", drainLimitSeconds,
                 "queryPageRows", QUERY_PAGE, "campaignAuditBytes", bounds.campaignAuditBytes(),
                 "latencyArrayBytes", bounds.latencyArrayBytes(), "maxResourceSamples", bounds.maxResourceSamples()));
@@ -148,6 +154,8 @@ class CampaignDeliveryPilotTest {
                      .withCommand("redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction")
                      .withCreateContainerCmdModifier(cmd -> limit(cmd, 256, 1));
              var http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()) {
+            if (failureWindow) failureSupport = ApiFailurePilotSupport.create(maxProbes,
+                    ApiFailurePilotSupport.Mode.valueOf(System.getProperty("campaign.delivery.failureMode", "NONE")));
             mysql.start(); kafka.start(); redis.start();
             UUID campaignId;
             try (var batch = application(mysql, kafka, redis, "CAMPAIGN", false)) {
@@ -177,95 +185,103 @@ class CampaignDeliveryPilotTest {
                 mockUrl = "http://127.0.0.1:" + mock.getWebServer().getPort();
                 try (var realtime = application(mysql, kafka, redis, "REALTIME", true);
                      var admin = Admin.create(Map.of("bootstrap.servers", kafka.getBootstrapServers()))) {
-                    ready(realtime);
-                    var jdbc = realtime.getBean(JdbcTemplate.class);
-                    long baselineStart = System.nanoTime();
-                    for (int i = 0; i < BASELINE_PROBES; i++) {
-                        probe(http, realtime, "BASELINE");
-                        Thread.sleep(200); // Sequential offered load: no unbounded/catch-up submission queue.
-                    }
-                    await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == BASELINE_PROBES);
-                    awaitOffsets(admin, realtime, BASELINE_PROBES);
-                    report.put("baselineSeconds", seconds(baselineStart));
-                    report.put("baselineLatencyMs", latency(jdbc, "title='BASELINE' AND traffic_class='REALTIME'", BASELINE_PROBES));
-                    long drainStart = System.nanoTime(); // Includes campaign app startup; excludes preload and baseline.
-                    if (apiRequestTiming != null) apiRequestTiming.markDrainStart(drainStart);
-                    var samples = new ArrayList<Map<String, Object>>();
-                    report.put("samples", samples);
-                    try (var campaign = application(mysql, kafka, redis, "CAMPAIGN", true);
-                         var relays = scaling ? CampaignRelayGroup.start(campaign, relayInstances) : null) {
-                        try {
-                            ready(campaign);
-                            long nextSample = 0;
-                            while (completed(campaign) < targets) {
-                                if (seconds(drainStart) > drainLimitSeconds) throw new IllegalStateException("Delivery drain exceeded " + drainLimitSeconds + " seconds");
-                                checkRunning(campaign, "campaign");
-                                checkRunning(realtime, "realtime");
-                                if (relays != null) relays.checkHealthy();
-                                probe(http, realtime, "MIXED");
-                                if (System.nanoTime() >= nextSample) {
-                                    if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
-                                    samples.add(sample(mysql, campaign, realtime, drainStart));
-                                    nextSample = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
-                                    System.out.printf("DELIVERY_PILOT targets=%d completed=%.0f realtimeProbes=%d elapsedSeconds=%.3f%n",
-                                            targets, completed(campaign), probes.size() - BASELINE_PROBES, seconds(drainStart));
-                                }
-                                Thread.sleep(200);
-                            }
-                            double drainSeconds = seconds(drainStart);
-                            report.put("campaignDrainSeconds", drainSeconds);
-                            report.put("campaignPerSecond", targets / drainSeconds);
-                            if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
-                            samples.add(sample(mysql, campaign, realtime, drainStart));
-                            int mixed = probes.size() - BASELINE_PROBES;
-                            assertThat(mixed).as("overlapping realtime observations").isGreaterThanOrEqualTo(10);
-                            await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == probes.size());
-                            long offsetWaitStart = System.nanoTime();
-                            awaitOffsets(admin, campaign, targets);
-                            if (offsetComparison) {
-                                report.put("campaignOffsetWaitSeconds", seconds(offsetWaitStart));
-                                // Includes the final resource sample/realtime completion wait after campaign completion.
-                                report.put("campaignCompletionToOffsetsSeconds", seconds(drainStart) - drainSeconds);
-                            }
-                            awaitOffsets(admin, realtime, probes.size());
-                            if (relays != null) {
-                                relays.checkHealthy();
-                                relays.close(); // Complete partial ACK flushes before the final audit and app teardown.
-                                report.put("campaignRelayGroup", relays.snapshot());
-                                assertThat(relays.snapshot()).containsEntry("maxConcurrentRuns", relayInstances)
-                                        .containsEntry("activeRuns", 0).containsEntry("queuedPeriodicTasks", 0).containsEntry("terminated", true);
-                            }
-                            report.put("mixedProbes", mixed);
-                            long verificationStart = System.nanoTime();
-                            report.put("mixedLatencyMs", latency(jdbc, "title='MIXED' AND traffic_class='REALTIME'", mixed));
-                            report.put("campaignCreatedToCompletedMs", latency(jdbc, "traffic_class='CAMPAIGN'", targets));
-                            verifyTargetMappings(jdbc, campaignId, targets);
-                            reconcile(jdbc, targets, audit, mock.getBean(MockPushEndpoint.class));
-                            report.put("verificationSeconds", seconds(verificationStart));
-                            report.put("campaignOffsets", offsets(admin, campaign));
-                            report.put("realtimeOffsets", offsets(admin, realtime));
-                            report.put("mockStats", mock.getBean(MockPushEndpoint.class).stats());
-                            report.put("campaignAllowed", counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed"));
-                            report.put("realtimeAllowed", counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed"));
-                            report.put("stageTimingVersion", "caller-side-transaction-and-ack-v1");
-                            report.put("campaignStageTimings", stageTimings(campaign));
-                            report.put("realtimeStageTimings", stageTimings(realtime));
-                            assertThat(counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(targets);
-                            assertThat(counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(probes.size());
-                            report.put("result", "PASS");
-                        } catch (Exception | AssertionError failure) {
-                            try {
-                                report.put("failureSnapshot", Map.of("observedAtUtc", Instant.now().toString(),
-                                        "elapsedSeconds", seconds(drainStart), "campaign", CampaignDeliveryDiagnostics.application(campaign),
-                                        "realtime", CampaignDeliveryDiagnostics.application(realtime),
-                                        "httpAudit", audit.summary(), "mockStats", mock.getBean(MockPushEndpoint.class).stats(),
-                                        "acceptedProbeResponses", probes.size()));
-                            } catch (RuntimeException diagnosticFailure) {
-                                report.put("failureSnapshotErrorType", diagnosticFailure.getClass().getSimpleName());
-                            }
-                            throw failure;
+                    try {
+                        ready(realtime);
+                        var jdbc = realtime.getBean(JdbcTemplate.class);
+                        long baselineStart = System.nanoTime();
+                        for (int i = 0; i < BASELINE_PROBES; i++) {
+                            probe(http, realtime, "BASELINE");
+                            Thread.sleep(200); // Sequential offered load: no unbounded/catch-up submission queue.
                         }
-                    }
+                        await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == BASELINE_PROBES);
+                        awaitOffsets(admin, realtime, BASELINE_PROBES);
+                        report.put("baselineSeconds", seconds(baselineStart));
+                        report.put("baselineLatencyMs", latency(jdbc, "title='BASELINE' AND traffic_class='REALTIME'", BASELINE_PROBES));
+                        long drainStart = System.nanoTime(); // Includes campaign app startup; excludes preload and baseline.
+                        if (apiRequestTiming != null) apiRequestTiming.markDrainStart(drainStart);
+                        var samples = new ArrayList<Map<String, Object>>();
+                        report.put("samples", samples);
+                        try (var campaign = application(mysql, kafka, redis, "CAMPAIGN", true);
+                             var relays = scaling ? CampaignRelayGroup.start(campaign, relayInstances) : null) {
+                            try {
+                                ready(campaign);
+                                long nextSample = 0;
+                                while (completed(campaign) < targets) {
+                                    if (seconds(drainStart) > drainLimitSeconds) {
+                                        var exceeded = new IllegalStateException("Delivery drain exceeded " + drainLimitSeconds + " seconds");
+                                        captureFailure(exceeded, ApiFailureWindow.Stop.RUN_LIMIT, realtime); throw exceeded;
+                                    }
+                                    checkRunning(campaign, "campaign");
+                                    checkRunning(realtime, "realtime");
+                                    if (relays != null) relays.checkHealthy();
+                                    probe(http, realtime, "MIXED");
+                                    if (System.nanoTime() >= nextSample) {
+                                        if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
+                                        samples.add(sample(mysql, campaign, realtime, drainStart));
+                                        nextSample = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                                        System.out.printf("DELIVERY_PILOT targets=%d completed=%.0f realtimeProbes=%d elapsedSeconds=%.3f%n",
+                                                targets, completed(campaign), probes.size() - BASELINE_PROBES, seconds(drainStart));
+                                    }
+                                    Thread.sleep(200);
+                                }
+                                double drainSeconds = seconds(drainStart);
+                                report.put("campaignDrainSeconds", drainSeconds);
+                                report.put("campaignPerSecond", targets / drainSeconds);
+                                if (samples.size() >= bounds.maxResourceSamples()) throw new IllegalStateException("Resource sample bound exceeded");
+                                samples.add(sample(mysql, campaign, realtime, drainStart));
+                                int mixed = probes.size() - BASELINE_PROBES;
+                                assertThat(mixed).as("overlapping realtime observations").isGreaterThanOrEqualTo(10);
+                                await().atMost(Duration.ofSeconds(30)).until(() -> accepted(jdbc, "REALTIME") == probes.size());
+                                long offsetWaitStart = System.nanoTime();
+                                awaitOffsets(admin, campaign, targets);
+                                if (offsetComparison) {
+                                    report.put("campaignOffsetWaitSeconds", seconds(offsetWaitStart));
+                                    // Includes the final resource sample/realtime completion wait after campaign completion.
+                                    report.put("campaignCompletionToOffsetsSeconds", seconds(drainStart) - drainSeconds);
+                                }
+                                awaitOffsets(admin, realtime, probes.size());
+                                if (relays != null) {
+                                    relays.checkHealthy();
+                                    relays.close(); // Complete partial ACK flushes before the final audit and app teardown.
+                                    report.put("campaignRelayGroup", relays.snapshot());
+                                    assertThat(relays.snapshot()).containsEntry("maxConcurrentRuns", relayInstances)
+                                            .containsEntry("activeRuns", 0).containsEntry("queuedPeriodicTasks", 0).containsEntry("terminated", true);
+                                }
+                                report.put("mixedProbes", mixed);
+                                long verificationStart = System.nanoTime();
+                                report.put("mixedLatencyMs", latency(jdbc, "title='MIXED' AND traffic_class='REALTIME'", mixed));
+                                report.put("campaignCreatedToCompletedMs", latency(jdbc, "traffic_class='CAMPAIGN'", targets));
+                                verifyTargetMappings(jdbc, campaignId, targets);
+                                reconcile(jdbc, targets, audit, mock.getBean(MockPushEndpoint.class));
+                                report.put("verificationSeconds", seconds(verificationStart));
+                                report.put("campaignOffsets", offsets(admin, campaign));
+                                report.put("realtimeOffsets", offsets(admin, realtime));
+                                report.put("mockStats", mock.getBean(MockPushEndpoint.class).stats());
+                                report.put("campaignAllowed", counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed"));
+                                report.put("realtimeAllowed", counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed"));
+                                report.put("stageTimingVersion", "caller-side-transaction-and-ack-v1");
+                                report.put("campaignStageTimings", stageTimings(campaign));
+                                report.put("realtimeStageTimings", stageTimings(realtime));
+                                assertThat(counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(targets);
+                                assertThat(counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(probes.size());
+                                report.put("result", "PASS");
+                            } catch (Exception | AssertionError failure) {
+                                captureFailure(failure, ApiFailureWindow.Stop.INFRA_FAILURE, realtime);
+                                try {
+                                    report.put("failureSnapshot", Map.of("observedAtUtc", Instant.now().toString(),
+                                            "elapsedSeconds", seconds(drainStart), "campaign", CampaignDeliveryDiagnostics.application(campaign),
+                                            "realtime", CampaignDeliveryDiagnostics.application(realtime),
+                                            "httpAudit", audit.summary(), "mockStats", mock.getBean(MockPushEndpoint.class).stats(),
+                                            "acceptedProbeResponses", probes.size()));
+                                } catch (RuntimeException diagnosticFailure) {
+                                    report.put("failureSnapshotErrorType", diagnosticFailure.getClass().getSimpleName());
+                                }
+                                throw failure;
+                            }
+                        }
+                    } catch (Exception | AssertionError failure) {
+                        captureFailure(failure, ApiFailureWindow.Stop.INFRA_FAILURE, realtime); throw failure;
+                    } finally { if (failureSupport != null) failureSupport.release(); }
                 }
             }
             if (fineTiming) {
@@ -282,6 +298,7 @@ class CampaignDeliveryPilotTest {
                 report.put("fineTimings", snapshots);
             }
         } catch (Exception | AssertionError failure) {
+            captureFailure(failure, ApiFailureWindow.Stop.INFRA_FAILURE, null);
             report.put("result", "FAIL"); report.put("failureType", failure.getClass().getSimpleName());
             throw failure;
         } finally {
@@ -292,10 +309,14 @@ class CampaignDeliveryPilotTest {
             }
             report.put("finishedAtUtc", Instant.now().toString());
             if (apiRequestTiming != null) report.put("apiRequestTiming", apiRequestTiming.snapshot());
-            Path directory = Path.of(connectionPilot ? "build/reports/api-connection-pilot" : dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
+            if (failureSupport != null) {
+                failureSupport.release(); report.put("apiFailureWindow", failureSupport.window.snapshot());
+                report.put("failureWindowControl", failureSupport.control());
+            }
+            Path directory = failureSupport != null ? failureSupport.directory() : Path.of(connectionPilot ? "build/reports/api-connection-pilot" : dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                     load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
             Files.createDirectories(directory);
-            String name = connectionPilot ? (Boolean.getBoolean("campaign.delivery.connectionCalls") ? "ON" : "OFF") + "-targets-" + targets : dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
+            String name = failureSupport != null ? "result" : connectionPilot ? (Boolean.getBoolean("campaign.delivery.connectionCalls") ? "ON" : "OFF") + "-targets-" + targets : dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
                     : offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
             mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
         }
@@ -345,17 +366,22 @@ class CampaignDeliveryPilotTest {
             builder.sources(ApiRequestTiming.Wiring.class)
                     .initializers(context -> context.getBeanFactory().registerSingleton("apiRequestTiming", api));
         }
+        var failure = live && lane.equals("REALTIME") ? failureSupport : null;
+        if (failure != null) {
+            builder.sources(ApiFailurePilotSupport.Wiring.class)
+                    .initializers(context -> context.getBeanFactory().registerSingleton("apiFailureSupport", failure));
+        }
         if (live && Boolean.getBoolean("campaign.delivery.fineTiming")) {
-            DeliveryTiming.ApiObserver observer = api == null ? null : api.observer();
+            DeliveryTiming.ApiObserver observer = failure != null ? failure.window : api == null ? null : api.observer();
             if (api != null && Boolean.getBoolean("campaign.delivery.dbObservation")) {
                 try {
                     apiDbObservation = ApiDbObservation.connect(DriverManager.getConnection(mysql.getJdbcUrl(), "root", mysql.getPassword()),
                             api.observer(), api::currentWindow, Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")),
                             Long.getLong("campaign.delivery.dbMinCallMillis", 0));
                     observer = apiDbObservation;
-                } catch (Exception failure) { throw new IllegalStateException("DB observation setup failed", failure); }
+                } catch (Exception setupFailure) { throw new IllegalStateException("DB observation setup failed", setupFailure); }
             }
-            var timing = new DeliveryTiming(observer);
+            var timing = failure == null ? new DeliveryTiming(observer) : new DeliveryTiming(observer, failure::dataSource);
             timings.put(lane, timing);
             builder.sources(DeliveryTiming.Wiring.class)
                     .initializers(context -> context.getBeanFactory().registerSingleton("deliveryTiming", timing));
@@ -384,21 +410,42 @@ class CampaignDeliveryPilotTest {
 
     private void probe(HttpClient http, ConfigurableApplicationContext app, String phase) throws Exception {
         int ordinal = probes.size() + 1;
-        if (ordinal > maxProbes) throw new IllegalStateException("Probe bound exceeded");
+        if (ordinal > maxProbes) {
+            var exceeded = new IllegalStateException("Probe bound exceeded");
+            captureFailure(exceeded, ApiFailureWindow.Stop.PROBE_LIMIT, app); throw exceeded;
+        }
         String body = mapper.writeValueAsString(Map.of("recipientId", "pilot-realtime-" + ordinal, "title", phase, "body", "synthetic body"));
         long start = System.nanoTime();
         var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + ((ServletWebServerApplicationContext) app).getWebServer().getPort() + "/notifications"))
                 .timeout(Duration.ofSeconds(5)).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build();
         var capture = apiRequestTiming == null ? null : apiRequestTiming.open(ApiRequestTiming.Window.valueOf(phase));
         try {
+            if (failureSupport != null) failureSupport.open(phase);
             var response = CampaignDeliveryDiagnostics.sendProbe(http, request, report, phase, ordinal, probes.size());
             double clientMillis = seconds(start) * 1000;
+            if (failureSupport != null) failureSupport.window.complete(response.statusCode(), clientMillis);
             assertThat(response.statusCode()).isEqualTo(202);
             if (capture != null) apiRequestTiming.complete(capture, clientMillis, response.statusCode());
             probes.add(new Probe(mapper.readTree(response.body()).path("notificationId").asText(), clientMillis));
+        } catch (Exception | AssertionError failure) {
+            captureFailure(failure, ApiFailurePilotSupport.classify(failure), app); throw failure;
         } finally {
             if (capture != null) apiRequestTiming.abort(capture);
+            if (failureSupport != null) failureSupport.release();
         }
+    }
+
+    private void captureFailure(Throwable failure, ApiFailureWindow.Stop reason, ConfigurableApplicationContext realtime) {
+        if (failureSupport != null && failureSupport.capture(failure, reason, report)) {
+            report.put("failureCaptureContext", realtime == null ? Map.of("available", false)
+                    : Map.of("available", true, "realtimeActive", realtime.isActive()));
+        }
+    }
+
+    Map<String, Object> failureReport() { return Map.copyOf(report); }
+    Path failureDirectory() {
+        if (failureSupport == null) throw new IllegalStateException("Failure window not enabled");
+        return failureSupport.directory();
     }
 
     private void reconcile(JdbcTemplate jdbc, int targets, Audit audit, MockPushEndpoint mock) {

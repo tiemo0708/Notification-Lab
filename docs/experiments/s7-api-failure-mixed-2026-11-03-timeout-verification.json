@@ -1,0 +1,8 @@
+{
+  "mode" : "TIMEOUT",
+  "verification" : "PASS",
+  "harnessResult" : "FAIL",
+  "expectedPrimaryFailureType" : "HttpTimeoutException",
+  "primarySuppressedCount" : 0,
+  "failureFileExists" : true
+}

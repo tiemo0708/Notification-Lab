@@ -1,0 +1,8 @@
+{
+  "mode" : "NONE",
+  "verification" : "PASS",
+  "harnessResult" : "PASS",
+  "expectedPrimaryFailureType" : "NONE",
+  "primarySuppressedCount" : 0,
+  "failureFileExists" : false
+}

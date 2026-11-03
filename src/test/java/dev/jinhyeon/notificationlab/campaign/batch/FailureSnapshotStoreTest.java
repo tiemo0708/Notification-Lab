@@ -19,6 +19,15 @@ class FailureSnapshotStoreTest {
     @TempDir Path directory;
 
     @Test
+    void persistenceFailureAlsoPreservesTheOriginalAssertionError() throws Exception {
+        var target = directory.resolve("failure.json"); Files.writeString(target, "earlier evidence");
+        var original = new AssertionError("PRIVATE_ASSERTION"); var report = new LinkedHashMap<String, Object>();
+        assertThat(new FailureSnapshotStore(window(), target).preserve(original, ApiFailureWindow.Stop.PROTOCOL_FAILURE, report)).isSameAs(original);
+        assertThat(original.getSuppressed()).hasSize(1);
+        assertThat(report.toString()).doesNotContain("PRIVATE_ASSERTION", target.toString());
+    }
+
+    @Test
     void publishesReadableFrozenEvidenceAndRepeatedSaveDoesNotReplaceIt() throws Exception {
         var window = window(); var target = directory.resolve("failure.json");
         var store = new FailureSnapshotStore(window, target);

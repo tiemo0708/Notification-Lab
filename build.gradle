@@ -50,7 +50,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe', 'api-wait-probe', 'api-failure-persistence' }
+    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe', 'api-wait-probe', 'api-failure-persistence', 'api-failure-pilot-controls' }
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
@@ -285,6 +285,32 @@ tasks.register('apiConnectionPilot', Test) {
     def details = providers.gradleProperty('connectionCalls').getOrElse('ON')
     if (!(details in ['ON', 'OFF'])) throw new GradleException('connectionCalls must be ON or OFF')
     systemProperty 'campaign.delivery.connectionCalls', (details == 'ON').toString()
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+tasks.register('apiFailurePilot', Test) {
+    description = 'Bounded 1k mixed Kafka delivery with opt-in first-failure capture and controlled failure modes'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'api-failure-pilot-controls' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(5)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '4m'
+    systemProperty 'campaign.delivery.targets', '1000'
+    systemProperty 'campaign.delivery.load', 'false'
+    systemProperty 'campaign.delivery.scaling', 'true'
+    systemProperty 'campaign.delivery.relayInstances', '2'
+    systemProperty 'campaign.delivery.publishBatchSize', '10'
+    systemProperty 'campaign.delivery.fineTiming', 'true'
+    systemProperty 'campaign.delivery.offsetComparison', 'true'
+    systemProperty 'campaign.delivery.offsetMode', 'COUNT_TIME'
+    systemProperty 'campaign.delivery.failureWindow', 'true'
+    def mode = providers.gradleProperty('failureMode').getOrElse('NONE')
+    if (!(mode in ['NONE', 'TIMEOUT', 'STORAGE_FAILURE'])) throw new GradleException('failureMode must be NONE, TIMEOUT or STORAGE_FAILURE')
+    systemProperty 'campaign.delivery.failureMode', mode
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }

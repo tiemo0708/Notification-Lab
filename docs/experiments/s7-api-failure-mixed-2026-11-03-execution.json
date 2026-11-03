@@ -1,0 +1,130 @@
+{
+  "baseCommit": "cdf21d9b0c5e9eb2307d3f8ba799ac1921d0d24c",
+  "dateKst": "2026-11-03",
+  "purpose": "1k-only opt-in mixed pilot first-failure preservation; synthetic controls, not throughput comparison",
+  "commands": [
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*ApiFailurePilotSupportTest' --tests '*FailureSnapshotStoreTest' --tests '*ApiFailureWindowTest' --tests '*DeliveryTimingTest' --tests '*CampaignDeliveryDiagnosticsTest'",
+      "exitCode": 0,
+      "gradleElapsed": "7s",
+      "tests": 27,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailurePilot -PfailureMode=NONE",
+      "exitCode": 0,
+      "gradleElapsed": "40s",
+      "controlVerification": "PASS",
+      "harnessResult": "PASS"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailurePilot -PfailureMode=TIMEOUT",
+      "exitCode": 0,
+      "gradleElapsed": "35s",
+      "controlVerification": "PASS",
+      "harnessResult": "FAIL"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailurePilot -PfailureMode=STORAGE_FAILURE",
+      "exitCode": 0,
+      "gradleElapsed": "38s",
+      "controlVerification": "PASS",
+      "harnessResult": "FAIL"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiConnectionPilot -PdeliveryTargets=1000 -PconnectionCalls=OFF",
+      "exitCode": 0,
+      "gradleElapsed": "39s",
+      "tests": 1,
+      "harnessResult": "PASS",
+      "mockAccepted": 1088
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+      "exitCode": 0,
+      "gradleElapsed": "14m 45s",
+      "classes": 42,
+      "tests": 332,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "freshXmlFiles": true,
+      "bootJar": "UP-TO-DATE",
+      "remoteCiClaimed": false
+    }
+  ],
+  "initialCompilation": "Three test-source compile errors (generic inference, HttpTimeoutException constructor, shadowed local name) corrected before running pilots. Persistence-only tag selection corrected before execution.",
+  "artifactMapping": {
+    "s7-api-failure-mixed-2026-11-03-legacy-result.json": {
+      "bytes": 196959,
+      "sha256": "7d69220c758b877b184eb400bffd580307b651e28e5cca322411dcdf8427a42c",
+      "originalFileName": "OFF-targets-1000.json",
+      "mode": "legacy failureWindow=false"
+    },
+    "s7-api-failure-mixed-2026-11-03-none-result.json": {
+      "bytes": 138924,
+      "sha256": "c0ce6597c3c969fca5684c4be26c6db1e7094308659e7b0d1b2c16b448730a76",
+      "originalFileName": "result.json",
+      "mode": "NONE"
+    },
+    "s7-api-failure-mixed-2026-11-03-none-verification.json": {
+      "bytes": 180,
+      "sha256": "3a473ec4211535cd211c19141e1bccb99a95e5e8f2456851e3268c3fe6a148b7",
+      "originalFileName": "verification.json",
+      "mode": "NONE"
+    },
+    "s7-api-failure-mixed-2026-11-03-source.json": {
+      "bytes": 1619,
+      "sha256": "030b8884a72fc47a63d16283e5f169d034ea0f53b9a19a9c4e6960741c880f8a"
+    },
+    "s7-api-failure-mixed-2026-11-03-storage-earlier-evidence.txt": {
+      "bytes": 35,
+      "sha256": "e7536d46df8883c96b251feb7240d25e4ed0fae0686205c02e0bdc33fa2c6a15",
+      "originalFileName": "failure.json",
+      "mode": "STORAGE_FAILURE"
+    },
+    "s7-api-failure-mixed-2026-11-03-storage-result.json": {
+      "bytes": 78891,
+      "sha256": "f484b282d55d8be4d191407dc7fa6d4a9b3cd7ff252dc232e291b22f144ae6c1",
+      "originalFileName": "result.json",
+      "mode": "STORAGE_FAILURE"
+    },
+    "s7-api-failure-mixed-2026-11-03-storage-verification.json": {
+      "bytes": 206,
+      "sha256": "eaac21dfe750734a393646af19baae199441d28661cd663a5f387e42cf88da84",
+      "originalFileName": "verification.json",
+      "mode": "STORAGE_FAILURE"
+    },
+    "s7-api-failure-mixed-2026-11-03-timeout-failure.json": {
+      "bytes": 68422,
+      "sha256": "e11118791e322b6e8ef9f8ed0b846f17cdb358800ab62683bf62209605dc93e3",
+      "originalFileName": "failure.json",
+      "mode": "TIMEOUT"
+    },
+    "s7-api-failure-mixed-2026-11-03-timeout-result.json": {
+      "bytes": 78862,
+      "sha256": "c0b3e9a22875822d44b83c2765e72433d668213db7a0ecf16f67be5cdfcef4fe",
+      "originalFileName": "result.json",
+      "mode": "TIMEOUT"
+    },
+    "s7-api-failure-mixed-2026-11-03-timeout-verification.json": {
+      "bytes": 198,
+      "sha256": "22b09ba5d59ab1c07e7d364bd74f4a43d0c7aead8554458810109e1f24b38100",
+      "originalFileName": "verification.json",
+      "mode": "TIMEOUT"
+    }
+  },
+  "originalMillionFailureSha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b",
+  "pushPerformed": false,
+  "largeLoadPerformed": false,
+  "productionSourceChanges": false,
+  "limitations": [
+    "No million or 100k execution or long-run tool wiring",
+    "Injected timeout harness results remain FAIL; only control verification passes",
+    "No original timeout root-cause determination or throughput improvement claim",
+    "Failure file is published before observed live context/pool teardown; no universal guarantee for startup/teardown errors",
+    "Existing local MySQL data and user configuration preserved; no push"
+  ]
+}

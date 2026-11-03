@@ -53,7 +53,7 @@ final class FailureSnapshotStore {
         }
     }
 
-    <E extends Exception> E preserve(E original, ApiFailureWindow.Stop reason, Map<String, Object> report) {
+    <E extends Throwable> E preserve(E original, ApiFailureWindow.Stop reason, Map<String, Object> report) {
         try {
             var result = save(reason);
             report.put("failureSnapshotStorage", Map.of("written", true, "fileName", result.path().getFileName().toString(),

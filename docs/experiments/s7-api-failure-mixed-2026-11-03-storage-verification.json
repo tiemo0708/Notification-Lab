@@ -1,0 +1,8 @@
+{
+  "mode" : "STORAGE_FAILURE",
+  "verification" : "PASS",
+  "harnessResult" : "FAIL",
+  "expectedPrimaryFailureType" : "HttpTimeoutException",
+  "primarySuppressedCount" : 1,
+  "failureFileExists" : true
+}

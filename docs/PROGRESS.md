@@ -2551,3 +2551,36 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   기본회귀를실제로재실행했고bootJar는UP-TO-DATE였다. 별도opt-in제어와구분하며원격CI결과가아니다.
 - 고정소스8개/운영Java·resources diff0/기존100만건FAIL SHA불변을확인했다.
 - 기존Git identity/원격main9cf1786을읽기전용확인했다. Docker는기존notification-lab-mysql-1만healthy로남았고임시검증컨테이너는정리됐다. 푸시는하지않았다.
+
+
+## 2026-11-03: S7 1천 건 Kafka 혼합 실험의 첫 실패 보존 연결
+
+시작 cdf21d9/main. 직전 접수 전용 제어의 ApiFailureWindow/FailureSnapshotStore를 기존 혼합 harness에 opt-in 연결했다.
+
+- 새 `apiFailurePilot`은 캠페인1000건만 허용하고 task5분/JUnit240초/JVM512MiB다.
+  HTTP5초·연결2초/순차 요청/최근32건+진행1건/파일256KiB/기존probe5000개 상한을 유지한다.
+  기본 test/build와 기존 pilot은 새 제어 tag/옵션을 사용하지 않는다. 100만 건 task는 미연결이다.
+- 앱과pool을 닫거나 추가 진단하기 전에 첫 오류를 동결·파일 보존하고, 중첩된 실패 처리의 재저장을 막았다.
+  AssertionError도 원래 객체를 유지한다. 저장 실패는 정제된 suppressed 오류1개이며 원래 HTTP 오류를 덮지 않는다.
+- 초기 컴파일 오류3개(타입 추론/예외 생성자/지역 변수 중복)를 수정한 후 관련 단위27개가7초에 통과했다.
+- NONE/TIMEOUT/STORAGE_FAILURE 각1회: Gradle40/35/38초·종료코드0, 제어 검증3개 모두통과.
+  NONE은 캠페인1000+실시간87=1087건 HTTP·DB·전체 참조·offset 대조를 통과했다. 중복/잘못된 참조0이다.
+  두 주입 조건의 원래 harness 결과는 FAIL/HttpTimeoutException이며 성공으로 바꾸지 않았다.
+  첫MIXED(51번째) 요청이5초 timeout일 때 완료50/evicted18/최근32+진행1개가 남았다.
+  active AUTOCOMMIT_STATE/commitReturned=true/responseObserved=false/클라이언트결과UNKNOWN이었다.
+  앱active/pool open/gate 대기 중 저장을 확인했다. TIMEOUT은68422bytes 파일과 frozen snapshot이 정리 후 byte 일치했다.
+  STORAGE_FAILURE는 기존35bytes 합성 증거를 보존하고 FileAlreadyExistsException/suppressed1개를 남겼다.
+  중도 실패한 두 실행은 최종 발송 정합성 완료로 집계하지 않는다.
+- 새옵션을 끈 기존 `apiConnectionPilot -PdeliveryTargets=1000 -PconnectionCalls=OFF`도39초에 통과했다.
+  캠페인1000+실시간88=1088건 전수 대조/중복0을 확인했다. NONE과 합쳐 정상 HTTP2175건이다.
+- [순서·상한·결과·한계](S7_FAILURE_MIXED_PILOT.md), [고정 소스](experiments/s7-api-failure-mixed-2026-11-03-source.json),
+  [원본 SHA·실행 메타데이터](experiments/s7-api-failure-mixed-2026-11-03-execution.json)를 보존한다.
+  이는 오류 보존 제어 실험이며 성능 개선 또는 기존100만 건 timeout 원인 확정이 아니다.
+  장시간 도구 연결 검토와 실제 실행은 별도다. 10만/100만·실제공급자·유료자원·푸시는 실행하지 않았다.
+
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`: **14분45초/종료코드0**.
+  새42개 클래스의 XML과 콘솔에서 **332개통과/실패·오류·스킵0**을 대조했다. 기존329개+새단위3개다.
+  기본 회귀는 재실행했고bootJar는UP-TO-DATE였다. 별도pilot4회와 원격CI 결과를 구분한다.
+  고정소스10개/보존원본10개의SHA 일치, 운영Java/resources diff0, 기존100만건FAIL SHA 불변을 확인했다.
+- 기존 Git identity와 원격main9cf1786을 읽기 전용 확인했다. Docker에는 기존notification-lab-mysql-1만healthy로 남았다.
+  사용자DB/.env/IntelliJ/volume을 유지했고 푸시는 하지 않았다.

@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.UnaryOperator;
 import javax.sql.DataSource;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -53,11 +54,17 @@ final class DeliveryTiming {
     private final AtomicInteger consumers = new AtomicInteger();
     private final List<HikariDataSource> pools = new ArrayList<>();
     private final ApiObserver apiObserver;
+    private final UnaryOperator<DataSource> sourceDecorator;
 
     DeliveryTiming() { this(null); }
 
     DeliveryTiming(ApiObserver apiObserver) {
+        this(apiObserver, UnaryOperator.identity());
+    }
+
+    DeliveryTiming(ApiObserver apiObserver, UnaryOperator<DataSource> sourceDecorator) {
         this.apiObserver = apiObserver;
+        this.sourceDecorator = sourceDecorator;
         for (int p = 0; p < stats.length; p++) {
             for (int c = 0; c < stats[p].length; c++) stats[p][c] = new Stats();
         }
@@ -133,7 +140,7 @@ final class DeliveryTiming {
     }
 
     DataSource dataSource(DataSource target) {
-        return new TimedDataSource(target);
+        return new TimedDataSource(sourceDecorator.apply(target));
     }
 
     private final class TimedDataSource extends DelegatingDataSource implements AutoCloseable {

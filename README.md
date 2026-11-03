@@ -356,7 +356,8 @@ ON은 getAutoCommit과setAutoCommit(false/true)를 따로 기록한다.
 [장시간 실패 직전 관찰·중단 기준](docs/S7_LONG_RUN_OBSERVATION.md)은 최근32건과 진행 중1건을 보관하는 테스트 프로토타입이다.
 첫 실패 snapshot을 늦은 응답이 바꾸지 않는지 검증했다.
 [실제 HTTP/MySQL 접수 제어](docs/S7_FAILURE_PERSISTENCE.md)는 `apiFailurePersistenceProbe`로 종료 전 첫 파일 저장과 늦은 처리 후 불변을 검증한다.
-기존 캠페인 혼합/장시간 task 연결과100만 건 재실행은 아직 하지 않았다.
+[작은 Kafka 혼합 실험](docs/S7_FAILURE_MIXED_PILOT.md)은 `apiFailurePilot`의1천 건 opt-in 연결로 정상 전수 대조와 timeout·저장 실패 보존을 검증했다.
+장시간 task 연결과100만 건 재실행은 아직 하지 않았다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
