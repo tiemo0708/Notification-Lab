@@ -334,6 +334,9 @@ tasks.register('apiFailureLongRunRehearsal', Test) {
     def mode = providers.gradleProperty('failureMode').getOrElse('NONE')
     if (!(mode in ['NONE', 'TIMEOUT', 'STORAGE_FAILURE', 'REPORT_FAILURE'])) throw new GradleException('failureMode must be NONE, TIMEOUT, STORAGE_FAILURE or REPORT_FAILURE')
     systemProperty 'campaign.delivery.failureMode', mode
+    def recovery = providers.gradleProperty('transientQuotaRecovery').getOrElse('OFF')
+    if (!(recovery in ['OFF', 'ON'])) throw new GradleException('transientQuotaRecovery must be OFF or ON')
+    systemProperty 'campaign.delivery.transientQuotaRecovery', (recovery == 'ON').toString()
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
@@ -398,6 +401,9 @@ tasks.register('campaignDeliveryMillion', Test) {
     systemProperty 'campaign.delivery.failureWindow', (observation == 'ON').toString()
     systemProperty 'campaign.delivery.failureProfile', 'LONG_RUN'
     systemProperty 'campaign.delivery.failureMode', 'NONE'
+    def recovery = providers.gradleProperty('transientQuotaRecovery').getOrElse('OFF')
+    if (!(recovery in ['OFF', 'ON'])) throw new GradleException('transientQuotaRecovery must be OFF or ON')
+    systemProperty 'campaign.delivery.transientQuotaRecovery', (recovery == 'ON').toString()
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }

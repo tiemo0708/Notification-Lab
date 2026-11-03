@@ -1,0 +1,63 @@
+{
+  "analysisDateKst": "2026-11-04",
+  "sourceCommit": "71688a8c835a7073f7a82b836cd4a533cccf35a8",
+  "sourceFilesUnchanged": 160,
+  "experimentRawHashesVerified": true,
+  "confirmed": {
+    "experimentStatus": "FAIL",
+    "exitCode": 1,
+    "gradleElapsed": "1h 27m 50s",
+    "preloadSeconds": 2774.78971875,
+    "deliverySecondsAtFailure": 2448.708821709,
+    "campaignMockAccepted": 190131,
+    "realtimeMockAccepted": 10438,
+    "campaignStopDiagnostics": {
+      "quotaUnavailable": 1.0,
+      "quotaRejectedUnavailable": 1.0,
+      "admissionFull": 0.0
+    },
+    "firstStopReason": "INFRA_FAILURE",
+    "apiOpenedAndCompleted": 10438,
+    "activeApiPresent": false,
+    "recentStatuses": [
+      202
+    ],
+    "recentClientMaxMillis": 483.995042,
+    "snapshotBytes": 66708,
+    "mysqlLastMemoryBytes": 2146406400,
+    "mysqlLastMemoryMaxEvents": 730,
+    "mysqlObservedOomMax": 0,
+    "mysqlObservedOomKillMax": 0
+  },
+  "notEstablished": [
+    "specific Redis/client failure subtype",
+    "MySQL reclaim caused the Redis/client failure",
+    "Redis outage or Redis OOM",
+    "final database/offset reconciliation of million targets",
+    "root cause of the original first-attempt HTTP timeout"
+  ],
+  "controlValidation": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*RedisRateLimiterTest.redisPauseTimesOutAndFullPoolRejectsWithoutQueueing' --tests '*RedisRateLimiterTest.splitRejectsMissingExpiredLegacyMismatchedAndCorruptStateWithoutMutation' --tests '*RedisRateLimiterTest.refusedConnectionNeverGrantsPermission' --tests '*WorkerQuotaIntegrationTest.unavailableRedisStopsBeforeClaimAndExplicitRestartRecovers'",
+    "gradleElapsed": "31s",
+    "exitCode": 0,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "classes": 2,
+    "purpose": "Different synthetic causes yield UNAVAILABLE; delayed Redis stops worker without claim/provider/offset and explicit restart succeeds",
+    "workerFixtureRedisTimeoutMillis": 100,
+    "notAnExactIncidentReproduction": true,
+    "incidentConfiguredDefaultRedisTimeoutMillis": 250,
+    "incidentEffectiveRedisTimeoutCaptured": false
+  },
+  "productionCodeChanged": false,
+  "millionRunRepeated": false,
+  "fullSuiteRerun": false,
+  "commitPerformed": false,
+  "pushPerformed": false,
+  "references": [
+    "https://docs.docker.com/reference/cli/docker/container/stats/",
+    "https://docs.kernel.org/admin-guide/cgroup-v2.html"
+  ]
+}

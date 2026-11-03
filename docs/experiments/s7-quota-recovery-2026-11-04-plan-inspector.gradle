@@ -1,0 +1,25 @@
+gradle.projectsEvaluated { g ->
+    def root = g.rootProject
+    def t = root.tasks.named('campaignDeliveryMillion').get()
+    def p = t.systemProperties
+    def enabled = root.providers.gradleProperty('failureObservation').getOrElse('OFF') == 'ON'
+    assert p['campaign.delivery.targets'] == '1000000'
+    assert p['campaign.delivery.load'] == 'true'
+    assert p['campaign.delivery.failureWindow'] == enabled.toString()
+    assert p['campaign.delivery.failureProfile'] == 'LONG_RUN'
+    assert p['campaign.delivery.failureMode'] == 'NONE'
+    assert p['campaign.delivery.transientQuotaRecovery'] == 'true'
+    assert !p.containsKey('campaign.delivery.fineTiming')
+    assert !p.containsKey('campaign.delivery.scaling')
+    assert !p.containsKey('campaign.delivery.offsetComparison')
+    assert t.timeout.get() == java.time.Duration.ofHours(12)
+    assert p['junit.jupiter.execution.timeout.test.method.default'] == '11h'
+    assert t.maxParallelForks == 1
+    println 'OBSERVATION_PLAN ' + groovy.json.JsonOutput.toJson([
+        transientQuotaRecovery: true, observation: enabled, targets: 1000000, load: true, profile: p['campaign.delivery.failureProfile'],
+        failureMode: p['campaign.delivery.failureMode'], publishBatchSize: p['campaign.delivery.publishBatchSize'],
+        fineTiming: false, scaling: false, offsetComparison: false, offsetMode: 'RECORD',
+        gradleTimeoutSeconds: t.timeout.get().seconds, junitTimeout: '11h', maxHeap: t.maxHeapSize,
+        maxParallelForks: t.maxParallelForks, executedLoad: false
+    ])
+}

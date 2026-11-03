@@ -1,0 +1,110 @@
+{
+  "dateKst": "2026-11-04",
+  "baseCommit": "71688a8c835a7073f7a82b836cd4a533cccf35a8",
+  "commands": [
+    {
+      "command": "focused Redis/Worker/diagnostics verification (initial)",
+      "gradleElapsed": "46s",
+      "exitCode": 1,
+      "failure": "Persistent Redis pause fixture cleanup client timed out; service behavior not accepted until rerun"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*RedisRateLimiterTest' --tests '*WorkerQuotaTest' --tests '*WorkerQuotaIntegrationTest.transientRedisPauseRecoversWithoutSkippingOrCallingProviderBeforePermit' --tests '*WorkerQuotaIntegrationTest.persistentTransientFailureStopsAfterThreePausesAndKeepsOffsetUncommitted' --tests '*WorkerQuotaIntegrationTest.invalidBudgetStillStopsImmediatelyWhenTransientRecoveryIsEnabled' --tests '*CampaignDeliveryDiagnosticsTest'",
+      "gradleElapsed": "51s",
+      "exitCode": 0,
+      "tests": 41,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStage": "Before partition-key review; Redis instrumentation unchanged in final source"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests '*WorkerQuotaIntegrationTest.concurrentPartitionsKeepIndependentFiniteRecoveryBudgets' --tests '*WorkerQuotaIntegrationTest.transientRedisPauseRecoversWithoutSkippingOrCallingProviderBeforePermit' --tests '*WorkerQuotaIntegrationTest.persistentTransientFailureStopsAfterThreePausesAndKeepsOffsetUncommitted' --tests '*WorkerQuotaIntegrationTest.invalidBudgetStillStopsImmediatelyWhenTransientRecoveryIsEnabled' --tests '*WorkerQuotaTest'",
+      "gradleElapsed": "55s",
+      "exitCode": 0,
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStage": "Final per-partition recovery budgets"
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain apiFailureLongRunRehearsal -PfailureMode=NONE -PtransientQuotaRecovery=ON",
+      "gradleElapsed": "54s",
+      "exitCode": 0,
+      "harnessResult": "PASS",
+      "httpMockAccepted": 1116,
+      "campaignTargets": 1000,
+      "realtimeAccepted": 116
+    },
+    {
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+      "exitCode": 0,
+      "gradleElapsed": "16m 34s",
+      "classes": 44,
+      "tests": 347,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "freshXml": true,
+      "bootJar": "> Task :bootJar",
+      "remoteCiClaimed": false
+    }
+  ],
+  "artifactHashes": {
+    "s7-quota-recovery-2026-11-04-source.json": {
+      "sha256": "d0a7d7bea55a78fa85ac6d1d61490d0e801dd55e71a900473ac75d628846d302",
+      "bytes": 24114
+    },
+    "s7-quota-recovery-2026-11-04-pilot-result.json": {
+      "sha256": "bce00c83b16a21de9293e1e4f72573643b862c7d62a5005eb1c9898e07dd657a",
+      "bytes": 108919
+    },
+    "s7-quota-recovery-2026-11-04-pilot-verification.json": {
+      "sha256": "a887687d076f34f5c9992bc6ba618f0d63aa3e2d87522ece1c639f8b31860899",
+      "bytes": 207
+    },
+    "s7-quota-recovery-2026-11-04-rerun-plan.json": {
+      "sha256": "113ecd6a74a2e179cc1027c39a576c2606c1a11830e2b1bf8a0a9bb00ab0c26b",
+      "bytes": 424
+    },
+    "s7-quota-recovery-2026-11-04-plan-inspector.gradle": {
+      "sha256": "81fe03918b48f96a7ee39d9fa84f931cac36b7a0f249c6751cc393255664bb6c",
+      "bytes": 1544
+    }
+  },
+  "retryPolicy": {
+    "defaultEnabled": false,
+    "replayRequiresFreshPermit": true,
+    "maxPausesPerRetainedRecord": 3,
+    "pauseMillis": [
+      250,
+      500,
+      1000
+    ],
+    "maxRetainedBudgets": 6,
+    "maxScheduledPauses": 3,
+    "poolAndTimeoutUnchanged": true
+  },
+  "newMillionExperimentStartedYet": false,
+  "pushPerformed": false,
+  "rerunDryRun": {
+    "transientQuotaRecovery": true,
+    "observation": true,
+    "targets": 1000000,
+    "load": true,
+    "profile": "LONG_RUN",
+    "failureMode": "NONE",
+    "publishBatchSize": "1",
+    "fineTiming": false,
+    "scaling": false,
+    "offsetComparison": false,
+    "offsetMode": "RECORD",
+    "gradleTimeoutSeconds": 43200,
+    "junitTimeout": "11h",
+    "maxHeap": "512m",
+    "maxParallelForks": 1,
+    "executedLoad": false
+  },
+  "rerunInspectionSource": "s7-quota-recovery-2026-11-04-plan-inspector.gradle"
+}

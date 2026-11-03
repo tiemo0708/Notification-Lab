@@ -360,7 +360,10 @@ ON은 getAutoCommit과setAutoCommit(false/true)를 따로 기록한다.
 [장시간 도구의 선택적 보존](docs/S7_LONG_RUN_WIRING.md)은 `campaignDeliveryMillion -PfailureObservation=ON`으로 켜며 기본OFF다.
 발송 없는 OFF/ON 설정 확인과1천 건 리허설까지 검증했다.
 [최종 보고서 오류 처리](docs/S7_FINAL_REPORT_FAILURE.md)는 report 쓰기가 실패해도 원래 실행 오류를 유지한다.
-100만 건 재실행과 과거 timeout 원인 규명은 아직 남아 있다.
+[100만 건 관찰 실행 분석](docs/S7_OBSERVED_MILLION_FAILURE.md)은 캠페인190131건 수락 뒤 예산 조회 불가1회로 Worker가 중단된FAIL 기록이다.
+[예산 조회 진단·유한 복구](docs/S7_QUOTA_RECOVERY.md)는 고정 오류 분류와 첫 실패 진단을 보존하고,
+`-PtransientQuotaRecovery=ON`에서만 일시 연결 오류를 최대3번 pause 후 새 허가로 재시도한다. 기본OFF이며 상태 오류는 계속 중단한다.
+100만 건 전체 발송 성공과 첫 실행의 API timeout 원인 규명은 아직 남아 있다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.

@@ -2650,3 +2650,34 @@ API 접수 중복 방지를 외부 발송 exactly-once로 표현하지 않는다
   사용자 선택에 따라 이번 범위는 최종 보고서 저장 실패 보완까지다. 실제 장시간 실행과 푸시는 하지 않았다.
 - 기존 Git identity/원격main9cf1786을 읽기 전용 확인했다. Docker에는 기존notification-lab-mysql-1만healthy로 남았다.
   사용자DB/.env/IntelliJ/volume을 유지했다.
+
+
+## 2026-11-04: S7 관찰 실험의 예산 조회 실패 분석과 유한 복구
+
+71688a8의승인된100만건관찰실험은11월3일21:46~23:13 KST/Gradle1시간27분50초에FAIL로종료했다.
+사전저장2774.790초/발송실패관찰2448.709초, Mock 캠페인190131+실시간10438건 수락이었다.
+quotaUnavailable/거절각1회와캠페인Worker정지를확인했다. API10438개는완료했고최근32개는202/최대483.995ms였다.
+첫파일66708bytes와최종결과를보존했다. 종료코드1/JUnit1실패/자동재실행없음이며완료로표시하지않는다.
+
+- 작은원인대조4개를31초에재실행해통과했다. 현재UNAVAILABLE는timeout/연결/상태오류를구분하지못하며,
+  Worker의원문cause도보존하지않아당시의정확한저수준원인은미확정이다.
+  MySQL상한접근max730/관측OOM0/일시적인풀대기는인과관계증거가아니다. [상세분석](S7_OBSERVED_MILLION_FAILURE.md)을남겼다.
+- 사용자요청에따라진단과복구를보완했다. 고정FailureReason/단계/소요시간/실효timeout/pool을첫오류에만보존한다.
+  키/주소/본문/원문예외는저장하지않고원인별counter는고정label이다. 정상허가는연결반환성공후에만집계한다.
+- 새옵션은기본OFF다. ON은TIMEOUT/CONNECTION/SLOT_BUSY만250/500/1000ms로최대3번pause후새허가를얻는다.
+  네번째실패·상태오류·닫힌pool·미분류오류는중단한다. 허가전발송/offset처리/token환불·재사용은없다.
+  예산은공유부모컨테이너의topic/partition/offset별최대6개,예약3개/스케줄러스레드1개로제한한다.
+- 초기집중검증은정리용admin연결timeout으로46초에실패했다. 제어연결만15초로조정하고서비스설정은유지했다.
+  후속Redis/Worker/진단41개가51초에통과했다. 공유부모로인한예산상쇄를고쳐파티션분리후Worker14개도55초에통과했다.
+  일시정지복구/지속장애시유한중단/상태오류즉시중단/두record와명시적재시작의예산초기화/3Consumer3파티션을검증했다.
+- 복구ON의1천건REHEARSAL은54초/1116건(캠페인1000+실시간116) 전수대조를통과했다. 중복/잘못된참조0이었다.
+  양쪽실효Redis timeout250ms/연결3개를확인했다. 기본RECORD/Relay1/Worker3/완료저장1과역할별예산은유지했다.
+- [복구계약·참고자료](S7_QUOTA_RECOVERY.md)와[고정소스](experiments/s7-quota-recovery-2026-11-04-source.json),
+  [검증원본](experiments/s7-quota-recovery-2026-11-04-validation.json)을보존한다. 전체회귀후수정커밋에서승인된100만건을재실행한다.
+
+- 최종 `caffeinate -i ./gradlew --no-daemon --console=plain build`: **16분34초/종료코드0**.
+  새44개 클래스 XML과 콘솔에서 **347개통과/실패·오류·스킵0**을대조했다. 기존341개+새6개다.
+  기본회귀를재실행하고실행JAR도생성했다. 별도1천건/집중검증과구분하며원격CI결과가아니다.
+  고정소스160개SHA일치를확인했다. 수정커밋과실제재실험시각은새실행기록에남긴다.
+- 재실행 전dry-run에서복구ON/관찰ON/RECORD/Relay기본1/완료저장1/최대12h를읽어확인했다.
+  기존Git identity/원격main9cf1786을읽기전용확인했고기존사용자MySQL만healthy로남았다. 푸시는하지않았다.

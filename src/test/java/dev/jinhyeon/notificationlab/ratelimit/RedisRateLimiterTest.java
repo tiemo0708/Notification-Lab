@@ -45,6 +45,28 @@ class RedisRateLimiterTest {
                             new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 0), port)).toList()));
 
     @Test
+    void firstEvalTimeoutIsBoundedRedactedAndNotReplacedByRecoveryOrClosedPool() {
+        String key = key(); var registry = new SimpleMeterRegistry();
+        var client = new RedisRateLimiter(new RateLimitProperties("127.0.0.1", REDIS.getMappedPort(6379), key, 1, 1, 1, 250), registry);
+        try (client; Jedis admin = admin()) {
+            seed(admin, key, 1, 1, 1000, now(admin));
+            assertThat(client.tryAcquire().outcome()).isEqualTo(ALLOWED);
+            admin.clientPause(1000);
+            try {
+                assertThat(client.tryAcquire().failureReason()).isEqualTo(RedisRateLimiter.FailureReason.TIMEOUT);
+            } finally { admin.clientUnpause(); }
+            var first = client.diagnostics().get("firstUnavailable");
+            assertThat(first.toString()).contains("reason=TIMEOUT", "phase=EVAL", "configuredTimeoutMillis=250")
+                    .doesNotContain(key, "127.0.0.1", "Exception", "Read timed out");
+            await().atMost(Duration.ofSeconds(3)).until(() -> client.tryAcquire().outcome() == ALLOWED);
+            assertThat(client.diagnostics().get("firstUnavailable")).isEqualTo(first);
+            client.close();
+            assertThat(client.tryAcquire().failureReason()).isEqualTo(RedisRateLimiter.FailureReason.POOL_CLOSED);
+            assertThat(client.diagnostics().get("firstUnavailable")).isEqualTo(first);
+        }
+    }
+
+    @Test
     void splitReservationsRemainEightAndTwoAcrossIndependentClients() throws Exception {
         String key = key();
         var clients = new ArrayList<RedisRateLimiter>();
@@ -350,8 +372,14 @@ class RedisRateLimiterTest {
                 var pending = executor.submit(client::tryAcquire);
                 await().pollInterval(Duration.ofMillis(5)).atMost(Duration.ofMillis(200)).until(() ->
                         registry.get("notification.rate.limit.connections.active").gauge().value() == 1);
-                assertTimeout(Duration.ofMillis(200), () -> assertThat(client.tryAcquire().outcome()).isEqualTo(UNAVAILABLE));
-                assertThat(pending.get(1, TimeUnit.SECONDS).outcome()).isEqualTo(UNAVAILABLE);
+                assertTimeout(Duration.ofMillis(200), () -> {
+                    var rejected = client.tryAcquire();
+                    assertThat(rejected.outcome()).isEqualTo(UNAVAILABLE);
+                    assertThat(rejected.failureReason()).isEqualTo(RedisRateLimiter.FailureReason.SLOT_BUSY);
+                });
+                var timeout = pending.get(1, TimeUnit.SECONDS);
+                assertThat(timeout.outcome()).isEqualTo(UNAVAILABLE);
+                assertThat(timeout.failureReason()).isEqualTo(RedisRateLimiter.FailureReason.TIMEOUT);
                 assertThat(registry.get("notification.rate.limit.decisions").tag("outcome", "unavailable").counter().count()).isEqualTo(2);
             } finally { admin.clientUnpause(); }
             await().atMost(Duration.ofSeconds(3)).until(() -> client.tryAcquire().outcome() == ALLOWED);

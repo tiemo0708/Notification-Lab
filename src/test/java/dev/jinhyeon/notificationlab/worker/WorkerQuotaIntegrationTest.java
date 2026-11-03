@@ -453,6 +453,95 @@ class WorkerQuotaIntegrationTest {
         return matches.stream().mapToDouble(entry -> ((Number) entry.getValue().metricValue()).doubleValue()).sum();
     }
 
+    @Test
+    void transientRedisPauseRecoversWithoutSkippingOrCallingProviderBeforePermit() throws Exception {
+        pausing = true; transientRecovery = true;
+        start("SUCCESS", 2, 100, false);
+        for (int ordinal = 0; ordinal < 2; ordinal++) {
+            Event event = create(); int before = ordinal;
+            var metrics = app.getBean(MeterRegistry.class);
+            var previous = metrics.find("notification.worker.quota_transient.pauses").counter();
+            double pausesBefore = previous == null ? 0 : previous.count();
+            try (Jedis redis = redis()) {
+                redis.clientPause(1500);
+                try {
+                    publish(event, 0);
+                    await().atMost(Duration.ofSeconds(5)).until(() -> {
+                        var count = metrics.find("notification.worker.quota_transient.pauses").counter();
+                        return count != null && count.count() > pausesBefore;
+                    });
+                    assertThat(attempts(event)).isZero(); assertThat(offsets()).isEqualTo(before); assertThat(stats().requests()).isEqualTo(before);
+                    await().atMost(Duration.ofSeconds(15)).until(() -> offsets() == before + 1);
+                    assertThat(container(app).isRunning()).isTrue();
+                    assertThat(history(event)).containsExactly("PROVIDER_ACCEPTED");
+                    assertThat(attempts(event)).isEqualTo(1); assertThat(stats().requests()).isEqualTo(before + 1);
+                    assertThat(metrics.get("notification.worker.quota_transient.pauses").counter().count() - pausesBefore).isBetween(1.0, 3.0);
+                    assertThat(app.getBean(WorkerPauseErrorHandler.class).pendingCount()).isZero();
+                    var diagnostics = app.getBean(dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiter.class).diagnostics();
+                    assertThat(diagnostics.toString()).contains("TIMEOUT", "firstUnavailablePresent=true").doesNotContain(quotaKey);
+                } finally { redis.clientUnpause(); }
+            }
+        }
+    }
+
+    @Test
+    void persistentTransientFailureStopsAfterThreePausesAndKeepsOffsetUncommitted() throws Exception {
+        pausing = true; transientRecovery = true;
+        start("SUCCESS", 2, 100, false);
+        Event event = create();
+        try (Jedis redis = new Jedis("127.0.0.1", REDIS.getMappedPort(6379), 15000)) {
+            redis.clientPause(10000);
+            try {
+                publish(event, 0); awaitStopped();
+                assertThat(attempts(event)).isZero(); assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+                var metrics = app.getBean(MeterRegistry.class);
+                assertThat(metrics.get("notification.worker.quota_transient.pauses").counter().count()).isEqualTo(3);
+                assertThat(metrics.get("notification.worker.quota.transient.exhausted").counter().count()).isEqualTo(1);
+                assertThat(app.getBean(WorkerPauseErrorHandler.class).pendingCount()).isZero();
+            } finally { redis.clientUnpause(); }
+        }
+        container(app).start();
+        await().atMost(Duration.ofSeconds(15)).until(() -> offsets() == 1);
+        assertThat(attempts(event)).isEqualTo(1); assertThat(stats().requests()).isEqualTo(1);
+    }
+
+    @Test
+    void invalidBudgetStillStopsImmediatelyWhenTransientRecoveryIsEnabled() throws Exception {
+        pausing = true; transientRecovery = true;
+        start("SUCCESS", 2, 100, false);
+        Event event = create();
+        try (Jedis redis = redis()) { redis.del(quotaKey); }
+        publish(event, 0); awaitStopped();
+        assertThat(attempts(event)).isZero(); assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+        assertThat(rejected("unavailable")).isEqualTo(1);
+        assertThat(app.getBean(MeterRegistry.class).find("notification.worker.quota_transient.pauses").counter()).isNull();
+    }
+
+    @Test
+    void concurrentPartitionsKeepIndependentFiniteRecoveryBudgets() throws Exception {
+        pausing = true; transientRecovery = true; consumers = 3;
+        start("SUCCESS", 3, 100, false);
+        Event a = create(); Event b = create(); Event c = create();
+        try (Jedis redis = new Jedis("127.0.0.1", REDIS.getMappedPort(6379), 15000)) {
+            redis.clientPause(10000);
+            try {
+                publish(a, 0); publish(b, 1); publish(c, 2); awaitStopped();
+                assertThat(attempts(a) + attempts(b) + attempts(c)).isZero();
+                assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+                var metrics = app.getBean(MeterRegistry.class);
+                assertThat(metrics.get("notification.worker.quota_transient.pauses").counter().count()).isBetween(3.0, 9.0);
+                assertThat(metrics.get("notification.worker.quota.transient.exhausted").counter().count()).isGreaterThanOrEqualTo(1);
+                assertThat(app.getBean(WorkerPauseErrorHandler.class).transientRecordCount()).isZero();
+            } finally { redis.clientUnpause(); }
+        }
+        container(app).start();
+        await().atMost(Duration.ofSeconds(15)).until(() -> offsets() == 3);
+        assertThat(attempts(a) + attempts(b) + attempts(c)).isEqualTo(3); assertThat(stats().requests()).isEqualTo(3);
+    }
+
+    private int consumers = 1;
+    private boolean transientRecovery;
+
     private void start(String mode, int burst, int waitMs, boolean relay) {
         this.burst = burst; this.waitMs = waitMs; this.relay = relay;
         mock = MockServerApplication.start("--server.port=0", "--mock.http.mode=" + mode,
@@ -470,10 +559,12 @@ class WorkerQuotaIntegrationTest {
                 "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort(),
                 "--spring.datasource.url=" + url, "--spring.datasource.username=root", "--spring.datasource.password=" + MYSQL.getPassword(),
                 "--spring.kafka.bootstrap-servers=" + KAFKA.getBootstrapServers(), "--app.async.topic=" + topic, "--app.async.group=" + group,
+                "--app.worker.consumers=" + consumers, "--app.worker.max-active=" + consumers,
                 "--app.rate-limit.client-enabled=true", "--app.rate-limit.pause-enabled=" + pausing,
                 "--spring.kafka.consumer.properties.max.poll.interval.ms=" + maxPollMs,
                 "--spring.kafka.consumer.properties.heartbeat.interval.ms=1000", "--app.rate-limit.port=" + REDIS.getMappedPort(6379),
                 "--app.rate-limit.key=" + quotaKey, "--app.rate-limit.rate-per-second=1", "--app.rate-limit.burst=" + burst,
+                "--app.rate-limit.transient-recovery-enabled=" + transientRecovery,
                 "--app.rate-limit.timeout-ms=100", "--app.rate-limit.wait-timeout-ms=" + waitMs,
                 "--app.delivery.retry-base-delay-ms=100", "--app.delivery.retry-max-delay-ms=100",
                 "--logging.level.root=WARN", "--spring.main.banner-mode=off");

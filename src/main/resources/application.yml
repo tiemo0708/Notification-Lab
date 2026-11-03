@@ -81,6 +81,8 @@ app:
     # Applies the shared quota to async Worker sends, including retries. Comparison profiles bypass it.
     client-enabled: false
     pause-enabled: true
+    # Opt-in bounded recovery of transient Redis connection failures; state errors still stop.
+    transient-recovery-enabled: false
     # Only used by the previous bounded-wait comparison mode (pause-enabled=false).
     wait-timeout-ms: 2000
     host: 127.0.0.1

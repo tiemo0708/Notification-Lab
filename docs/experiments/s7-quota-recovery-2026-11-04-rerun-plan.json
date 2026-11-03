@@ -1,0 +1,19 @@
+{
+  "dryRunOnly": true,
+  "transientQuotaRecovery": true,
+  "observation": true,
+  "targets": 1000000,
+  "load": true,
+  "profile": "LONG_RUN",
+  "failureMode": "NONE",
+  "publishBatchSize": "1",
+  "fineTiming": false,
+  "scaling": false,
+  "offsetComparison": false,
+  "offsetMode": "RECORD",
+  "gradleTimeoutSeconds": 43200,
+  "junitTimeout": "11h",
+  "maxHeap": "512m",
+  "maxParallelForks": 1,
+  "executedLoad": false
+}

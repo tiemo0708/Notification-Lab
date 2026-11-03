@@ -131,6 +131,7 @@ class CampaignDeliveryPilotTest {
         report.put("campaignRelayInstances", relayInstances == 0 ? 1 : relayInstances);
         report.put("relayScheduling", scaling ? "test-only-fixed-delay-group-v1" : "application-scheduled-bean");
         report.put("fineTimingEnabled", fineTiming);
+        report.put("transientQuotaRecoveryEnabled", Boolean.getBoolean("campaign.delivery.transientQuotaRecovery"));
         if (apiTiming) report.put("apiTimingEnabled", true);
         if (connectionPilot) report.put("connectionCallsEnabled", Boolean.getBoolean("campaign.delivery.connectionCalls"));
         if (dbObservation) report.put("dbObservationEnabled", Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")));
@@ -269,6 +270,8 @@ class CampaignDeliveryPilotTest {
                                 report.put("realtimeStageTimings", stageTimings(realtime));
                                 assertThat(counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(targets);
                                 assertThat(counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(probes.size());
+                                report.put("quotaDiagnostics", Map.of("campaign", CampaignDeliveryDiagnostics.application(campaign).get("redisQuota"),
+                                        "realtime", CampaignDeliveryDiagnostics.application(realtime).get("redisQuota")));
                                 report.put("result", "PASS");
                             } catch (Exception | AssertionError failure) {
                                 captureFailure(failure, ApiFailureWindow.Stop.INFRA_FAILURE, realtime);
@@ -405,6 +408,7 @@ class CampaignDeliveryPilotTest {
                         "--app.campaign.batch.chunk-size=100", "--app.async.relay-enabled=" + (live && !(lane.equals("CAMPAIGN") && relayInstances > 0)), "--app.async.worker-enabled=" + live,
                         "--app.traffic.split-enabled=true", "--app.traffic.lane=" + lane,
                         "--app.traffic.campaign-rate=200", "--app.traffic.campaign-burst=20",
+                        "--app.rate-limit.transient-recovery-enabled=" + Boolean.getBoolean("campaign.delivery.transientQuotaRecovery"),
                         "--app.rate-limit.client-enabled=true", "--app.rate-limit.pause-enabled=true", "--app.rate-limit.max-connections=3",
                         "--app.rate-limit.rate-per-second=1000", "--app.rate-limit.burst=100",
                         "--app.rate-limit.port=" + redis.getMappedPort(6379), "--app.rate-limit.key=" + quotaKey,

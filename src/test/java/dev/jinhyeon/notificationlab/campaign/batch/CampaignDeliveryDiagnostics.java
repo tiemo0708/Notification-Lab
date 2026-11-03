@@ -35,6 +35,11 @@ final class CampaignDeliveryDiagnostics {
     static Map<String, Object> application(ConfigurableApplicationContext app) {
         var result = new LinkedHashMap<String, Object>();
         var registry = app.getBean(MeterRegistry.class);
+        var limiter = app.getBeanProvider(dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiter.class).getIfAvailable();
+        if (limiter != null) result.put("redisQuota", limiter.diagnostics());
+        result.put("transientQuotaRecoveryEnabled", app.getEnvironment().getProperty("app.rate-limit.transient-recovery-enabled", Boolean.class, false));
+        var exhausted = registry.find("notification.worker.quota.transient.exhausted").counter();
+        result.put("transientQuotaExhausted", exhausted == null ? null : exhausted.count());
         for (String name : List.of("notification.consumer.lag", "outbox.unpublished", "outbox.oldest.age.seconds",
                 "outbox.sample.age.seconds", "notification.consumer.sample.age.seconds",
                 "notification.worker.active", "notification.worker.waiting")) {

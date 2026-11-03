@@ -21,6 +21,7 @@ public class WorkerQuota {
     private final Supplier<RedisRateLimiter.Decision> acquire;
     private final int waitTimeoutMs;
     private final boolean pauseEnabled;
+    private final boolean transientRecoveryEnabled;
     private final MeterRegistry registry;
     private final AtomicInteger waiting = new AtomicInteger();
     private volatile boolean stopping;
@@ -28,8 +29,10 @@ public class WorkerQuota {
     @Autowired
     public WorkerQuota(ObjectProvider<RedisRateLimiter> limiter,
                        @Value("${app.rate-limit.wait-timeout-ms:2000}") int waitTimeoutMs,
-                       @Value("${app.rate-limit.pause-enabled:true}") boolean pauseEnabled, MeterRegistry registry) {
-        this(supplier(limiter.getIfAvailable()), waitTimeoutMs, pauseEnabled, registry);
+                       @Value("${app.rate-limit.pause-enabled:true}") boolean pauseEnabled,
+                       @Value("${app.rate-limit.transient-recovery-enabled:false}") boolean transientRecoveryEnabled,
+                       MeterRegistry registry) {
+        this(supplier(limiter.getIfAvailable()), waitTimeoutMs, pauseEnabled, transientRecoveryEnabled, registry);
     }
 
     WorkerQuota(Supplier<RedisRateLimiter.Decision> acquire, int waitTimeoutMs, MeterRegistry registry) {
@@ -37,9 +40,15 @@ public class WorkerQuota {
     }
 
     WorkerQuota(Supplier<RedisRateLimiter.Decision> acquire, int waitTimeoutMs, boolean pauseEnabled, MeterRegistry registry) {
+        this(acquire, waitTimeoutMs, pauseEnabled, false, registry);
+    }
+
+    WorkerQuota(Supplier<RedisRateLimiter.Decision> acquire, int waitTimeoutMs, boolean pauseEnabled,
+                boolean transientRecoveryEnabled, MeterRegistry registry) {
         if (waitTimeoutMs < 1 || waitTimeoutMs > 5000) throw new IllegalArgumentException("Invalid quota wait bound");
         this.acquire = acquire;
         this.pauseEnabled = pauseEnabled;
+        this.transientRecoveryEnabled = transientRecoveryEnabled;
         this.waitTimeoutMs = waitTimeoutMs;
         this.registry = registry;
         registry.gauge("notification.worker.quota.waiting", waiting);
@@ -57,7 +66,12 @@ public class WorkerQuota {
             checkAvailable();
             var decision = acquire.get();
             checkAvailable();
-            if (decision.outcome() == RedisRateLimiter.Outcome.UNAVAILABLE) throw rejected("unavailable");
+            if (decision.outcome() == RedisRateLimiter.Outcome.UNAVAILABLE) {
+                if (transientRecoveryEnabled && decision.failureReason().retryable()) {
+                    throw new QuotaUnavailableDeferred(decision.failureReason());
+                }
+                throw rejected("unavailable");
+            }
             if (decision.outcome() == RedisRateLimiter.Outcome.LIMITED) throw new QuotaDeferred(decision.retryAfterMs());
             return;
         }
@@ -90,6 +104,15 @@ public class WorkerQuota {
     private void check(long deadline) {
         checkAvailable();
         if (System.nanoTime() >= deadline) throw rejected("timeout");
+    }
+
+    /** Retain the record for a fresh, bounded permit acquisition; never reuse an uncertain permit. */
+    public static final class QuotaUnavailableDeferred extends RuntimeException {
+        private final RedisRateLimiter.FailureReason reason;
+        QuotaUnavailableDeferred(RedisRateLimiter.FailureReason reason) {
+            super("Transient provider quota unavailable"); this.reason = reason;
+        }
+        public RedisRateLimiter.FailureReason reason() { return reason; }
     }
 
     /** Contains only a bounded delay, never record content or a low-level exception. */

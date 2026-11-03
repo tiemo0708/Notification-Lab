@@ -17,6 +17,19 @@ import static org.awaitility.Awaitility.await;
 
 class WorkerQuotaTest {
     @Test
+    void recoveryOnlyDefersKnownTransientFailuresAndAcquiresOncePerCall() {
+        for (var reason : dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiter.FailureReason.values()) {
+            if (reason == dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiter.FailureReason.NONE) continue;
+            var calls = new AtomicInteger();
+            var quota = new WorkerQuota(() -> { calls.incrementAndGet(); return new Decision(Outcome.UNAVAILABLE, 0, reason); },
+                    100, true, true, new SimpleMeterRegistry());
+            if (reason.retryable()) assertThatThrownBy(quota::awaitPermit).isInstanceOf(WorkerQuota.QuotaUnavailableDeferred.class);
+            else assertThatThrownBy(quota::awaitPermit).isNotInstanceOf(WorkerQuota.QuotaUnavailableDeferred.class);
+            assertThat(calls.get()).isEqualTo(1);
+        }
+    }
+
+    @Test
     void pauseModeChecksOnceAndReturnsOnlyABoundedSafeDelay() {
         var calls = new AtomicInteger();
         var registry = new SimpleMeterRegistry();

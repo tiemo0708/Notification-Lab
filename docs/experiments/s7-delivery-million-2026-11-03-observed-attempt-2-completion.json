@@ -1,0 +1,30 @@
+{
+  "finishedObservationAtKst": "2026-11-03T23:14:38.481707+09:00",
+  "sourceCommit": "71688a8c835a7073f7a82b836cd4a533cccf35a8",
+  "exitCode": 1,
+  "status": "FAIL",
+  "autoRetry": false,
+  "pushPerformed": false,
+  "artifacts": {
+    "s7-delivery-million-2026-11-03-observed-attempt-2-result.json": {
+      "sha256": "95dea1536b2b0fa47e235861976f9558168c1c87915ed7226a04f11ef39710c7",
+      "bytes": 2817854
+    },
+    "s7-delivery-million-2026-11-03-observed-attempt-2-first-failure.json": {
+      "sha256": "8e4f5e4bece2fe648af087e1eb5b71bd99653163229ce2add8dea1c38fff09f7",
+      "bytes": 66708
+    }
+  },
+  "operatorSampling": "60s; Docker stats and bounded console tail only; no extra SQL",
+  "harnessResult": "FAIL",
+  "failureType": "IllegalStateException",
+  "sourceReportRelativePath": "build/reports/api-failure-pilot/run-4432773231742727515/result.json",
+  "sourceHashesUnchanged": true,
+  "originalFailureUnchanged": true,
+  "junit": {
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0
+  }
+}
