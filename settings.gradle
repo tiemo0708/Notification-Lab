@@ -1,1 +1,9 @@
+pluginManagement {
+    repositories {
+        // Resolve plugin dependencies directly from Central before the Plugin Portal proxy.
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 rootProject.name = 'notification-lab'

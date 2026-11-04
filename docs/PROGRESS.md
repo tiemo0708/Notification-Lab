@@ -2840,3 +2840,20 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   bootJar는 UP-TO-DATE다. 고정 소스162개 불변·운영 소스 diff0과 원본4개/새 JUnit XML의 SHA를 확인했다.
   [최종 로컬 검증](experiments/s8-partition-scaling-2026-11-04-group-1-validation.json)을 보존한다.
   기존 사용자 MySQL은 healthy였으며 원격 main은c6cccc1/이전CI는실패 상태였다. 이번 작업은 로컬 커밋이며 푸시/새 원격CI 통과를 주장하지 않는다.
+
+## 2026-11-04: 승인된 4개 커밋 푸시와 새 CI 의존성 해석 보완
+
+- 사용자 승인 후 0a7d6be/9a4ceec/9445fbd/790a02b를 main에 정상 fast-forward 푸시했다.
+  원격 HEAD 790a02b를 확인했고 브랜치/force push/병합/이력 재작성은 없었다. 기존 Git 작성자도 유지했다.
+- 이전 c6cccc1 CI의 WorkerConcurrencyTest 실패 보완은9a4ceec에 포함돼 있다. 로컬 해당11개/전체363개는 통과했지만
+  새 [790a02b CI](https://github.com/tiemo0708/Notification-Lab/actions/runs/41780973224)는 테스트에 도달하지 못했다.
+  build12초/실행테스트0개이며 Plugin Portal에서 Boot 하위 의존성2개/commons-compress/spring-core의 POM을 찾지 못했다.
+  이전 동시성 실패의 재발이나 원격 수정 성공으로 세지 않는다.
+- 플러그인용 `settings.gradle`에 Central 우선/Portal 후속 저장소를 명시했다. 버전/운영 소스/CI 명령은 변경하지 않는다.
+  이후 로컬 HEAD 조회는 두 경로 모두200이었으므로 원격 실패 당시 upstream 원인은 미확정이다.
+- 별도 빈 Gradle user home의 buildEnvironment가14초/종료코드0이었다. 문제4개 모듈의 Central 직접 다운로드를 확인했다.
+  같은 새 환경의 compileTestJava/bootJar --rerun-tasks도28초/종료코드0/7개 task 실제 실행이었다.
+  [분석·범위·공식 자료](CI_PLUGIN_RESOLUTION.md)와 [실패 단계·정확한 좌표·로그 SHA](experiments/ci-plugin-resolution-2026-11-04.json)를 보존한다.
+  producer 사전 실험 뒤 작업 트리의 전체 build를 별도로 실행했다. **19분59초/종료코드0**, 기본 test 새 실행
+  **46개 클래스/363개 통과, 실패·오류·스킵0**이었다. WorkerConcurrencyTest 11개도 모두 통과했고 bootJar는 UP-TO-DATE다.
+  추가 보완 커밋의 원격 CI는 미실행이며 기존 실패 실행을 성공으로 바꾸어 기록하지 않는다.
