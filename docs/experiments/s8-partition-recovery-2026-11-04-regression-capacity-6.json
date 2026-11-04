@@ -1,0 +1,22 @@
+{
+  "result" : "PASS",
+  "scope" : "App Worker/MySQL/Redis/HTTP error boundary; manual Kafka publication, Relay disabled",
+  "observations" : {
+    "capacityStopObserved" : true,
+    "retryPartitions" : 6,
+    "defaultUsed" : true,
+    "requestPartitions" : 6,
+    "capacity" : 6,
+    "recordsHandled" : 7,
+    "httpRequests" : 7,
+    "providerAccepted" : 0,
+    "recordBudgetEntriesAfter" : 0
+  },
+  "effectiveCapacity" : 6,
+  "requestPartitions" : 6,
+  "retryPartitions" : 6,
+  "consumers" : 3,
+  "workerMaxActive" : 3,
+  "ackMode" : "RECORD",
+  "syncCommits" : true
+}

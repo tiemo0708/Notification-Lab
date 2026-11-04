@@ -83,6 +83,8 @@ app:
     pause-enabled: true
     # Opt-in bounded recovery of transient Redis connection failures; state errors still stop.
     transient-recovery-enabled: false
+    # Retained topic-partition budgets: default request 3 + retry 3; explicit upper bound 12.
+    transient-recovery-max-records: 6
     # Only used by the previous bounded-wait comparison mode (pause-enabled=false).
     wait-timeout-ms: 2000
     host: 127.0.0.1

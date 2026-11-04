@@ -3,6 +3,12 @@ package dev.jinhyeon.notificationlab.worker;
 import dev.jinhyeon.notificationlabtest.OffsetCommitPolicy;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.Timeout;
+import org.apache.kafka.clients.admin.NewPartitions;
+import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.model.ExposedPort;
@@ -539,6 +545,186 @@ class WorkerQuotaIntegrationTest {
         assertThat(attempts(a) + attempts(b) + attempts(c)).isEqualTo(3); assertThat(stats().requests()).isEqualTo(3);
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {6, 12})
+    @Timeout(90)
+    void sixPartitionRecoveryCoversBothTopicsWithBoundedExplicitBudget(int capacity) throws Exception {
+        pausing = true; transientRecovery = true; consumers = 3;
+        requestPartitions = 6; retryPartitions = 6;
+        if (capacity == 12) recoveryCapacity = 12; // Six uses the application default, not an override.
+        start("SERVER_ERROR", 100, 100, false);
+        var events = new ArrayList<Event>();
+        for (int partition = 0; partition < 6; partition++) events.add(create());
+        for (int partition = 0; partition < 6; partition++) {
+            recoverOneTransient(events.get(partition), topic, partition, partition, 0, false);
+            assertThat(status(events.get(partition))).isEqualTo("WAITING_RETRY");
+            assertThat(app.getBean(WorkerPauseErrorHandler.class).transientRecordCount()).isEqualTo(partition + 1);
+        }
+        int retries = capacity == 6 ? 1 : 6;
+        for (int partition = 0; partition < retries; partition++) {
+            var retry = retryEvent(events.get(partition));
+            boolean stops = capacity == 6;
+            recoverOneTransient(retry, topic + ".retry", partition, 6 + partition, 1, stops);
+            assertThat(status(retry)).isEqualTo("RETRYABLE_FAILURE");
+        }
+        int handled = 6 + retries;
+        assertThat(app.getBean(WorkerPauseErrorHandler.class).transientRecordLimit()).isEqualTo(capacity);
+        var metrics = app.getBean(MeterRegistry.class);
+        assertThat(metrics.get("notification.worker.quota.transient.capacity.exhausted").counter().count()).isEqualTo(capacity == 6 ? 1 : 0);
+        assertThat(metrics.get("notification.worker.quota.transient.exhausted").counter().count()).isZero();
+        assertThat(offsets()).isEqualTo(handled); assertThat(stats().requests()).isEqualTo(handled);
+        assertThat(stats().accepted()).isZero();
+        assertThat(app.getBean(WorkerPauseErrorHandler.class).pendingCount()).isZero();
+        assertThat(app.getBean(WorkerPauseErrorHandler.class).transientRecordCount()).isEqualTo(capacity == 6 ? 0 : 12);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM delivery_attempt", Integer.class)).isEqualTo(handled);
+        assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE event_type='NOTIFICATION_DEAD_LETTER'", Integer.class)).isEqualTo(retries);
+        writeExpansionReport("capacity-" + capacity, Map.of("capacity", capacity, "defaultUsed", capacity == 6,
+                "requestPartitions", 6, "retryPartitions", 6, "recordsHandled", handled,
+                "httpRequests", stats().requests(), "providerAccepted", 0,
+                "capacityStopObserved", capacity == 6, "recordBudgetEntriesAfter", capacity == 6 ? 0 : 12));
+    }
+
+    @Test
+    @Timeout(90)
+    void thirteenthTransientPartitionStopsAtHardTwelveAndRestartPreservesWork() throws Exception {
+        pausing = true; transientRecovery = true; consumers = 3;
+        requestPartitions = 7; retryPartitions = 6; recoveryCapacity = 12;
+        start("SERVER_ERROR", 100, 100, false);
+        var events = new ArrayList<Event>();
+        for (int partition = 0; partition < 7; partition++) events.add(create());
+        for (int partition = 0; partition < 7; partition++) {
+            recoverOneTransient(events.get(partition), topic, partition, partition, 0, false);
+        }
+        for (int partition = 0; partition < 6; partition++) {
+            if (partition == 5) assertThat(app.getBean(WorkerPauseErrorHandler.class).transientRecordCount()).isEqualTo(12);
+            recoverOneTransient(retryEvent(events.get(partition)), topic + ".retry", partition, 7 + partition, 1, partition == 5);
+        }
+        var metrics = app.getBean(MeterRegistry.class);
+        assertThat(metrics.get("notification.worker.quota.transient.capacity.exhausted").counter().count()).isEqualTo(1);
+        assertThat(metrics.get("notification.worker.quota.transient.exhausted").counter().count()).isZero();
+        assertThat(offsets()).isEqualTo(13); assertThat(stats().requests()).isEqualTo(13);
+        assertThat(app.getBean(WorkerPauseErrorHandler.class).transientRecordCount()).isZero();
+        writeExpansionReport("hard-cap-thirteen", Map.of("capacity", 12, "partitions", 13,
+                "processedBeforeStop", 12, "blockedPartitionBeforeRestartAttempts", 1,
+                "processedAfterExplicitRestart", 13, "httpRequests", 13, "capacityStops", 1,
+                "retryExhausted", 0, "retainedAfterStop", 0));
+    }
+
+    @Test
+    @Timeout(60)
+    void sixPartitionPersistentFailureStillHasThreePauseBudgetPerRecord() throws Exception {
+        pausing = true; transientRecovery = true; consumers = 3;
+        requestPartitions = 6; retryPartitions = 6; recoveryCapacity = 12;
+        start("SERVER_ERROR", 100, 100, false);
+        var events = List.of(create(), create(), create());
+        try (Jedis control = new Jedis("127.0.0.1", REDIS.getMappedPort(6379), 15000)) {
+            control.clientPause(10000, redis.clients.jedis.args.ClientPauseMode.WRITE);
+            try {
+                publish(events.get(0), 0); publish(events.get(1), 3); publish(events.get(2), 5);
+                awaitStopped();
+                for (var event : events) assertThat(attempts(event)).isZero();
+                assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+                var metrics = app.getBean(MeterRegistry.class);
+                assertThat(metrics.get("notification.worker.quota_transient.pauses").counter().count()).isBetween(3.0, 9.0);
+                assertThat(metrics.get("notification.worker.quota.transient.exhausted").counter().count()).isGreaterThanOrEqualTo(1);
+                assertThat(metrics.get("notification.worker.quota.transient.capacity.exhausted").counter().count()).isZero();
+                assertThat(app.getBean(WorkerPauseErrorHandler.class).transientRecordCount()).isZero();
+            } finally { control.clientUnpause(); }
+        }
+        container(app).start();
+        await().atMost(Duration.ofSeconds(20)).until(() -> offsets() == 3);
+        assertThat(stats().requests()).isEqualTo(3);
+        for (var event : events) assertThat(attempts(event)).isEqualTo(1);
+        writeExpansionReport("persistent", Map.of("capacity", 12, "consumedPartitions", 12,
+                "pausedRecords", 3, "maxPausesPerRecord", 3, "callsBeforeRestart", 0,
+                "offsetsBeforeRestart", 0, "callsAfterRestart", 3, "offsetsAfterRestart", 3));
+    }
+
+    @Test
+    @Timeout(60)
+    void sixPartitionInvalidStateStillStopsWithoutTransientRetry() throws Exception {
+        pausing = true; transientRecovery = true; consumers = 3;
+        requestPartitions = 6; retryPartitions = 6; recoveryCapacity = 12;
+        start("SUCCESS", 100, 100, false);
+        Event event = create();
+        try (Jedis control = redis()) { control.del(quotaKey); }
+        publish(event, 5); awaitStopped();
+        assertThat(attempts(event)).isZero(); assertThat(offsets()).isZero(); assertThat(stats().requests()).isZero();
+        assertThat(rejected("unavailable")).isEqualTo(1);
+        var metrics = app.getBean(MeterRegistry.class);
+        assertThat(metrics.find("notification.worker.quota_transient.pauses").counter()).isNull();
+        assertThat(metrics.get("notification.worker.quota.transient.capacity.exhausted").counter().count()).isZero();
+        writeExpansionReport("invalid-state", Map.of("capacity", 12, "consumedPartitions", 12,
+                "attempts", 0, "offsets", 0, "httpRequests", 0, "transientPauses", 0));
+    }
+
+    private int requestPartitions = 3;
+    private int retryPartitions = 3;
+    private Integer recoveryCapacity;
+
+    private Event retryEvent(Event original) {
+        return new Event(original.id(), jdbc().queryForObject("""
+                SELECT payload FROM outbox_event WHERE notification_id = ?
+                  AND event_type = 'NOTIFICATION_RETRY' AND retry_generation = 1
+                """, String.class, original.id()));
+    }
+
+    private void recoverOneTransient(Event event, String destination, int partition,
+                                     int completedBefore, int attemptsBefore, boolean stops) throws Exception {
+        var metrics = app.getBean(MeterRegistry.class);
+        var previous = metrics.find("notification.worker.quota_transient.pauses").counter();
+        double before = previous == null ? 0 : previous.count();
+        try (Jedis control = new Jedis("127.0.0.1", REDIS.getMappedPort(6379), 15000)) {
+            control.clientPause(10000, redis.clients.jedis.args.ClientPauseMode.WRITE);
+            try {
+                publish(event, destination, partition);
+                await().atMost(Duration.ofSeconds(5)).until(() -> {
+                    var count = metrics.find("notification.worker.quota_transient.pauses").counter();
+                    return !container(app).isRunning() || count != null && count.count() > before;
+                });
+                if (stops) awaitStopped();
+                else assertThat(container(app).isRunning()).as("Capacity must cover this distinct topic-partition").isTrue();
+                assertThat(attempts(event)).isEqualTo(attemptsBefore);
+                assertThat(offsets()).isEqualTo(completedBefore);
+                assertThat(stats().requests()).isEqualTo(completedBefore);
+            } finally {
+                long unpauseStart = System.nanoTime();
+                control.clientUnpause();
+                System.out.println("PARTITION_RECOVERY_RELEASE completedBefore=" + completedBefore + " partition=" + partition
+                        + " unpauseMillis=" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - unpauseStart));
+            }
+        }
+        if (stops) {
+            assertThat(app.getBean(WorkerPauseErrorHandler.class).transientRecordCount()).isZero();
+            container(app).start();
+            await().atMost(Duration.ofSeconds(20)).until(() -> assigned(app) == requestPartitions + retryPartitions);
+        }
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(offsets())
+                .as("completedBefore=%s partition=%s running=%s attempts=%s http=%s tracked=%s pauses=%s exhausted=%s", completedBefore,
+                        partition, container(app).isRunning(), attempts(event), stats().requests(),
+                        app.getBean(WorkerPauseErrorHandler.class).transientRecordCount(),
+                        metrics.get("notification.worker.quota_transient.pauses").counter().count(),
+                        metrics.get("notification.worker.quota.transient.exhausted").counter().count())
+                .isEqualTo(completedBefore + 1));
+        assertThat(attempts(event)).isEqualTo(attemptsBefore + 1);
+        assertThat(stats().requests()).isEqualTo(completedBefore + 1);
+        assertThat(container(app).isRunning()).isTrue();
+    }
+
+    private void writeExpansionReport(String name, Map<String, Object> observations) throws Exception {
+        var report = new java.util.LinkedHashMap<String, Object>();
+        report.put("result", "PASS"); report.put("scope", "App Worker/MySQL/Redis/HTTP error boundary; manual Kafka publication, Relay disabled");
+        report.put("observations", observations);
+        report.put("effectiveCapacity", app.getBean(WorkerPauseErrorHandler.class).transientRecordLimit());
+        report.put("requestPartitions", requestPartitions); report.put("retryPartitions", retryPartitions);
+        report.put("consumers", container(app).getConcurrency());
+        report.put("workerMaxActive", app.getBean(dev.jinhyeon.notificationlab.config.WorkerProperties.class).maxActive());
+        report.put("ackMode", container(app).getContainerProperties().getAckMode().name());
+        report.put("syncCommits", container(app).getContainerProperties().isSyncCommits());
+        Path directory = Files.createDirectories(Path.of("build/reports/partition-recovery"));
+        new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(Files.createTempFile(directory, name + "-", ".json").toFile(), report);
+    }
+
     private int consumers = 1;
     private boolean transientRecovery;
 
@@ -550,10 +736,23 @@ class WorkerQuotaIntegrationTest {
         app = application();
         OffsetCommitPolicy.requireApplied(app);
         await().atMost(Duration.ofSeconds(20)).until(() -> assigned(app) == 6);
+        if (requestPartitions > 3 || retryPartitions > 3) {
+            try {
+                kafka.createPartitions(Map.of(topic, NewPartitions.increaseTo(requestPartitions),
+                        topic + ".retry", NewPartitions.increaseTo(retryPartitions))).all().get(10, TimeUnit.SECONDS);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Test topic expansion interrupted", interrupted);
+            } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException failure) {
+                throw new IllegalStateException("Test topic expansion failed", failure);
+            }
+            await().atMost(Duration.ofSeconds(20)).until(() -> assigned(app) == requestPartitions + retryPartitions);
+            assertThat(container(app).getConcurrency()).isEqualTo(3);
+        }
     }
 
     private ServletWebServerApplicationContext application() {
-        return (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class, OffsetCommitPolicy.Wiring.class).run(
+        var arguments = new ArrayList<>(List.of(
                 "--notification.test.offset.mode=" + offsetMode.name(),
                 "--server.port=0", "--app.provider.mode=HTTP", "--app.async.relay-enabled=" + relay,
                 "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort(),
@@ -567,7 +766,15 @@ class WorkerQuotaIntegrationTest {
                 "--app.rate-limit.transient-recovery-enabled=" + transientRecovery,
                 "--app.rate-limit.timeout-ms=100", "--app.rate-limit.wait-timeout-ms=" + waitMs,
                 "--app.delivery.retry-base-delay-ms=100", "--app.delivery.retry-max-delay-ms=100",
-                "--logging.level.root=WARN", "--spring.main.banner-mode=off");
+                "--logging.level.root=WARN", "--spring.main.banner-mode=off"));
+        if (requestPartitions > 3 || retryPartitions > 3) {
+            arguments.add("--spring.kafka.consumer.properties.metadata.max.age.ms=100");
+            arguments.add("--spring.kafka.producer.properties.metadata.max.age.ms=100");
+            arguments.add("--app.delivery.max-attempts=2");
+        }
+        if (recoveryCapacity != null) arguments.add("--app.rate-limit.transient-recovery-max-records=" + recoveryCapacity);
+        return (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class, OffsetCommitPolicy.Wiring.class)
+                .run(arguments.toArray(String[]::new));
     }
 
     private record Event(String id, String payload) { }
@@ -586,7 +793,11 @@ class WorkerQuotaIntegrationTest {
     @SuppressWarnings("unchecked")
     private void publish(Event e, int partition) throws Exception {
         // Manual publication cases keep Outbox PENDING. They do not pretend an ACK was recorded by Relay.
-        app.getBean(KafkaTemplate.class).send(topic, partition, e.id(), e.payload()).get(5, TimeUnit.SECONDS);
+        publish(e, topic, partition);
+    }
+    @SuppressWarnings("unchecked")
+    private void publish(Event e, String destination, int partition) throws Exception {
+        app.getBean(KafkaTemplate.class).send(destination, partition, e.id(), e.payload()).get(5, TimeUnit.SECONDS);
     }
     private void freeze(long futureMs) {
         try (Jedis redis = redis()) {

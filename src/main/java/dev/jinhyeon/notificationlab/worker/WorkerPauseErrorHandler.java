@@ -12,6 +12,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
@@ -36,7 +38,7 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
     private final Map<RetryKey, RetryBudget> transientRetries = new HashMap<>();
     private record RetryKey(MessageListenerContainer container, String topic, int partition) { }
     private record RetryBudget(long offset, int failures) { }
-    private static final int MAX_TRANSIENT_RECORDS = 6; // Main + retry topics, three partitions each.
+    private final int maxTransientRecords; // Explicit total topic-partition capacity; never auto-grows from metadata.
     public static final int MAX_TRANSIENT_PAUSES = 3;
 
     private static final class Pause {
@@ -45,6 +47,16 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
     }
 
     public WorkerPauseErrorHandler(WorkerAdmission admission, MeterRegistry registry) {
+        this(admission, registry, 6);
+    }
+
+    @Autowired
+    public WorkerPauseErrorHandler(WorkerAdmission admission, MeterRegistry registry,
+                                  @Value("${app.rate-limit.transient-recovery-max-records:6}") int maxTransientRecords) {
+        if (maxTransientRecords < 1 || maxTransientRecords > 12) {
+            throw new IllegalArgumentException("Transient quota capacity must be 1..12 topic-partitions");
+        }
+        this.maxTransientRecords = maxTransientRecords;
         this.admission = admission;
         this.registry = registry;
         scheduler.setRemoveOnCancelPolicy(true);
@@ -53,6 +65,8 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         registry.gauge("notification.worker.quota_transient.pauses.pending", this, handler -> handler.pendingCount("quota_transient"));
         registry.gauge("notification.worker.quota.transient.records", this, WorkerPauseErrorHandler::transientRecordCount);
         registry.counter("notification.worker.quota.transient.exhausted");
+        registry.counter("notification.worker.quota.transient.capacity.exhausted");
+        registry.gauge("notification.worker.quota.transient.capacity", this, handler -> handler.maxTransientRecords);
     }
 
     @Override
@@ -100,7 +114,10 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         var key = new RetryKey(container, record.topic(), record.partition());
         var previous = transientRetries.get(key);
         int failures = previous != null && previous.offset() == record.offset() ? previous.failures() + 1 : 1;
-        if (previous == null && transientRetries.size() >= MAX_TRANSIENT_RECORDS) throw new IllegalStateException("Transient quota capacity exceeded");
+        if (previous == null && transientRetries.size() >= maxTransientRecords) {
+            registry.counter("notification.worker.quota.transient.capacity.exhausted").increment();
+            throw new IllegalStateException("Transient quota capacity exceeded");
+        }
         transientRetries.put(key, new RetryBudget(record.offset(), failures));
         if (failures > MAX_TRANSIENT_PAUSES) {
             registry.counter("notification.worker.quota.transient.exhausted").increment();
@@ -140,6 +157,8 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
     public synchronized int pendingCount() { return pending.size(); }
 
     public synchronized int transientRecordCount() { return transientRetries.size(); }
+
+    public int transientRecordLimit() { return maxTransientRecords; }
 
     private synchronized int pendingCount(String reason) {
         return (int) pending.values().stream().filter(ticket -> ticket.reason.equals(reason)).count();

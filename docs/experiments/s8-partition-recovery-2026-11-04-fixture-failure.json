@@ -1,0 +1,22 @@
+{
+  "result": "FIXTURE_FAILURE",
+  "tests": 2,
+  "failed": 2,
+  "elapsed": "1m 16s",
+  "cause": "CLIENT PAUSE ALL also delayed control UNPAUSE beyond the three-pause retry budget",
+  "failures": [
+    {
+      "case": "[1] capacity=6",
+      "message": "org.opentest4j.AssertionFailedError: [completedBefore=0 partition=0 running=false attempts=0 http=0 tracked=0 pauses=3.0 exhausted=1.0] \nexpected: 1L\n but was: 0L"
+    },
+    {
+      "case": "[2] capacity=12",
+      "message": "org.opentest4j.AssertionFailedError: [completedBefore=0 partition=0 running=false attempts=0 http=0 tracked=0 pauses=3.0 exhausted=1.0] \nexpected: 1L\n but was: 0L"
+    }
+  ],
+  "releaseObservations": [
+    "PARTITION_RECOVERY_RELEASE completedBefore=0 partition=0 unpauseMillis=9670",
+    "PARTITION_RECOVERY_RELEASE completedBefore=0 partition=0 unpauseMillis=9768"
+  ],
+  "xmlSha256": "0eafa22cb04ed785a9201222bf538576e2dd5c4634347ff9f45bd28f9058d015"
+}

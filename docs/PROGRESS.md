@@ -2789,3 +2789,30 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   Worker 11개와 RECORD/COUNT_TIME의 gate 기록 2개도 전체 회귀에서 확인했다. bootJar는 UP-TO-DATE다.
   고정 소스 161개 SHA 불변과 운영 소스 diff 0을 확인했다. [최종 로컬 검증](experiments/ci-worker-overlap-2026-11-04-validation.json)을 남겼다.
   원격의 이전 실패를 수정 후 CI 성공으로 바꾸어 기록하지 않는다. 다음 푸시 후 새 CI 결과를 별도로 확인해야 한다.
+
+## 2026-11-04: S8 토픽별 파티션 6개의 앱 복구 예산과 오류 경계
+
+- 이전 고정 이력 용량 6을 실제 요청·Retry 6+6 구성에서 검증했다. 수정 전 34초 비교는 기본 6 안전 중단 PASS,
+  요구한 용량 12 경로 FAIL이었다. 일곱 번째 파티션에서 추가 발송/offset 없이 중단함을 확인했다.
+  [수정 전 결과](experiments/s8-partition-recovery-2026-11-04-before.json)를 보존했다.
+- handler에 `app.rate-limit.transient-recovery-max-records`를 추가했다. 기본 6/허용 1~12이며 metadata로 자동 확대하지 않는다.
+  같은 record의 pause 최대 3회(250/500/1000ms), scheduler 1개/예약 3개와 기존 기본 복구 OFF를 유지한다.
+  고정 capacity gauge와 capacity 소진 counter를 추가해 record 횟수 소진과 구분한다. ID/key를 label에 넣지 않는다.
+- 실제 Worker/DB/Redis/HTTP에서 Consumer/활성 상한 3/3, RECORD·동기 commit을 확인했다.
+  명시적 12에서 요청 6+정상 Retry 이벤트 6개를 일시 오류 후 처리했다. 이력 12개, 용량/횟수 소진 0이었다.
+  HTTP 500을 의도적으로 반환하고 테스트용 attempt 상한 2로 최종 실패·DLQ Outbox까지 검증했으므로 공급자 수락은 0이다.
+- 13번째 파티션 제어군은 12개 처리 뒤 중단했고 막힌 Retry의 기존 attempt=1을 유지했다. 명시적 재시작 뒤 attempt=2, HTTP/offset 합 13으로 이어졌다.
+  기본 용량 6의 중단·재시작, 6+6에서 지속 장애의 3회 제한과 상태 오류 즉시 중단도 검증했다.
+  Relay OFF의 수동 Kafka 발행이므로 Outbox PUBLISHED/DLQ ACK를 완료했다고 표현하지 않는다.
+- 첫 compile은 테스트 Admin 호출의 checked exception 누락으로 6초에 실패했다(실행 테스트 0).
+  초기 PAUSE ALL fixture는 제어 UNPAUSE가 9670/9768ms 지연되어 지속 장애로 중단됐다. 두 번의 2개 실패(각 1분16초)는 용량 결과로 쓰지 않는다.
+  [fixture 실패](experiments/s8-partition-recovery-2026-11-04-fixture-failure.json)를 보존하고 공식 Redis 문서를 확인해 PAUSE WRITE/명시적 해제로 수정했다.
+  수정 전 비교의 해제 관측은 0~11ms였다. 그 뒤 구현 보완 후 집중 7개가 **1분8초/종료코드 0/실패·오류·스킵 0**에 통과했다.
+- [계약·결과·범위·공식 참고](S8_PARTITION_RECOVERY.md), [고정 소스 162개와 원본 SHA](experiments/s8-partition-recovery-2026-11-04-source.json)를 기록했다.
+  기존 사용자 토픽/DB와 앱의 기본 토픽 선언 3, Consumer/HTTP/quota는 유지한다. 전체 build는 집중 검증 뒤 별도로 실행 중이다.
+  다음은 복구 용량 12를 양쪽에 고정한 1만 건 HTTP Mock 파티션 3/6 반복 비교다.
+- 최종 전체 build는 **18분 14초/종료코드 0**, 기본 test 새 실행 **46개 클래스/361개 통과, 실패·오류·스킵 0**이었다.
+  기존 354개+새 7개이며 다섯 앱 통합 시나리오도 다시 통과했다. 알림 앱 bootJar를 새로 생성했다.
+  고정 소스 162개 SHA 불변, 집중/회귀 원본 SHA, JSON 민감 필드·비유한값 검사와 문서 링크를 확인했다.
+  [최종 로컬 검증](experiments/s8-partition-recovery-2026-11-04-validation.json)을 보존한다.
+  기존 사용자 MySQL은 healthy로 유지됐다. 이번 변경은 로컬 커밋 대상이며 새 원격 CI 통과나 푸시를 주장하지 않는다.

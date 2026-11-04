@@ -393,6 +393,10 @@ Consumer/Worker 활성 상한 1/1·2/2·3/3의 평균 처리량은 각각 47.324
 60개 key 중 27개가 이동했고 기존 기록은 원래 파티션에 남았다. latest 제어군은 신규 파티션의 사전 기록 6건을 건너뛰어도 최종 lag가 0이었다.
 앱은 earliest와 토픽별 파티션 3개 선언을 유지한다. HTTP 발송 처리량 비교는 별도 다음 단계다.
 
+[S8 파티션 확대의 복구 예산](docs/S8_PARTITION_RECOVERY.md)은 요청·Retry 6+6의 실제 Worker 오류 경계를 검증했다.
+이력 슬롯 기본 6을 유지하며 `app.rate-limit.transient-recovery-max-records=12`를 명시적으로 선택할 수 있다(허용 1~12).
+슬롯 부족·지속 장애·잘못된 상태는 계속 중단하며, 이 옵션은 토픽 수나 Worker 동시성을 자동 확대하지 않는다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

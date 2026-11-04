@@ -1,0 +1,40 @@
+{
+  "result": "EXPECTED_COMPATIBILITY_FAILURE",
+  "baseCommit": "9a4ceec",
+  "elapsed": "34s",
+  "tests": 2,
+  "failed": 1,
+  "control": "Redis CLIENT PAUSE WRITE; explicit UNPAUSE",
+  "oldHandlerSha256": "2cd7d606036cb92335098fe104ab1165160f7b3b589616de56145c9fbf3334a6",
+  "testSourceSha256": "6ebd8a18ac5874c1d2510ac282ba3456f84b2fe42b540db02a1e44eceb31f1a0",
+  "cases": [
+    {
+      "name": "[1] capacity=6",
+      "result": "PASS",
+      "failure": null
+    },
+    {
+      "name": "[2] capacity=12",
+      "result": "FAIL",
+      "failure": "org.opentest4j.AssertionFailedError: [Capacity must cover this distinct topic-partition] \nExpecting value to be true but was false"
+    }
+  ],
+  "interpretation": "Old fixed cap six stopped at seventh distinct request/retry partition. Default-cap stop and explicit restart preserved work. Desired cap twelve was not yet implemented.",
+  "releaseObservations": [
+    "PARTITION_RECOVERY_RELEASE completedBefore=0 partition=0 unpauseMillis=0",
+    "PARTITION_RECOVERY_RELEASE completedBefore=1 partition=1 unpauseMillis=11",
+    "PARTITION_RECOVERY_RELEASE completedBefore=2 partition=2 unpauseMillis=0",
+    "PARTITION_RECOVERY_RELEASE completedBefore=3 partition=3 unpauseMillis=0",
+    "PARTITION_RECOVERY_RELEASE completedBefore=4 partition=4 unpauseMillis=1",
+    "PARTITION_RECOVERY_RELEASE completedBefore=5 partition=5 unpauseMillis=0",
+    "PARTITION_RECOVERY_RELEASE completedBefore=6 partition=0 unpauseMillis=1",
+    "PARTITION_RECOVERY_RELEASE completedBefore=0 partition=0 unpauseMillis=1",
+    "PARTITION_RECOVERY_RELEASE completedBefore=1 partition=1 unpauseMillis=0",
+    "PARTITION_RECOVERY_RELEASE completedBefore=2 partition=2 unpauseMillis=0",
+    "PARTITION_RECOVERY_RELEASE completedBefore=3 partition=3 unpauseMillis=0",
+    "PARTITION_RECOVERY_RELEASE completedBefore=4 partition=4 unpauseMillis=1",
+    "PARTITION_RECOVERY_RELEASE completedBefore=5 partition=5 unpauseMillis=0",
+    "PARTITION_RECOVERY_RELEASE completedBefore=6 partition=0 unpauseMillis=1"
+  ],
+  "xmlSha256": "ad0251789009251008c5903490180f4f4981e126233751f5ab2a3cd3858b6dfe"
+}

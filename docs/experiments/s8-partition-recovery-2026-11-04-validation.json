@@ -1,0 +1,75 @@
+{
+  "result": "PASS",
+  "sourceManifest": "s8-partition-recovery-2026-11-04-source.json",
+  "frozenSourceCount": 162,
+  "sourceFilesUnchanged": true,
+  "productionFilesChanged": [
+    "src/main/java/dev/jinhyeon/notificationlab/worker/WorkerPauseErrorHandler.java",
+    "src/main/resources/application.yml"
+  ],
+  "defaultRecoveryEnabled": false,
+  "defaultRecoveryCapacity": 6,
+  "maximumExplicitCapacity": 12,
+  "maximumPausesPerRecord": 3,
+  "focused": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "elapsed": "1m 8s",
+    "exitCode": 0
+  },
+  "regression": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "elapsed": "18m 14s",
+    "exitCode": 0,
+    "testTask": "EXECUTED",
+    "bootJar": "EXECUTED",
+    "suites": 46,
+    "tests": 361,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "regressionReports": [
+    {
+      "file": "docs/experiments/s8-partition-recovery-2026-11-04-regression-capacity-6.json",
+      "sha256": "867e5a6a5efee0d8395ba11fa0e46ac1bb0850257fae4edb2c002daec42008e5"
+    },
+    {
+      "file": "docs/experiments/s8-partition-recovery-2026-11-04-regression-capacity-12.json",
+      "sha256": "4d390208e1f14c60650873d2f5d533f03df58d158ce2bb2a83f6b4e6355eb425"
+    },
+    {
+      "file": "docs/experiments/s8-partition-recovery-2026-11-04-regression-hard-cap-thirteen.json",
+      "sha256": "59f081ef25a8e391cca7a42d359429a15bd6c37455c54d6e43b8e593832532c5"
+    },
+    {
+      "file": "docs/experiments/s8-partition-recovery-2026-11-04-regression-persistent.json",
+      "sha256": "d41a5da85f27f38c9db227fb644714420d765eefae81af54859770771baabcb0"
+    },
+    {
+      "file": "docs/experiments/s8-partition-recovery-2026-11-04-regression-invalid-state.json",
+      "sha256": "0700770a74b62324aa3806d2e99c06c03fc35f8ac2ae88a5316fa0af7efb72b2"
+    }
+  ],
+  "artifactSha256": {
+    "s8-partition-recovery-2026-11-04-before.json": "17a85fd89a1289a83dd76d7054b3c7bee466e4b2263ae4d28051a9b06840b58a",
+    "s8-partition-recovery-2026-11-04-fixture-failure.json": "569f7720717fddb7fa1cbad67f7a7e1a47d23a0e60776029ae38b42449a0ded4",
+    "s8-partition-recovery-2026-11-04-focused-capacity-12.json": "7aa7abd5a6d8d6808bc6b0c46ffbd31f0a20c8450dac89b9e6459329d0389fb6",
+    "s8-partition-recovery-2026-11-04-focused-capacity-6.json": "2c101709d6b8e5ea61c22b769cdaebd3926958ac36cad587f9a9e23d8515644a",
+    "s8-partition-recovery-2026-11-04-focused-hard-cap-thirteen.json": "ff9dbfb4100c5313ddd93aa8585036f04342813cbcd083b005502e92fe3e7bc5",
+    "s8-partition-recovery-2026-11-04-focused-invalid-state.json": "ee17f08e6fd56cc6fba438e7995057100bb1ca4cb657b2cd35cf7ccffbd7fc60",
+    "s8-partition-recovery-2026-11-04-focused-persistent.json": "38cb26c272349e1d483642737728990af119f61fe0f4c68923140ed983498fdf",
+    "s8-partition-recovery-2026-11-04-regression-capacity-12.json": "4d390208e1f14c60650873d2f5d533f03df58d158ce2bb2a83f6b4e6355eb425",
+    "s8-partition-recovery-2026-11-04-regression-capacity-6.json": "867e5a6a5efee0d8395ba11fa0e46ac1bb0850257fae4edb2c002daec42008e5",
+    "s8-partition-recovery-2026-11-04-regression-hard-cap-thirteen.json": "59f081ef25a8e391cca7a42d359429a15bd6c37455c54d6e43b8e593832532c5",
+    "s8-partition-recovery-2026-11-04-regression-invalid-state.json": "0700770a74b62324aa3806d2e99c06c03fc35f8ac2ae88a5316fa0af7efb72b2",
+    "s8-partition-recovery-2026-11-04-regression-persistent.json": "d41a5da85f27f38c9db227fb644714420d765eefae81af54859770771baabcb0",
+    "s8-partition-recovery-2026-11-04-source.json": "ba4155830e7172185f0d666cf8cd74b0b9cc696ca81a06fbf03f6db156e81a64"
+  },
+  "reportLocalLinksChecked": 6,
+  "privacyAndFiniteJsonFilesChecked": 13,
+  "newRemoteCi": "NOT_RUN",
+  "pushed": false
+}
