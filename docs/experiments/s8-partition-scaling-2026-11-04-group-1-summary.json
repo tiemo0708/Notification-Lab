@@ -1,0 +1,263 @@
+{
+  "result": "PASS",
+  "validRuns": 4,
+  "sourceFilesUnchanged": true,
+  "frozenSourceCount": 162,
+  "sequence": [
+    3,
+    6,
+    6,
+    3
+  ],
+  "totalCampaignAccepted": 40000,
+  "totalRealtimeAccepted": 2938,
+  "totalHttpAccepted": 42938,
+  "sixVsThreeMeanThroughputPercent": 22.677283854339848,
+  "rows": [
+    {
+      "runIndex": 1,
+      "campaignPartitions": 3,
+      "result": "PASS",
+      "gradleElapsed": "3m 36s",
+      "preloadSeconds": 21.9380615,
+      "drainSeconds": 152.649818792,
+      "campaignPerSecond": 65.50941284526488,
+      "realtimeAccepted": 689,
+      "httpAccepted": 10689,
+      "baselineApiP95Millis": 26.033916,
+      "mixedApiP95Millis": 37.564333,
+      "mixedApiP99Millis": 153.201125,
+      "mixedApiMaxMillis": 2480.592166,
+      "jvmCpuPercentOneCore": 41.29171434525922,
+      "mysqlCpuPercentOneCore": 58.513699003408604,
+      "cpuSampleWindowSeconds": 151.95608124999998,
+      "observedCampaignLagMax": 96.0,
+      "observedRealtimeLagMax": 2.0,
+      "observedLagAgeMaxSeconds": 4.985531333,
+      "observedCampaignPoolActiveMax": 4,
+      "observedRealtimePoolActiveMax": 3,
+      "observedCampaignPoolWaitingMax": 0,
+      "observedRealtimePoolWaitingMax": 0,
+      "observedHeapMaxMiB": 104.94654083251953,
+      "gcDeltaMillis": 816,
+      "campaignRequestedRecordsPerPartition": [
+        3335,
+        3305,
+        3360
+      ],
+      "quotaUnavailableByReason": {
+        "campaign": {
+          "STATE_ERROR": 0.0,
+          "TIMEOUT": 0.0,
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0,
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0
+        },
+        "realtime": {
+          "STATE_ERROR": 0.0,
+          "TIMEOUT": 0.0,
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0,
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0
+        }
+      },
+      "rawFile": "s8-partition-scaling-2026-11-04-group-1-run-1-partitions-3.json",
+      "rawSha256": "222d768a52d63c8b6bdf0f3cc71e6d2209d0460eb26cb2cd4f187a4dfef94c12"
+    },
+    {
+      "runIndex": 2,
+      "campaignPartitions": 6,
+      "result": "PASS",
+      "gradleElapsed": "3m 23s",
+      "preloadSeconds": 21.379435042,
+      "drainSeconds": 143.446794917,
+      "campaignPerSecond": 69.71225816363564,
+      "realtimeAccepted": 659,
+      "httpAccepted": 10659,
+      "baselineApiP95Millis": 29.34325,
+      "mixedApiP95Millis": 28.868083,
+      "mixedApiP99Millis": 277.99649999999997,
+      "mixedApiMaxMillis": 1034.4318329999999,
+      "jvmCpuPercentOneCore": 43.138210250229356,
+      "mysqlCpuPercentOneCore": 63.318907676806724,
+      "cpuSampleWindowSeconds": 142.619887666,
+      "observedCampaignLagMax": 54.0,
+      "observedRealtimeLagMax": 2.0,
+      "observedLagAgeMaxSeconds": 4.995118541,
+      "observedCampaignPoolActiveMax": 4,
+      "observedRealtimePoolActiveMax": 3,
+      "observedCampaignPoolWaitingMax": 0,
+      "observedRealtimePoolWaitingMax": 0,
+      "observedHeapMaxMiB": 105.00621032714844,
+      "gcDeltaMillis": 762,
+      "campaignRequestedRecordsPerPartition": [
+        1624,
+        1666,
+        1712,
+        1675,
+        1649,
+        1674
+      ],
+      "quotaUnavailableByReason": {
+        "realtime": {
+          "STATE_ERROR": 0.0,
+          "POOL_CLOSED": 0.0,
+          "CONNECTION": 0.0,
+          "SLOT_BUSY": 0.0,
+          "UNKNOWN": 0.0,
+          "TIMEOUT": 0.0
+        },
+        "campaign": {
+          "STATE_ERROR": 0.0,
+          "POOL_CLOSED": 0.0,
+          "CONNECTION": 0.0,
+          "SLOT_BUSY": 0.0,
+          "UNKNOWN": 0.0,
+          "TIMEOUT": 0.0
+        }
+      },
+      "rawFile": "s8-partition-scaling-2026-11-04-group-1-run-2-partitions-6.json",
+      "rawSha256": "4c04c668ff845efc21522b4884a95bc581bfbb70488eb35f2d92d1763b6f668e"
+    },
+    {
+      "runIndex": 3,
+      "campaignPartitions": 6,
+      "result": "PASS",
+      "gradleElapsed": "3m 29s",
+      "preloadSeconds": 21.030373292,
+      "drainSeconds": 149.094793958,
+      "campaignPerSecond": 67.07142304926488,
+      "realtimeAccepted": 681,
+      "httpAccepted": 10681,
+      "baselineApiP95Millis": 42.2955,
+      "mixedApiP95Millis": 31.746542,
+      "mixedApiP99Millis": 490.614167,
+      "mixedApiMaxMillis": 1002.142208,
+      "jvmCpuPercentOneCore": 42.273491325282855,
+      "mysqlCpuPercentOneCore": 60.83075937791433,
+      "cpuSampleWindowSeconds": 148.507026583,
+      "observedCampaignLagMax": 59.0,
+      "observedRealtimeLagMax": 2.0,
+      "observedLagAgeMaxSeconds": 4.930779416,
+      "observedCampaignPoolActiveMax": 4,
+      "observedRealtimePoolActiveMax": 3,
+      "observedCampaignPoolWaitingMax": 0,
+      "observedRealtimePoolWaitingMax": 0,
+      "observedHeapMaxMiB": 104.25745391845703,
+      "gcDeltaMillis": 884,
+      "campaignRequestedRecordsPerPartition": [
+        1603,
+        1668,
+        1706,
+        1679,
+        1629,
+        1715
+      ],
+      "quotaUnavailableByReason": {
+        "realtime": {
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0,
+          "STATE_ERROR": 0.0,
+          "TIMEOUT": 0.0,
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0
+        },
+        "campaign": {
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0,
+          "STATE_ERROR": 0.0,
+          "TIMEOUT": 0.0,
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0
+        }
+      },
+      "rawFile": "s8-partition-scaling-2026-11-04-group-1-run-3-partitions-6.json",
+      "rawSha256": "052cc7527365c7858bc23e150a2d3e4c5b54b24c9645485f46e20cf6a1e977d5"
+    },
+    {
+      "runIndex": 4,
+      "campaignPartitions": 3,
+      "result": "PASS",
+      "gradleElapsed": "4m 48s",
+      "preloadSeconds": 27.632464792,
+      "drainSeconds": 217.441541125,
+      "campaignPerSecond": 45.98937235388398,
+      "realtimeAccepted": 909,
+      "httpAccepted": 10909,
+      "baselineApiP95Millis": 37.726375,
+      "mixedApiP95Millis": 84.34804199999999,
+      "mixedApiP99Millis": 339.049375,
+      "mixedApiMaxMillis": 1752.210042,
+      "jvmCpuPercentOneCore": 38.603374021321294,
+      "mysqlCpuPercentOneCore": 77.66031194565835,
+      "cpuSampleWindowSeconds": 216.816195791,
+      "observedCampaignLagMax": 83.0,
+      "observedRealtimeLagMax": 2.0,
+      "observedLagAgeMaxSeconds": 5.536211792,
+      "observedCampaignPoolActiveMax": 4,
+      "observedRealtimePoolActiveMax": 3,
+      "observedCampaignPoolWaitingMax": 1,
+      "observedRealtimePoolWaitingMax": 0,
+      "observedHeapMaxMiB": 104.75643157958984,
+      "gcDeltaMillis": 1990,
+      "campaignRequestedRecordsPerPartition": [
+        3366,
+        3336,
+        3298
+      ],
+      "quotaUnavailableByReason": {
+        "campaign": {
+          "SLOT_BUSY": 0.0,
+          "UNKNOWN": 0.0,
+          "TIMEOUT": 0.0,
+          "STATE_ERROR": 0.0,
+          "POOL_CLOSED": 0.0,
+          "CONNECTION": 0.0
+        },
+        "realtime": {
+          "SLOT_BUSY": 0.0,
+          "UNKNOWN": 0.0,
+          "TIMEOUT": 0.0,
+          "STATE_ERROR": 0.0,
+          "POOL_CLOSED": 0.0,
+          "CONNECTION": 0.0
+        }
+      },
+      "rawFile": "s8-partition-scaling-2026-11-04-group-1-run-4-partitions-3.json",
+      "rawSha256": "70afc45c8b954e4a7640f0ecd1b59c9131b88181ad0436d734a3f648eba09235"
+    }
+  ],
+  "summary": [
+    {
+      "campaignPartitions": 3,
+      "runs": 2,
+      "throughputMean": 55.74939259957443,
+      "throughputMin": 45.98937235388398,
+      "throughputMax": 65.50941284526488,
+      "mixedApiP95MinMillis": 37.564333,
+      "mixedApiP95MaxMillis": 84.34804199999999,
+      "jvmCpuMeanPercentOneCore": 39.94754418329026,
+      "mysqlCpuMeanPercentOneCore": 68.08700547453347
+    },
+    {
+      "campaignPartitions": 6,
+      "runs": 2,
+      "throughputMean": 68.39184060645026,
+      "throughputMin": 67.07142304926488,
+      "throughputMax": 69.71225816363564,
+      "mixedApiP95MinMillis": 28.868083,
+      "mixedApiP95MaxMillis": 31.746542,
+      "jvmCpuMeanPercentOneCore": 42.705850787756106,
+      "mysqlCpuMeanPercentOneCore": 62.074833527360525
+    }
+  ],
+  "limitations": [
+    "Two repeats on a shared host, not an operational optimum or statistical significance",
+    "Fresh synthetic UUIDs vary partition distribution between runs",
+    "CPU covers both roles and Mock; sampled maxima are not instantaneous peaks",
+    "Realtime probes are sequential, not a fixed open-loop rate",
+    "No direct improvement comparison against prior consumer or million-target experiments"
+  ]
+}

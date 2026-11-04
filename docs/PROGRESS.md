@@ -2816,3 +2816,27 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   고정 소스 162개 SHA 불변, 집중/회귀 원본 SHA, JSON 민감 필드·비유한값 검사와 문서 링크를 확인했다.
   [최종 로컬 검증](experiments/s8-partition-recovery-2026-11-04-validation.json)을 보존한다.
   기존 사용자 MySQL은 healthy로 유지됐다. 이번 변경은 로컬 커밋 대상이며 새 원격 CI 통과나 푸시를 주장하지 않는다.
+
+## 2026-11-04: S8 고정 Consumer에서 캠페인 파티션 3/6 반복 비교
+
+- 테스트 전용 `partitionScalingPilot -PcampaignPartitions=3|6`을 추가했다. 새 격리 브로커에 두 역할의 요청·Retry·DLQ 6개 토픽을
+  어떤 앱보다 먼저 만들고 초기 end=0을 확인한다. 실시간/양쪽 DLQ는 3, 캠페인 요청·Retry만 N으로 변경한다.
+  운영 토픽 선언/Java/resources는 변경하지 않는다. 실제 metadata·Consumer 할당 [2,2,2]/[4,4,4]를 대조한다.
+- 양쪽 Consumer/Worker 활성 상한 3, DB4/Redis3·250ms/HTTP3, 복구 ON·이력 용량12, RECORD 동기 commit,
+  Relay1/완료저장1건, 전체1000/s·캠페인200/s를 고정했다. Mock은 SUCCESS·1ms, 실행마다 새 인프라와 캠페인1만 건이다.
+  단일 JVM의 역할별 context/공유 호스트로 다중 서버 성능을 검증한 것이 아니다.
+- 경계/진단 집중 16개가 **10초/종료코드0**에 통과했다. 파티션12 옵션은 dry-run에서 실행 전 거절됐다.
+  [고정 소스162개·순서·설정](experiments/s8-partition-scaling-2026-11-04-group-1-source.json)을 보존하고 3→6→6→3 순서로 실행했다.
+- 네 번 모두 PASS다. 캠페인40000+실시간2938=HTTP42938건의 수락·DB 완료/시도·대상 매핑·전체 committed=end를 대조했고,
+  관측 중복/잘못된 참조0, Retry/DLQ0이었다. Redis quota 오류6종도 두 역할·모든 실행0이므로 복구 효과의 비교는 아니다.
+- 실행 순서의 처리량은 **65.509 / 69.712 / 67.071 / 45.989건/초**, 혼합 APIp95는 **37.564 / 28.868 / 31.747 / 84.348ms**였다.
+  평균 처리량은 3개55.749건/초, 6개68.392건/초(+22.68%)지만 동일3개 조건의 큰 변동과 마지막 사전 저장 증가를 함께 기록한다.
+  마지막에는 DB 관련 단계와 ACK 평균도 함께 길어졌고 Mock 공급자 평균은2.032→2.157ms였다. 특정 SQL/lock/호스트 원인은 확정하지 않는다.
+- [실제 결과·자원·분포·해석 한계](S8_PARTITION_SCALING.md), [원본4개 SHA와 요약](experiments/s8-partition-scaling-2026-11-04-group-1-summary.json)을 기록했다.
+  느린 실행을 제외하지 않았으며 통계적/인과적 개선율이나 운영 최적값을 확정하지 않는다. 기본 파티션3은 유지한다.
+  다음 항목은 producer batching/압축의 적용 경계와 비교 설계다.
+- 측정 그룹 종료 뒤 전체 build를 별도로 실행했다. **20분6초/종료코드0**, 기본 test 새 실행 **46개 클래스/363개 통과,
+  실패·오류·스킵0**이었다. 이전361개+경계2개이며 WorkerConcurrencyTest 11개도 다시 통과했다.
+  bootJar는 UP-TO-DATE다. 고정 소스162개 불변·운영 소스 diff0과 원본4개/새 JUnit XML의 SHA를 확인했다.
+  [최종 로컬 검증](experiments/s8-partition-scaling-2026-11-04-group-1-validation.json)을 보존한다.
+  기존 사용자 MySQL은 healthy였으며 원격 main은c6cccc1/이전CI는실패 상태였다. 이번 작업은 로컬 커밋이며 푸시/새 원격CI 통과를 주장하지 않는다.

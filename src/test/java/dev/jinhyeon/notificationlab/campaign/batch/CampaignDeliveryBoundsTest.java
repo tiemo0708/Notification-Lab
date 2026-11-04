@@ -13,6 +13,27 @@ class CampaignDeliveryBoundsTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
+    void partitionComparisonKeepsBoundedTenThousandTargetRuns() {
+        for (int partitions : new int[]{3, 6}) {
+            var bounds = CampaignDeliveryBounds.forPartitionRun(false, 10_000, partitions, false);
+            assertThat(bounds.maxRealtimeProbes()).isEqualTo(5000);
+            assertThat(bounds.maxResourceSamples()).isEqualTo(452);
+        }
+    }
+
+    @Test
+    void partitionComparisonRejectsLargeRunsUnsupportedTopologyAndMixedFactors() {
+        for (int partitions : new int[]{0, 1, 4, 12, Integer.MAX_VALUE}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forPartitionRun(false, 10_000, partitions, false)).isInstanceOf(IllegalArgumentException.class);
+        }
+        for (int targets : new int[]{1000, 100_000, 1_000_000}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forPartitionRun(false, targets, 3, false)).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forPartitionRun(true, 10_000, 3, false)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forPartitionRun(false, 10_000, 3, true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void consumerComparisonKeepsSmallRunBoundsForEachSupportedConcurrency() {
         for (int consumers : new int[]{1, 2, 3}) {
             var bounds = CampaignDeliveryBounds.forConsumerRun(false, 10_000, consumers, false);

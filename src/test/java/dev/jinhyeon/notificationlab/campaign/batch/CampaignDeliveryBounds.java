@@ -22,6 +22,13 @@ record CampaignDeliveryBounds(int targets, int maxRealtimeProbes, int drainLimit
         return forRun(false, targets);
     }
 
+    static CampaignDeliveryBounds forPartitionRun(boolean load, int targets, int partitions, boolean conflictingMode) {
+        if (load || targets != 10_000 || (partitions != 3 && partitions != 6) || conflictingMode) {
+            throw new IllegalArgumentException("Partition comparison requires isolated 10k pilot and 3 or 6 campaign partitions");
+        }
+        return forRun(false, targets);
+    }
+
     int maxResourceSamples() { return drainLimitSeconds / 2 + 2; }
 
     static CampaignDeliveryBounds forOffsetRun(boolean load, int targets) {

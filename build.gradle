@@ -169,6 +169,29 @@ tasks.register('consumerScalingPilot', Test) {
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
 
+// S8: fresh topics prepared before any app context; consumers/resources stay fixed.
+tasks.register('partitionScalingPilot', Test) {
+    description = 'Compare 3 or 6 campaign request/retry partitions with three consumers and fixed recovery capacity'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'campaign-delivery-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(10)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '8m'
+    def partitions = providers.gradleProperty('campaignPartitions').getOrElse('3')
+    if (!(partitions in ['3', '6'])) throw new GradleException('campaignPartitions must be 3 or 6')
+    systemProperty 'campaign.delivery.partitionComparison', 'true'
+    systemProperty 'campaign.delivery.campaignPartitions', partitions
+    systemProperty 'campaign.delivery.targets', '10000'
+    systemProperty 'campaign.delivery.load', 'false'
+    systemProperty 'campaign.delivery.publishBatchSize', '1'
+    systemProperty 'campaign.delivery.transientQuotaRecovery', 'true'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
 // Test-only bounded Relay scaling; application defaults and large-load tasks are unchanged.
 tasks.register('relayScalingPilot', Test) {
     description = 'Compare 1..3 campaign Relay loops at fixed Worker, DB pool and quota limits'

@@ -391,11 +391,16 @@ Consumer/Worker 활성 상한 1/1·2/2·3/3의 평균 처리량은 각각 47.324
 
 [S8 파티션 3→6 계약 검증](docs/S8_PARTITION_EXPANSION.md)은 실제 Kafka에서 key 배정·기존 기록·순서·offset 초기화와 live 재할당을 확인했다.
 60개 key 중 27개가 이동했고 기존 기록은 원래 파티션에 남았다. latest 제어군은 신규 파티션의 사전 기록 6건을 건너뛰어도 최종 lag가 0이었다.
-앱은 earliest와 토픽별 파티션 3개 선언을 유지한다. HTTP 발송 처리량 비교는 별도 다음 단계다.
+앱은 earliest와 토픽별 파티션 3개 선언을 유지한다. HTTP 발송 경로 비교는 아래 별도 실험으로 구분한다.
 
 [S8 파티션 확대의 복구 예산](docs/S8_PARTITION_RECOVERY.md)은 요청·Retry 6+6의 실제 Worker 오류 경계를 검증했다.
 이력 슬롯 기본 6을 유지하며 `app.rate-limit.transient-recovery-max-records=12`를 명시적으로 선택할 수 있다(허용 1~12).
 슬롯 부족·지속 장애·잘못된 상태는 계속 중단하며, 이 옵션은 토픽 수나 Worker 동시성을 자동 확대하지 않는다.
+
+[S8 HTTP Mock 파티션 3/6 비교](docs/S8_PARTITION_SCALING.md)는 Consumer/Worker 활성 상한 3과 자원/quota/복구 용량 12를 고정했다.
+3→6→6→3의 4회에서 캠페인40000+실시간2938건의 HTTP·DB·매핑·전체 offset을 대조했다.
+평균 처리량은 3개에서55.749건/초, 6개에서68.392건/초였다. 같은 3개 조건의 실행 간 차이도 커서 +22.68%를 인과적 개선율로 확정하지 않는다.
+운영 기본 파티션은 3을 유지한다. 테스트 전용 `./gradlew partitionScalingPilot -PcampaignPartitions=3`은 3/6만 허용한다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
