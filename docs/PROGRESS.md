@@ -2771,3 +2771,21 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - 별도 c6cccc1 원격 CI는 20분 6초에 실패했다. 349개 중 WorkerConcurrencyTest의 RECORD 1개가
   active HTTP=2 관찰(line 78)에서 ConditionTimeoutException이었다. 로컬 전체는 통과했지만 원격 실패는 그대로 기록한다.
   기존 fixture의 1500ms 응답 창에 의존하는 관찰을 별도 수정/검증한다. 원격 CI 성공이나 푸시를 주장하지 않는다.
+
+## 2026-11-04: 원격 Worker 동시성 fixture의 시간 창 의존성 보완
+
+- c6cccc1의 원격 CI 실패는 기존 WorkerConcurrencyTest RECORD 조건의 active HTTP=2 관찰 timeout 1개였다(349개 중 1개, 20분 6초).
+  원격 상세 active 시계열은 없어 정확한 스케줄링 원인은 미확정이며, 1500ms 응답 중첩에 의존한 fixture 구조를 확인했다.
+- 문제 조건에만 test-only primary PushProvider를 명시 등록해 실제 Worker/DB 선점 후 HTTP 위임 전에 작업을 유지했다.
+  첫 작업을 1700ms 동안 유지하고 provider 동시성 2/queue 1, 대기·후속 작업 미선점과 offset 0을 확인한 뒤 finally로 해제한다.
+  실제 HTTP 네 호출/DB 완료/offset [2,1,1]/queue 0을 검증한다. gate는 20초 상한이며 추가 스레드/대기열이 없다.
+- 정확히 두 작업의 provider 진입을 검증하고 실제 HTTP peak는 1~2로 확인한다. 실제 HTTP active=2의 순간 관찰을 그대로 보장한다고 표현하지 않는다.
+  운영 timeout/한도/처리 코드는 바꾸지 않았다. 다른 fixture와 S8 실험 조건도 유지한다.
+- 집중 WorkerConcurrencyTest 11개가 1분 1초/종료코드 0에 통과했다. RECORD/COUNT_TIME 두 기록의 1700ms 제어를 확인했다.
+  [분석·변경 계약](CI_WORKER_CONCURRENCY.md), [원격 실패·집중 결과·고정 소스 161개](experiments/ci-worker-overlap-2026-11-04-source.json)를 보존했다.
+  실제 변경 후 전체 build를 새로 실행 중이며 원격 CI 성공으로 대체하지 않는다.
+- 최종 전체 build는 **17분 45초/종료코드 0**이었다. 기본 test를 새로 실행했고
+  콘솔/JUnit XML 45개 클래스에서 **354개 통과, 실패·오류·스킵 0**을 대조했다.
+  Worker 11개와 RECORD/COUNT_TIME의 gate 기록 2개도 전체 회귀에서 확인했다. bootJar는 UP-TO-DATE다.
+  고정 소스 161개 SHA 불변과 운영 소스 diff 0을 확인했다. [최종 로컬 검증](experiments/ci-worker-overlap-2026-11-04-validation.json)을 남겼다.
+  원격의 이전 실패를 수정 후 CI 성공으로 바꾸어 기록하지 않는다. 다음 푸시 후 새 CI 결과를 별도로 확인해야 한다.

@@ -5,6 +5,10 @@ import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import dev.jinhyeon.notificationlab.NotificationLabApplication;
 import dev.jinhyeon.notificationlabtest.OffsetCommitPolicy;
+import dev.jinhyeon.notificationlab.provider.HttpPushProvider;
+import dev.jinhyeon.notificationlab.provider.PushProvider;
+import dev.jinhyeon.notificationlab.provider.PushRequest;
+import dev.jinhyeon.notificationlab.provider.PushResult;
 import dev.jinhyeon.notificationmock.MockPushEndpoint;
 import dev.jinhyeon.notificationmock.MockServerApplication;
 import java.net.URI;
@@ -17,6 +21,10 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.apache.kafka.clients.admin.Admin;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -65,30 +73,45 @@ class WorkerConcurrencyTest {
     private String topic;
     private String group;
     private OffsetCommitPolicy.Mode offsetMode = OffsetCommitPolicy.Mode.RECORD;
+    private boolean holdProvider;
 
     @ParameterizedTest
     @EnumSource(OffsetCommitPolicy.Mode.class)
     void twoActiveAndOneWaitingKeepOffsetsAndClaimsBehindCompletedWork(OffsetCommitPolicy.Mode mode) throws Exception {
         offsetMode = mode;
-        start(3, 2, 1, 5000, 1500);
+        holdProvider = true;
+        start(3, 2, 1, 5000, 0);
         var first = create(); var second = create(); var waiting = create(); var later = create();
-        publish(first, 0);
-        await().atMost(Duration.ofSeconds(5)).until(() -> stats().active() == 1);
-        publish(second, 1);
-        await().atMost(Duration.ofSeconds(5)).until(() -> stats().active() == 2);
-        publish(waiting, 2); publish(later, 0);
-        await().atMost(Duration.ofSeconds(5)).until(() -> gate().waiting() == 1);
-        assertThat(gate().active()).isEqualTo(2);
-        assertThat(attempts(waiting)).isZero();
-        assertThat(attempts(later)).isZero();
-        assertThat(status(waiting)).isEqualTo("QUEUED");
-        assertThat(offset(0)).isZero(); assertThat(offset(1)).isZero(); assertThat(offset(2)).isZero();
+        var held = app.getBean(HeldProvider.class);
+        try {
+            publish(first, 0);
+            await().atMost(Duration.ofSeconds(5)).until(() -> held.active.get() == 1);
+            // Deliberately exceed the former 1500ms response window. The admitted work
+            // remains held without starting an HTTP deadline or relying on host speed.
+            await().during(Duration.ofMillis(1700)).atMost(Duration.ofSeconds(3))
+                    .until(() -> held.active.get() == 1 && stats().requests() == 0);
+            publish(second, 1);
+            await().atMost(Duration.ofSeconds(5)).until(() -> held.active.get() == 2);
+            publish(waiting, 2); publish(later, 0);
+            await().atMost(Duration.ofSeconds(5)).until(() -> gate().waiting() == 1);
+            assertThat(gate().active()).isEqualTo(2);
+            assertThat(held.peak.get()).isEqualTo(2);
+            assertThat(attempts(waiting)).isZero();
+            assertThat(attempts(later)).isZero();
+            assertThat(status(waiting)).isEqualTo("QUEUED");
+            assertThat(offset(0)).isZero(); assertThat(offset(1)).isZero(); assertThat(offset(2)).isZero();
+            assertThat(stats().requests()).isZero();
+        } finally {
+            held.release.countDown(); // Also release on assertion failure before context shutdown.
+        }
         awaitCompleted(List.of(first, second, waiting, later), 4);
-        assertThat(stats().maxActive()).isEqualTo(2);
+        assertThat(held.peak.get()).isEqualTo(2);
+        assertThat(held.active.get()).isZero();
+        assertThat(stats().maxActive()).isBetween(1, 2);
         assertThat(stats().requests()).isEqualTo(4);
         assertThat(offset(0)).isEqualTo(2); assertThat(offset(1)).isEqualTo(1); assertThat(offset(2)).isEqualTo(1);
         assertThat(gate().active()).isZero(); assertThat(gate().waiting()).isZero();
-        System.out.println("WORKER_LIMIT consumers=3 activeCap=2 queueCap=1 peakHttp=2 calls=4 committed=4");
+        System.out.println("WORKER_LIMIT consumers=3 activeCap=2 queueCap=1 peakProvider=2 httpAtMost=2 calls=4 committed=4 heldBeyondFormerWindow=true");
     }
 
     @ParameterizedTest
@@ -227,7 +250,9 @@ class WorkerConcurrencyTest {
     }
 
     private void startApplication(int consumers, int active, int queue, int waitMs) {
-        app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class, OffsetCommitPolicy.Wiring.class).run(
+        var builder = new SpringApplicationBuilder(NotificationLabApplication.class, OffsetCommitPolicy.Wiring.class);
+        if (holdProvider) builder.sources(ProviderGateConfiguration.class);
+        app = (ServletWebServerApplicationContext) builder.run(
                 "--notification.test.offset.mode=" + offsetMode.name(),
                 "--server.port=0", "--app.provider.mode=HTTP", "--app.async.relay-enabled=false",
                 "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort(),
@@ -312,6 +337,39 @@ class WorkerConcurrencyTest {
     private void root(String sql) throws Exception {
         try (var connection = DriverManager.getConnection(MYSQL.getJdbcUrl(), "root", MYSQL.getPassword());
              var statement = connection.createStatement()) { statement.execute(sql); }
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class ProviderGateConfiguration {
+        @Bean
+        @Primary
+        HeldProvider heldProvider(HttpPushProvider delegate) { return new HeldProvider(delegate); }
+    }
+
+    /** Holds admitted provider work before real HTTP; does not change application timeouts. */
+    static final class HeldProvider implements PushProvider {
+        private final HttpPushProvider delegate;
+        private final CountDownLatch release = new CountDownLatch(1);
+        private final AtomicInteger active = new AtomicInteger();
+        private final AtomicInteger peak = new AtomicInteger();
+
+        HeldProvider(HttpPushProvider delegate) { this.delegate = delegate; }
+
+        @Override
+        public PushResult send(PushRequest request) {
+            peak.accumulateAndGet(active.incrementAndGet(), Math::max);
+            try {
+                try {
+                    if (!release.await(20, TimeUnit.SECONDS)) throw new IllegalStateException("Test provider gate timed out");
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Test provider gate interrupted");
+                }
+                return delegate.send(request);
+            } finally {
+                active.decrementAndGet();
+            }
+        }
     }
 
     @AfterEach

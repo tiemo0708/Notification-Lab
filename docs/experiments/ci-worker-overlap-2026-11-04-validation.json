@@ -1,0 +1,41 @@
+{
+  "result": "PASS",
+  "scope": "Local verification of test fixture change; not remote CI success",
+  "sourceManifest": "ci-worker-overlap-2026-11-04-source.json",
+  "frozenSourceCount": 161,
+  "sourceFilesUnchanged": true,
+  "productionDiff": false,
+  "changedTestFiles": [
+    "src/test/java/dev/jinhyeon/notificationlab/worker/WorkerConcurrencyTest.java"
+  ],
+  "focused": {
+    "command": "./gradlew --no-daemon --console=plain test --tests \"*WorkerConcurrencyTest\"",
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "elapsed": "1m 1s",
+    "exitCode": 0,
+    "xmlSha256": "c764549becd5d807ac2816d4149c28ee93fb0aa57414acddadf6d050ba0343ad",
+    "heldBeyondFormerWindowModes": 2
+  },
+  "regression": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "elapsed": "17m 45s",
+    "exitCode": 0,
+    "testTask": "EXECUTED",
+    "bootJar": "UP-TO-DATE",
+    "suites": 45,
+    "tests": 354,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "workerGateModesVerified": 2,
+    "workerXmlSha256": "9910e2b1731ac943718fa99f26a8be8e8a24ab46729565111ebd4650c8471588"
+  },
+  "reportLocalLinksChecked": 3,
+  "publishedCiConclusion": "failure",
+  "publishedCiCommit": "c6cccc16b05c90e9784104c53e57c6d0a0e99b61",
+  "newRemoteCi": "NOT_RUN",
+  "pushed": false
+}
