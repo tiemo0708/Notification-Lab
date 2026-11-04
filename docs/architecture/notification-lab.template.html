@@ -1,0 +1,195 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Notification Lab · 현재 구현 아키텍처</title><style>
+/* engineered-paper theme (cool near-white, one accent, mono labels)
+ * All colors/fonts flow through the :root tokens — tweak tokens, not scattered values. */
+:root {
+  color-scheme: light;
+  --color-paper:   oklch(98.5% 0.004 250);
+  --color-paper-2: oklch(96.5% 0.005 252);
+  --color-rule:    oklch(93% 0.007 255);    /* graph-paper grid */
+  --color-rule-2:  oklch(83% 0.011 255);    /* hairline borders */
+  --color-muted:   oklch(56% 0.013 255);
+  --color-neutral: oklch(46% 0.015 255);    /* neutral edges */
+  --color-ink-2:   oklch(34% 0.018 257);
+  --color-ink:     oklch(24% 0.020 258);
+  --color-accent:  oklch(58% 0.20 256);     /* primary-flow edges, one signal color */
+  --color-graphite:oklch(24% 0.018 260);    /* dark tile for white/light logos */
+  /* group palette A — warm vendor (e.g. Cloudflare/AWS orange). Retune hue per vendor. */
+  --color-g1:      oklch(68% 0.15 55);
+  --color-g1-soft: oklch(78% 0.12 55);
+  --color-g1-ink:  oklch(52% 0.14 50);
+  --color-g1-tint: oklch(96.5% 0.015 60 / .5);
+  /* group palette B — accent-family (repo/tooling groups) */
+  --color-accent-soft: oklch(58% 0.20 256 / .45);
+  --color-accent-tint: oklch(97% 0.012 256 / .5);
+  /* JP glyphs: name JP faces explicitly — bare sans-serif fallback on Linux picks Chinese-variant CJK */
+  --font-display: "Geist", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --space-xs: 4px; --space-sm: 8px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px;
+  --radius-card: 10px; --radius-tile: 12px;
+  /* translucent veil behind node label text: matches paper on plain canvas, blends into
+     group tints instead of punching an off-color rectangle through them */
+  --color-veil: oklch(98.5% 0.004 250 / .78);
+}
+/* Dark variant: set data-theme="dark" on <html>. Tiles stay white — brand logos are drawn
+   for light grounds. Everything (arrowheads via context-stroke, legend via border-color)
+   follows the tokens, so toggling the attribute is all it takes. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-paper:   oklch(18% 0.012 255);
+  --color-paper-2: oklch(22% 0.014 255);
+  --color-rule:    oklch(24% 0.013 255);
+  --color-rule-2:  oklch(38% 0.018 255);
+  --color-muted:   oklch(65% 0.014 255);
+  --color-neutral: oklch(72% 0.012 255);
+  --color-ink-2:   oklch(85% 0.010 255);
+  --color-ink:     oklch(94% 0.008 255);
+  --color-accent:  oklch(70% 0.16 256);
+  --color-graphite:oklch(31% 0.020 260);
+  --color-g1:      oklch(70% 0.14 55);
+  --color-g1-soft: oklch(58% 0.11 55);
+  --color-g1-ink:  oklch(78% 0.12 55);
+  --color-g1-tint: oklch(26% 0.030 60 / .40);
+  --color-accent-soft: oklch(70% 0.16 256 / .5);
+  --color-accent-tint: oklch(28% 0.045 256 / .35);
+  --color-veil: oklch(18% 0.012 255 / .78);
+}
+@font-face { font-family:"Geist"; font-style:normal; font-weight:100 900; font-display:swap;
+  src:url(data:font/woff2;base64,%%FONT_DISPLAY%%) format("woff2"); }
+@font-face { font-family:"JetBrains Mono"; font-style:normal; font-weight:100 800; font-display:swap;
+  src:url(data:font/woff2;base64,%%FONT_JBM%%) format("woff2"); }
+/* JetBrains Mono reads cramped at 9.5–11px; open every mono label slightly */
+.kicker, .node .role, .el, .legend, .foot { letter-spacing: 0.04em; }
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { overflow-x: clip; }
+body { background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); padding: var(--space-xl) var(--space-lg) var(--space-2xl); }
+.page { width: fit-content; max-width: 100%; margin: 0 auto; }
+
+.head { display:grid; grid-template-columns: 1fr auto; gap: var(--space-lg); align-items:end;
+  padding-bottom: var(--space-md); border-bottom: 1px solid var(--color-rule-2); margin-bottom: var(--space-lg); }
+.kicker { font-family: var(--font-mono); font-size: 11px;
+  color: var(--color-accent); margin-bottom: var(--space-sm); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(22px, 4vw, 30px);
+  letter-spacing: -0.005em; line-height: 1.2; }
+.lede { max-width: 300px; font-size: 12px; line-height: 1.7; color: var(--color-neutral); padding-bottom: 2px; }
+@media (max-width: 680px) { .head { grid-template-columns: 1fr; align-items:start; } .lede { max-width:none; } }
+
+.scroller { overflow-x: auto; border: 1px solid var(--color-rule-2); border-radius: var(--radius-card); }
+/* CANVAS SIZE: set width/height here AND on svg.edges AND its viewBox — keep the three in sync */
+.canvas { position: relative; width: 1200px; height: 940px; background: var(--color-paper);
+  background-image:
+    linear-gradient(var(--color-rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-rule) 1px, transparent 1px);
+  background-size: 24px 24px; background-position: -1px -1px; }
+
+.group { position:absolute; border-radius: var(--radius-tile); }
+/* group labels are names like node names (display font), written in the brand's own case.
+   They sit inside the top-left corner, so the border stays unbroken and needs no mask */
+.g-label { position:absolute; top:12px; left:12px; display:flex; align-items:center; gap:6px;
+  font-family: var(--font-display); font-size: 12px; font-weight: 600;
+  color: var(--color-neutral); white-space: nowrap; }
+.g-label img { width: 14px; height: 14px; }
+/* group labels sit on the group's tint, not on a white tile: in the dark theme swap in the brand's own
+   dark-theme logo (lt/dk pair), or give a mark with black parts a white plate */
+.g-label img.dk, .tile img.dk { display:none; }
+[data-theme="dark"] .g-label img.lt, [data-theme="dark"] .tile img.lt { display:none; }
+[data-theme="dark"] .g-label img.dk, [data-theme="dark"] .tile img.dk { display:block; }
+[data-theme="dark"] .g-label img.plate { background:#fff; border-radius:3px; padding:2px; width:18px; height:18px; }
+.group.ga { border:1.5px solid var(--color-g1); background: var(--color-g1-tint); }
+.group.ga-nested { border:1.5px dashed var(--color-g1-soft); }
+.group.gb { border:1.5px solid var(--color-accent-soft); background: var(--color-accent-tint); }
+.group.ga > .g-label, .group.ga-nested > .g-label { color: var(--color-g1-ink); }
+.group.gb > .g-label { color: var(--color-accent); }
+.group.aws { border:1.5px solid var(--color-ink); border-radius:0; }
+.group.aws > .g-label { top:-1.5px; left:-1.5px; gap:8px; color: var(--color-ink); }
+.group.aws > .g-label img { width:30px; height:30px; }
+.group.aws.az > .g-label { top:8px; left:12px; }
+.group.aws.region, .group.aws.az { border-color:#00A4A6; border-style:dashed; }
+.group.aws.vpc { border-color:#8C4FFF; }
+.group.aws.private { border-color:#00A4A6; }
+.group.aws.public { border-color:#7AA116; }
+.group.gcp { border:1.5px solid #4285F4; border-radius:6px; }
+.group.azure { border:1.5px solid #0078D4; border-radius:6px; }
+.group.gcp > .g-label, .group.azure > .g-label { gap:8px; color: var(--color-ink); }
+.group.gcp > .g-label img, .group.azure > .g-label img { width:20px; height:20px; }
+.group.gcp.region, .group.azure.region { border-color: var(--color-rule-2); background: var(--color-paper-2); }
+.group.gcp.vpc { border:1.5px dashed var(--color-ink-2); }
+.group.gcp.subnet { border:1px dashed var(--color-neutral); }
+.group.gcp.zone { border-color:#34A853; }
+.group.azure.rg { border:1.5px dashed #0096D7; }
+.group.azure.vnet { border:1.5px solid #A4CBFB; }
+.group.azure.subnet { border:1px solid #A4CBFB; }
+.group.azure.zone { border-color:#FFD965; }
+
+.node { position:absolute; width:132px; text-align:center; }
+.tile { width:60px; height:60px; margin:0 auto; border-radius: var(--radius-tile);
+  background:#fff; border:1px solid var(--color-rule-2); display:grid; place-items:center;
+  box-shadow: 0 1px 2px oklch(24% 0.02 258 / 0.05); transition: border-color .15s cubic-bezier(0.16,1,0.3,1); }
+.node:hover .tile { border-color: var(--color-accent); }
+.tile img { width:34px; height:34px; object-fit:contain; }
+.tile.wide img { width:44px; }                       /* wide-aspect logos */
+.tile.dark { background: var(--color-graphite); border-color: var(--color-graphite); }  /* white/light logos */
+.tile.bare { background:none; border:none; box-shadow:none; }
+.tile.bare img { width:60px; height:60px; }
+.tile.bare.res img { width:44px; height:44px; }
+.node .name { font-family: var(--font-display); font-weight:600; font-size:13px; margin-top: var(--space-sm); letter-spacing:0; }
+.node .role { font-family: var(--font-mono); font-size:9.5px; color: var(--color-muted); margin-top:2px; }
+/* veil behind label spans: crossing edges/grid fade behind text; translucent so it
+   blends into group tints (a solid paper rectangle looks pasted-on inside tinted groups) */
+.node .name span, .node .role span { background: var(--color-veil); backdrop-filter: blur(1.5px);
+  padding: 0 var(--space-xs); border-radius: 3px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+
+svg.edges { position:absolute; inset:0; width:1200px; height:940px; pointer-events:none; }
+.e  { stroke: var(--color-accent); stroke-width:1.6; fill:none; }   /* primary flow */
+.n  { stroke: var(--color-neutral); stroke-width:1.4; fill:none; }  /* internal */
+path.aws { stroke: var(--color-ink); stroke-width:1.6; fill:none; }
+.dash { stroke-dasharray:4 5; }                                     /* dev / deploy */
+.el { font-family: var(--font-mono); font-size:10.5px; fill: var(--color-neutral);
+  paint-order: stroke; stroke: var(--color-paper); stroke-width:4px; stroke-linejoin:round; }  /* halo */
+.el.a { fill: var(--color-accent); }
+
+.legend { display:flex; gap: var(--space-lg); align-items:center; margin-top: var(--space-md);
+  font-family: var(--font-mono); font-size:10px; color: var(--color-muted); flex-wrap:wrap; }
+.legend .sw { display:inline-block; width:30px; vertical-align:middle; margin-right:6px;
+  border-top:1.6px solid var(--color-accent); }
+.legend .sw.n { border-color: var(--color-neutral); border-top-width:1.4px; }
+.legend .sw.dash { border-top-style: dashed; }
+
+.foot { margin-top: var(--space-xl); padding-top: var(--space-md); border-top: 1px solid var(--color-rule-2);
+  display:flex; justify-content:space-between; gap: var(--space-md); flex-wrap:wrap;
+  font-family: var(--font-mono); font-size:10px; color: var(--color-muted); }
+.foot a { color: inherit; text-decoration-color: var(--color-rule-2); text-underline-offset: 2px; }
+.foot a:hover { color: var(--color-accent); }
+
+.canvas-title { position:absolute; top:23px; left:54px; font:700 23px var(--font-display); }
+.canvas-sub { position:absolute; top:57px; left:54px; font:11px var(--font-mono); color:var(--color-muted); }
+.note { position:absolute; color:var(--color-ink-2); font:12px/1.85 var(--font-body); }
+.note strong { color:var(--color-accent); }
+.caption { position:absolute; font:11px/1.7 var(--font-body); color:var(--color-muted); }
+button { padding:8px 14px; background:var(--color-paper-2); color:var(--color-ink); border:1px solid var(--color-rule-2); border-radius:6px; cursor:pointer; font:12px var(--font-body); }
+.node .role { font-family:var(--font-body); font-size:11px; letter-spacing:0; }
+.g-label { font-family:var(--font-body); }
+</style></head><body><main class="page"><header class="head"><div><div class="kicker">CURRENT IMPLEMENTATION / 2026-11-04 / source 76c4042</div><h1>Notification Lab 아키텍처</h1></div><div><button onclick="document.documentElement.removeAttribute('data-theme')">밝게</button> <button onclick="document.documentElement.setAttribute('data-theme','dark')">어둡게</button></div></header><div class="scroller"><div class="canvas" role="img" aria-label="역할 분리와 Redis, HTTP Mock을 켠 Notification Lab의 현재 구현 흐름. API와 Batch는 MySQL에 저장하고 Outbox Relay, Kafka, Worker를 거쳐 Mock을 호출한다."><div class="canvas-title">Notification Lab · 역할 분리 실험 구조</div><div class="canvas-sub">JAVA 21 / SPRING BOOT · MYSQL / KAFKA / REDIS · LOCAL LAB</div><div class="group gb" style="left:30px;top:90px;width:660px;height:210px"><div class="g-label"><img class="plate" src="%%ICON_springboot%%" alt="">입력과 DB 인계 · Spring Boot / 별도 Batch 명령</div></div>
+<div class="group ga" style="left:270px;top:340px;width:180px;height:210px"><div class="g-label"><img class="plate" src="%%ICON_mysql%%" alt="">공유 저장소</div></div>
+<div class="group gb" style="left:510px;top:340px;width:660px;height:210px"><div class="g-label">비동기 발송 · REALTIME / CAMPAIGN 별도 경로</div></div>
+<div class="group gb" style="left:510px;top:640px;width:180px;height:210px"><div class="g-label">실패 보관</div></div>
+<div class="group gb" style="left:750px;top:640px;width:180px;height:210px"><div class="g-label">전역 호출 제한</div></div>
+<div class="group gb" style="left:990px;top:640px;width:180px;height:210px"><div class="g-label">독립 공급자 서버</div></div><div class="note" style="left:746px;top:137px;width:410px"><strong>API 시작 요청 ≠ Batch 자동 실행</strong><br>캠페인 API는 정의와 시작 의도를 저장한다.<br>별도 명령이 대상별 알림과 checkpoint를 만든다.<br>Batch COMPLETED는 DB 인계 완료를 뜻한다.</div><svg class="edges" viewBox="0 0 1200 940" aria-hidden="true"><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs><path class="e" d="M120 256 V430 H324" marker-end="url(#ar)"/><text class="el a" x="205" y="419" text-anchor="middle">알림 + 작업 + Outbox</text>
+<path class="n" d="M360 256 V394" marker-end="url(#ar)"/><text class="el " x="346" y="336" text-anchor="end">정의·시작 의도</text>
+<path class="e" d="M600 256 V310 H380 V394" marker-end="url(#ar)"/><text class="el a" x="503" y="299" text-anchor="middle">대상별 알림 + checkpoint</text>
+<path class="e" d="M396 430 H564" marker-end="url(#ar)"/><text class="el a" x="480" y="419" text-anchor="middle">claim</text>
+<path class="e" d="M636 430 H804" marker-end="url(#ar)"/><text class="el a" x="720" y="419" text-anchor="middle">publish</text>
+<path class="e" d="M876 430 H1044" marker-end="url(#ar)"/><text class="el a" x="960" y="419" text-anchor="middle">consume</text>
+<path class="n" d="M600 506 V694" marker-end="url(#ar)"/><text class="el " x="613" y="604" text-anchor="start">DLQ publish</text>
+<path class="n" d="M874 730 H950 V585 H1055 V506" marker-end="url(#ar)"/><text class="el " x="964" y="576" text-anchor="start">호출 허가</text>
+<path class="e" d="M1080 506 V694" marker-end="url(#ar)"/><text class="el a" x="1093" y="631" text-anchor="start">HTTP</text>
+<path class="n" d="M1116 430 H1180 V875 H360 V506" marker-end="url(#ar)"/><text class="el " x="765" y="866" text-anchor="middle">결과·시도·재시도 / DLQ Outbox를 같은 DB TX로 저장</text></svg><div class="node" style="left:54px;top:150px"><div class="tile"><img src="%%ICON_springboot%%" alt=""></div><div class="name"><span>실시간 알림 API</span></div><div class="role"><span>POST /notifications</span></div></div>
+<div class="node" style="left:294px;top:150px"><div class="tile"><img src="%%ICON_springboot%%" alt=""></div><div class="name"><span>캠페인 API</span></div><div class="role"><span>/campaigns · /start</span></div></div>
+<div class="node" style="left:534px;top:150px"><div class="tile"><img src="%%ICON_batch%%" alt=""></div><div class="name"><span>Spring Batch</span></div><div class="role"><span>명시적 CLI · chunk 저장</span></div></div>
+<div class="node" style="left:294px;top:400px"><div class="tile"><img src="%%ICON_mysql%%" alt=""></div><div class="name"><span>MySQL</span></div><div class="role"><span>알림 · 작업 · Outbox</span></div></div>
+<div class="node" style="left:534px;top:400px"><div class="tile"><img src="%%ICON_relay%%" alt=""></div><div class="name"><span>Outbox Relay</span></div><div class="role"><span>ACK 후 PUBLISHED 저장</span></div></div>
+<div class="node" style="left:774px;top:400px"><div class="tile"><img src="%%ICON_kafka%%" alt=""></div><div class="name"><span>Kafka 요청 · Retry</span></div><div class="role"><span>역할별 토픽 · consumer group</span></div></div>
+<div class="node" style="left:1014px;top:400px"><div class="tile"><img src="%%ICON_worker%%" alt=""></div><div class="name"><span>Worker</span></div><div class="role"><span>DB 저장 후 offset 커밋</span></div></div>
+<div class="node" style="left:534px;top:700px"><div class="tile"><img src="%%ICON_kafka%%" alt=""></div><div class="name"><span>Kafka DLQ</span></div><div class="role"><span>자동 소비 없음</span></div></div>
+<div class="node" style="left:774px;top:700px"><div class="tile"><img src="%%ICON_redis%%" alt=""></div><div class="name"><span>Redis</span></div><div class="role"><span>공유 예산 · opt-in</span></div></div>
+<div class="node" style="left:1014px;top:700px"><div class="tile"><img src="%%ICON_mock%%" alt=""></div><div class="name"><span>HTTP Mock</span></div><div class="role"><span>기본 인메모리 Mock 대체</span></div></div><div class="caption" style="left:54px;top:700px;width:340px"><strong>같은 JAR · 역할별 별도 프로세스</strong><br>Relay / Worker / pool과 토픽·group은 역할별 분리.<br>MySQL·Kafka·Redis 서버와 로컬 호스트는 공유한다.<br><br>실패 재시도는 due 이후 Relay가 Retry 토픽으로 발행.<br>최종 실패의 DLQ는 선택 재발행 API로 별도 처리한다.</div><div class="caption" style="left:54px;top:906px">분리·Redis·HTTP 모드를 켠 구성 · 기본 실행은 단일 REALTIME + 인메모리 Mock · 공급자 수락은 단말 도착이 아님</div></div></div><div class="legend"><span><span class="sw"></span>접수·발행·호출</span><span><span class="sw n"></span>상태·예산·실패 경로</span></div><footer class="foot"><span>code evidence: docs/ARCHITECTURE.md · schematic, not a server deployment map</span><span>icons: svgl / gilbarbara/logos / Lucide · trademarks belong to their owners · made with <a href="https://github.com/caru-ini/stack-diagram">stack-diagram</a></span></footer></main></body></html>

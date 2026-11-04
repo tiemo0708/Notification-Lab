@@ -1,0 +1,52 @@
+{
+  "mysql": {
+    "source": "svgl",
+    "url": "https://svgl.app/library/mysql-icon-light.svg",
+    "file": "mysql.svg",
+    "bytes": 925,
+    "dark_file": "mysql_dark.svg",
+    "dark_url": "https://svgl.app/library/mysql-icon-dark.svg"
+  },
+  "kafka": {
+    "source": "gilbarbara",
+    "url": "https://cdn.jsdelivr.net/gh/gilbarbara/logos/logos/kafka-icon.svg",
+    "file": "kafka.svg",
+    "bytes": 6906
+  },
+  "redis": {
+    "source": "svgl",
+    "url": "https://svgl.app/library/redis.svg",
+    "file": "redis.svg",
+    "bytes": 1928
+  },
+  "batch": {
+    "source": "lucide",
+    "url": "https://cdn.jsdelivr.net/npm/lucide-static/icons/list-checks.svg",
+    "file": "batch.svg",
+    "bytes": 415
+  },
+  "relay": {
+    "source": "lucide",
+    "url": "https://cdn.jsdelivr.net/npm/lucide-static/icons/arrow-right-left.svg",
+    "file": "relay.svg",
+    "bytes": 397
+  },
+  "worker": {
+    "source": "lucide",
+    "url": "https://cdn.jsdelivr.net/npm/lucide-static/icons/cpu.svg",
+    "file": "worker.svg",
+    "bytes": 661
+  },
+  "mock": {
+    "source": "lucide",
+    "url": "https://cdn.jsdelivr.net/npm/lucide-static/icons/server.svg",
+    "file": "mock.svg",
+    "bytes": 487
+  },
+  "springboot": {
+    "source": "svgl",
+    "url": "https://svgl.app/library/spring.svg",
+    "file": "springboot.svg",
+    "bytes": 741
+  }
+}

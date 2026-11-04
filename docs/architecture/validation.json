@@ -1,0 +1,42 @@
+{
+  "result": "PASS",
+  "sourceCommit": "76c40421941d52895a43f6bb63a1b7fb6fc182c0",
+  "skillRepository": "https://github.com/caru-ini/stack-diagram",
+  "skillCommit": "1ed53e3e9525364ae5d82e0430f2bb3f7ef4c838",
+  "visualInspection": "Light and dark PNGs read with view_image; Korean text, logos, edges and canvas bounds checked",
+  "browserOfflineCheck": {
+    "images": 12,
+    "allImagesLoaded": true,
+    "allBoxesInsideCanvas": true,
+    "width": 1200,
+    "height": 940,
+    "nodes": 10
+  },
+  "runtimeNetworkRequests": 0,
+  "themeButtons": "PASS",
+  "localDocumentLinksChecked": 37,
+  "pngPixels": {
+    "width": 2400,
+    "height": 1880
+  },
+  "gradleTest": {
+    "command": "./gradlew --no-daemon --console=plain test",
+    "result": "BUILD SUCCESSFUL",
+    "duration": "5s",
+    "testTask": "UP-TO-DATE",
+    "freshTestRun": false,
+    "reusedTestCount": 349
+  },
+  "artifactSha256": {
+    "docs/architecture/THIRD_PARTY_NOTICES.md": "9ac18e8e85fb3aab7982f98a5dde439a96632a53a7b5f483f3bc60659cec5b71",
+    "docs/architecture/icons-manifest.json": "84808af0ce322547a8244111a6034171b595d4a4c93507f9b14f543848077a04",
+    "docs/architecture/licenses/Lucide-ISC.txt": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
+    "docs/architecture/licenses/OFL-Geist.txt": "942560b236adfa83745b2c64e5fc09ebaf91cb331751b1157eb92187e5d6e930",
+    "docs/architecture/licenses/OFL-JetBrainsMono.txt": "8790c0909f720c509810f95268779450cd6b0aa75b6d24e32f0878afe068427c",
+    "docs/architecture/licenses/stack-diagram-MIT.txt": "be10012fc23bb7f2e332d62312b80cfca01c3eb7abd8970ebb1cdf8ff5b04faa",
+    "docs/architecture/notification-lab-dark.png": "b5c1e44f8d5341e588232e1df2ce724f29f4f96c77377ae5fe85536c165c2fd2",
+    "docs/architecture/notification-lab.html": "dedb4cb045def0fe4328382f6faec7d75981cfff30d8999af7f03bf8942f19c1",
+    "docs/architecture/notification-lab.png": "739b485c5e322d448e48a857c0d0a9832fe572534c4f6056ce6092bc2f329c84",
+    "docs/architecture/notification-lab.template.html": "a9dd4e24d08cd91509be0ddb7d8dff86a6ac33fd7ad76a2696240c14138bb826"
+  }
+}

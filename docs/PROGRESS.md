@@ -2724,3 +2724,20 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   고정 소스 160개 SHA/운영 소스 변경 없음/기존 100만 건 실패 2개·성공 원본 불변/새 JSON 유한값·민감 필드 검사를 확인했다.
   [최종 검증](experiments/s8-consumer-scaling-2026-11-04-validation.json)과 [누적 푸시 검토 자료](PUSH_REVIEW_2026_11_04.md)를 남겼다.
   Git identity와 인증 계정을 유지했고 원격 main은 9cf1786이었다. 푸시나 원격 CI 실행은 하지 않았다.
+
+## 2026-11-04: README 현재 구현 아키텍처와 stack-diagram 설치
+
+- 사용자 제안에 따라 caru-ini/stack-diagram의 `1ed53e3e9525364ae5d82e0430f2bb3f7ef4c838`을 로컬 Codex 스킬로 설치했다.
+  앱/Gradle 의존성에는 추가하지 않았다. 생성 템플릿, 아이콘 출처와 라이선스 notice를 문서에 보존했다.
+- 기준 소스 76c4042의 접수 트랜잭션/Batch 명령/Writer/Relay/Worker/역할 라우팅을 읽고 현재 구현 그림을 만들었다.
+  역할 분리·Redis quota·HTTP Mock 옵션을 켠 로컬 실험 구성임을 표시했다. 기본 단일 REALTIME/인메모리 Mock과 구분한다.
+  캠페인 시작 API가 Batch를 자동 실행하지 않으며 Batch COMPLETED는 DB 인계 완료임을 명시했다.
+  ACK 뒤 PUBLISHED/DB 완료 뒤 offset/Retry와 자동 소비 없는 DLQ/외부 호출의 트랜잭션 경계를 설명했다.
+- README에 밝은/어두운 테마 PNG를 연결하고 [구성요소·코드 근거·실행 경계](ARCHITECTURE.md)를 추가했다.
+  같은 HTML에서 Chromium으로 두 PNG(각 2400×1880)를 만들고 직접 열어 한글·로고·라벨·화살표·잘림을 확인했다.
+  [원본 템플릿](architecture/notification-lab.template.html)과 폰트/로고 내장 HTML, 재생성 방법도 남겼다.
+- 오프라인 Chromium 검증: 이미지 12개 정상 로드, 노드 10개와 모든 그룹/주석이 canvas 내부, 테마 버튼 정상,
+  실행 중 외부 네트워크 요청 0회. 문서 로컬 링크 37개를 확인했다. [검증 기록](architecture/validation.json)을 보존했다.
+- `./gradlew --no-daemon --console=plain test`: 5초/종료코드 0, 모든 task UP-TO-DATE.
+  기존 349개 결과 재사용이며 새 회귀 통과로 계산하지 않는다. 운영 소스와 부하 실험 조건은 변경하지 않았다.
+  S8 파티션 수 변경 검증은 다음 미완료 단계로 유지한다. 이번 문서는 로컬 검토/커밋이며 푸시는 별도다.

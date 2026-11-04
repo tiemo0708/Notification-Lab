@@ -4,6 +4,22 @@ Kafka 기반 알림 시스템을 단계별로 만드는 Java/Spring 학습 프�
 현재 v0.3(S3)는 **요청과 Outbox를 MySQL에 함께 저장하고 Kafka Worker가 Mock을 호출하는 비동기 API**이다.
 S4에서 선택적 `Idempotency-Key` 접수 중복 방지, 발송 작업/시도 이력, 일시 실패의 유한 지연 재시도, Retry 토픽/DLQ, 선택 재발행을 추가했다. 실제 푸시나 단말 도착을 의미하지 않는다.
 
+## 아키텍처
+
+현재 구현 중 **역할 분리·Redis quota·HTTP Mock 옵션을 켠 로컬 실험 구성**이다.
+기본 실행은 단일 REALTIME 역할과 인메모리 Mock을 사용한다.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture/notification-lab-dark.png">
+  <img src="docs/architecture/notification-lab.png" alt="Notification Lab 아키텍처: API와 명시적 Batch가 MySQL에 저장하고 Outbox Relay, Kafka, Worker를 거쳐 Mock을 호출한다. Redis는 호출 예산을 제한하고 결과와 재시도·DLQ Outbox는 MySQL에 저장한다." width="1200">
+</picture>
+
+- 실시간 API는 알림·발송 작업·Outbox를 한 트랜잭션으로 저장하고 접수 응답을 반환한다.
+- 캠페인 API는 정의와 시작 의도를 저장한다. **별도 Batch 명령**이 대상별 알림과 checkpoint를 저장하며, API 시작 요청만으로 자동 실행하지 않는다.
+- Relay는 DB 트랜잭션 밖에서 Kafka ACK를 확인하고, Worker는 외부 호출 후 DB 결과를 저장한 다음 offset을 커밋한다.
+
+[구성요소·코드 근거·보장 범위](docs/ARCHITECTURE.md) · [확대 이미지](docs/architecture/notification-lab.png) · [어두운 테마](docs/architecture/notification-lab-dark.png)
+
 ## 실행
 
 Java 21, Docker(Compose 포함), 인터넷 연결이 필요하다. Gradle은 Wrapper가 설치한다.
