@@ -1,0 +1,17 @@
+{
+  "result" : "PASS",
+  "scope" : "Kafka-only disposable topic contract; no provider calls",
+  "broker" : "apache/kafka:4.0.2",
+  "fromPartitions" : 3,
+  "toPartitions" : 6,
+  "observations" : {
+    "unchangedKeys" : 33,
+    "perPartitionAppendOrderVerified" : true,
+    "beforeRecords" : 120,
+    "keys" : 60,
+    "afterRecords" : 120,
+    "movedKeys" : 27,
+    "existingRecordsRedistributed" : false,
+    "verifiedRecords" : 240
+  }
+}

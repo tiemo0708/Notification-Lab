@@ -1,0 +1,17 @@
+{
+  "result" : "PASS",
+  "scope" : "Kafka-only disposable topic contract; no provider calls",
+  "broker" : "apache/kafka:4.0.2",
+  "fromPartitions" : 3,
+  "toPartitions" : 6,
+  "observations" : {
+    "finalCommittedOffsets" : [ 2, 2, 2, 1, 1, 1 ],
+    "processed" : 9,
+    "existingOffsetsPreserved" : true,
+    "assignmentSizesBefore" : [ 1, 2 ],
+    "assignmentSizesAfter" : [ 3, 3 ],
+    "members" : 2,
+    "additionalAssignmentCallbacks" : 2,
+    "assignmentOverlap" : 0
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "result" : "PASS",
+  "scope" : "Kafka-only disposable topic contract; no provider calls",
+  "broker" : "apache/kafka:4.0.2",
+  "fromPartitions" : 3,
+  "toPartitions" : 6,
+  "observations" : {
+    "negativeControl" : false,
+    "existingOffsetsBeforeRestart" : [ 1, 1, 1 ],
+    "initialProcessed" : 3,
+    "resumeProcessed" : 12,
+    "preDiscoveryNewRecordsRead" : 6,
+    "reset" : "earliest",
+    "finalCommittedOffsets" : [ 2, 2, 2, 3, 3, 3 ],
+    "preDiscoveryNewRecordsSkipped" : 0,
+    "finalLag" : 0,
+    "totalAppended" : 15
+  }
+}

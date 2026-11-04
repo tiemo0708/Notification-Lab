@@ -389,6 +389,10 @@ Consumer/Worker 활성 상한 1/1·2/2·3/3의 평균 처리량은 각각 47.324
 공유 호스트의 작은 비교이며 두 설정의 개별 효과를 분리하지 않는다. 운영 기본값은 유지한다.
 명시적 실행은 `./gradlew consumerScalingPilot -PcampaignConsumers=1`이며 1·2·3만 허용한다.
 
+[S8 파티션 3→6 계약 검증](docs/S8_PARTITION_EXPANSION.md)은 실제 Kafka에서 key 배정·기존 기록·순서·offset 초기화와 live 재할당을 확인했다.
+60개 key 중 27개가 이동했고 기존 기록은 원래 파티션에 남았다. latest 제어군은 신규 파티션의 사전 기록 6건을 건너뛰어도 최종 lag가 0이었다.
+앱은 earliest와 토픽별 파티션 3개 선언을 유지한다. HTTP 발송 처리량 비교는 별도 다음 단계다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

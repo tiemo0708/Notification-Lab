@@ -1,0 +1,16 @@
+{
+  "result" : "PASS",
+  "scope" : "Kafka-only disposable topic contract; no provider calls",
+  "broker" : "apache/kafka:4.0.2",
+  "fromPartitions" : 3,
+  "toPartitions" : 6,
+  "observations" : {
+    "newCommitted" : 2,
+    "oldCommittedAfterCompletion" : 1,
+    "processedSequence" : [ 2, 3, 1 ],
+    "newPartition" : 3,
+    "oldPartition" : 0,
+    "intentionalOldPartitionPause" : true,
+    "oldCommittedWhilePaused" : 0
+  }
+}

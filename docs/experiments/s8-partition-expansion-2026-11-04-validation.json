@@ -1,0 +1,57 @@
+{
+  "result": "PASS",
+  "sourceManifest": "s8-partition-expansion-2026-11-04-source.json",
+  "sourceFilesUnchanged": 161,
+  "productionDiff": false,
+  "focusedTests": {
+    "count": 5,
+    "elapsed": "22s",
+    "exitCode": 0
+  },
+  "regression": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "elapsed": "16m 39s",
+    "exitCode": 0,
+    "suites": 45,
+    "tests": 354,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "testTask": "EXECUTED",
+    "bootJar": "UP-TO-DATE"
+  },
+  "regressionReports": [
+    {
+      "file": "docs/experiments/s8-partition-expansion-2026-11-04-regression-same-key-order.json",
+      "sha256": "f7981c236bad0f248d07b5b978e65d29026f19d709b48eed164b8f37e02243dd"
+    },
+    {
+      "file": "docs/experiments/s8-partition-expansion-2026-11-04-regression-offset-reset-latest.json",
+      "sha256": "511d464ab37c56e73726f679dfef9d09a5762f585722ab326e6eb915c591f400"
+    },
+    {
+      "file": "docs/experiments/s8-partition-expansion-2026-11-04-regression-offset-reset-earliest.json",
+      "sha256": "f64048d0ff6cd60d294c35dfb2dc6738c12d06c55591bb2e14c052a64942e4ea"
+    },
+    {
+      "file": "docs/experiments/s8-partition-expansion-2026-11-04-regression-key-mapping.json",
+      "sha256": "9a02180d1c79d56a71101c9b3cd50bb0e8f95c0fcda4c42e4a3a6a00bd8c8c7e"
+    },
+    {
+      "file": "docs/experiments/s8-partition-expansion-2026-11-04-regression-live-reassignment.json",
+      "sha256": "83b0c73576d8316ebe043bc78931e93a58759b28c3fd826d3cc88a5972f78d0a"
+    }
+  ],
+  "lagMeaning": "Derived from known acknowledged per-partition record counts and actual committed offsets; latest still skipped six records",
+  "upstreamCi": {
+    "commit": "c6cccc16b05c90e9784104c53e57c6d0a0e99b61",
+    "url": "https://github.com/tiemo0708/Notification-Lab/actions/runs/41757502204",
+    "conclusion": "failure",
+    "tests": 349,
+    "failed": 1,
+    "case": "WorkerConcurrencyTest.twoActiveAndOneWaitingKeepOffsetsAndClaimsBehindCompletedWork(RECORD)",
+    "causeObserved": "ConditionTimeoutException at line 78 (waiting for HTTP active=2)",
+    "nextAction": "Separate test fixture review; production cause not established"
+  },
+  "pushed": false
+}
