@@ -1,0 +1,98 @@
+{
+  "result": "PASS",
+  "sourceCommit": "e5e5b013a0fdc9dd00a859adb3b6947a4f096e2b",
+  "startedAtKst": "2026-11-04T02:06:26.123954+09:00",
+  "finishedAtKst": "2026-11-04T06:25:37.348304+09:00",
+  "gradleElapsed": "4h 19m 16s",
+  "preloadSeconds": 2678.242832375,
+  "campaignDrainSeconds": 12698.847662541,
+  "campaignPerSecond": 78.74730263516706,
+  "campaignMockAccepted": 1000000,
+  "realtimeMockAccepted": 54124,
+  "httpAudit": {
+    "duplicates": 0,
+    "uniqueCampaign": 1000000,
+    "uniqueRealtime": 54124,
+    "invalid": 0
+  },
+  "mockStats": {
+    "requests": 1054124,
+    "accepted": 1054124,
+    "rateLimited": 0,
+    "serverErrors": 0,
+    "permanentFailures": 0,
+    "busy": 0,
+    "active": 0,
+    "maxActive": 5
+  },
+  "verifiedTargetMappings": 1000000,
+  "baselineApiLatencyMs": {
+    "p95": 29.462374999999998,
+    "count": 50,
+    "p50": 16.209083,
+    "p99": 220.91725,
+    "max": 220.91725
+  },
+  "mixedApiLatencyMs": {
+    "p95": 36.827125,
+    "count": 54074,
+    "p50": 8.479083,
+    "p99": 472.228958,
+    "max": 3439.614334
+  },
+  "quotaDiagnostics": {
+    "campaign": {
+      "poolIdle": 3,
+      "unavailableByReason": {
+        "SLOT_BUSY": 0.0,
+        "UNKNOWN": 0.0,
+        "TIMEOUT": 0.0,
+        "STATE_ERROR": 0.0,
+        "POOL_CLOSED": 0.0,
+        "CONNECTION": 0.0
+      },
+      "poolClosed": false,
+      "poolActive": 0,
+      "configuredTimeoutMillis": 250,
+      "firstUnavailablePresent": false,
+      "maxConnections": 3
+    },
+    "realtime": {
+      "poolIdle": 2,
+      "unavailableByReason": {
+        "SLOT_BUSY": 0.0,
+        "UNKNOWN": 0.0,
+        "TIMEOUT": 0.0,
+        "STATE_ERROR": 0.0,
+        "POOL_CLOSED": 0.0,
+        "CONNECTION": 0.0
+      },
+      "poolClosed": false,
+      "poolActive": 0,
+      "configuredTimeoutMillis": 250,
+      "firstUnavailablePresent": false,
+      "maxConnections": 3
+    }
+  },
+  "offsets": {
+    "campaignOffsets": {
+      "committed": 1000000,
+      "end": 1000000,
+      "allEqual": true
+    },
+    "realtimeOffsets": {
+      "committed": 54124,
+      "end": 54124,
+      "allEqual": true
+    }
+  },
+  "rawResultSha256": "a52527b9a9478e74b6a1eded4e5ab828908304eb38e1842750f6ebddf4920bfe",
+  "sourceHashesVerified": 160,
+  "recoveryWasTriggered": false,
+  "limitations": [
+    "One successful shared-host experiment; not a performance comparison",
+    "No real device delivery or exactly-once claim",
+    "Original HTTP timeout cause remains undetermined",
+    "Transient recovery verified separately by controlled integration tests"
+  ]
+}

@@ -2681,3 +2681,17 @@ quotaUnavailable/거절각1회와캠페인Worker정지를확인했다. API10438�
   고정소스160개SHA일치를확인했다. 수정커밋과실제재실험시각은새실행기록에남긴다.
 - 재실행 전dry-run에서복구ON/관찰ON/RECORD/Relay기본1/완료저장1/최대12h를읽어확인했다.
   기존Git identity/원격main9cf1786을읽기전용확인했고기존사용자MySQL만healthy로남았다. 푸시는하지않았다.
+
+
+## 2026-11-04: S7 100만 건 HTTP Mock 검증 PASS와 결과 보존
+
+e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시간19분16초/종료코드0/JUnit1개PASS, 실패·오류·스킵0이다.
+- 캠페인1000000+실시간54124=1054124건 HTTP Mock 요청/수락과DB·대상매핑·offset 전수대조를 통과했다. 중복/잘못된참조0이다.
+- 사전저장2678.243초/발송12698.848초/캠페인78.747건·초였다. 혼합API 접수p95 36.827/p99 472.229/최대3439.614ms였다.
+- RECORD/Relay1/Worker3/DB4/Redis3·250ms/완료저장1/기존역할별예산, 관찰ON·유한복구ON이었다.
+  Redis조회오류0회로장시간실험중복구가발동한사례는아니다. 원래실패원인해결이나복구효과를이성공만으로확정하지않는다.
+- 시작소스160개SHA/20MB원본SHA/두이전FAIL 원본불변/종료및JUnit판정을대조했다.
+  [결과와한계](S7_DELIVERY_MILLION_SUCCESS.md), [작은요약](experiments/s7-delivery-million-2026-11-04-recovery-attempt-3-summary.json)을남겼다.
+  첫API timeout조사항목은미완료를유지하고100만건발송검증만완료로표시했다.
+- 이단계는문서와원본보존이며소스변경이없어전체회귀·장시간실험을재실행하지않았다. 기존전체347개통과와별도장시간1개PASS를구분한다.
+- 문서반영후 `./gradlew --no-daemon --console=plain test`는4초/종료코드0이었다. test는UP-TO-DATE로기존347개결과를재사용했으며새회귀실행으로계산하지않는다.

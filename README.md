@@ -363,7 +363,9 @@ ON은 getAutoCommit과setAutoCommit(false/true)를 따로 기록한다.
 [100만 건 관찰 실행 분석](docs/S7_OBSERVED_MILLION_FAILURE.md)은 캠페인190131건 수락 뒤 예산 조회 불가1회로 Worker가 중단된FAIL 기록이다.
 [예산 조회 진단·유한 복구](docs/S7_QUOTA_RECOVERY.md)는 고정 오류 분류와 첫 실패 진단을 보존하고,
 `-PtransientQuotaRecovery=ON`에서만 일시 연결 오류를 최대3번 pause 후 새 허가로 재시도한다. 기본OFF이며 상태 오류는 계속 중단한다.
-100만 건 전체 발송 성공과 첫 실행의 API timeout 원인 규명은 아직 남아 있다.
+[100만 건 HTTP Mock 검증](docs/S7_DELIVERY_MILLION_SUCCESS.md)은 e5e5b01에서 캠페인1000000+실시간54124건의 전수대조를 통과했다.
+발송 구간78.747건/초, 관찰 중복0이며 단말 도착을 뜻하지 않는다. 이 실행의Redis 오류는0회로 복구 발동 효과를 확정하지 않는다.
+첫 실행의API timeout 원인 규명은 아직 남아 있다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.

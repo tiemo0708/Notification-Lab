@@ -1,0 +1,27 @@
+{
+  "finishedObservationAtKst": "2026-11-04T06:26:35.108499+09:00",
+  "sourceCommit": "e5e5b013a0fdc9dd00a859adb3b6947a4f096e2b",
+  "exitCode": 0,
+  "status": "PASS",
+  "autoRetry": false,
+  "pushPerformed": false,
+  "artifacts": {
+    "s7-delivery-million-2026-11-04-recovery-attempt-3-result.json": {
+      "sha256": "a52527b9a9478e74b6a1eded4e5ab828908304eb38e1842750f6ebddf4920bfe",
+      "bytes": 20443190
+    }
+  },
+  "operatorSampling": "60s; Docker stats and bounded console tail only; no extra SQL",
+  "harnessResult": "PASS",
+  "failureType": null,
+  "sourceReportRelativePath": "build/reports/api-failure-pilot/run-13899320952786589522/result.json",
+  "sourceHashesUnchanged": true,
+  "originalFailureUnchanged": true,
+  "previousObservedFailureUnchanged": true,
+  "junit": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}
