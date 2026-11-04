@@ -2857,3 +2857,31 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   producer 사전 실험 뒤 작업 트리의 전체 build를 별도로 실행했다. **19분59초/종료코드0**, 기본 test 새 실행
   **46개 클래스/363개 통과, 실패·오류·스킵0**이었다. WorkerConcurrencyTest 11개도 모두 통과했고 bootJar는 UP-TO-DATE다.
   추가 보완 커밋의 원격 CI는 미실행이며 기존 실패 실행을 성공으로 바꾸어 기록하지 않는다.
+
+## 2026-11-04: S8 producer 단건 ACK·제출 창·LZ4 사전 비교
+
+- 현재 Relay가 단건 send의 ACK를 기다린 뒤 다음 건을 제출함을 확인했다. 기존 publish-batch-size는 ACK 후 DB 완료 저장 묶음이며
+  producer record batch와 구분한다. 운영 Java/resources/producer 기본값/토픽/Worker/quota는 변경하지 않는다.
+- 별도 `producerBatchingPilot`에 단건/linger0/none(A), 단건/linger5/none(B), 제출창10/linger5/none(C),
+  제출창10/linger5/LZ4(D)를 추가해 A→B→C→D→D→C→B→A로 실행했다. 인접 조건은 한 요인만 바뀐다.
+  client3.9.2/broker4.0.2, 파티션3/복제1, acks=all/idempotence/max.in.flight1, 버퍼1MiB/배치16384를 고정했다.
+  heap512MiB/JUnit180초/task4분, future1~10개/공통ACK12초/검증poll100개/고정 배열1650개로 제한했다.
+- 첫 실행34초는 새 토픽의 리더 준비 재시도에서 record-send-total1501을 고유1500으로 단정해 실패했다.
+  준비150건을 추가한 두 번째35초도 준비 전송 counter157을 고유150으로 단정해 실패했다.
+  [원본과 당시 소스](S8_PRODUCER_BATCHING.md)를 모두 보존하고 Kafka3.9.2 Sender에서 재전송 포함 계측을 확인했다.
+  준비/본 측정 counter 차이를 분리하고 고유 개수는 ACK·실제 내용/순서/offset으로 검증하도록 보완했다.
+- 보완 후 **55초/종료코드0/opt-in 테스트1개 통과**였다. 조건8회에서 **13200건(준비1200+본 측정12000)**을 전수 대조했다.
+  각 실행의 실제 committed=end는[550,550,550]이며 본 측정 retry/error0이었다. 준비 retry0/1/0/0/3/3/1/0도 기록했다.
+- A/B/C/D 평균은1249.438/122.879/1263.513/1208.564건/초였다. 이 값은 Kafka 전송~마지막ACK 경계이며 알림 완료 처리량이 아니다.
+  단건에서 linger5는 대기만 늘었고 C가 원래 A보다 일관되게 빠르지는 않았다.
+  C→D의 본 측정 outgoing byte counter는548300→176020(-67.90%)이지만 평균 처리량은 낮고 클라이언트 CPU 평균은 높았다.
+  평균 metric은 준비 구간도 포함하고 outgoing bytes는 프로토콜 트래픽도 포함한다. CPU 범위는 겹치며 각2회의 효과를 일반화하지 않는다.
+- [프로토콜·실패 보존·실제 결과·측정 한계·공식 참고](S8_PRODUCER_BATCHING.md),
+  [소스163개](experiments/s8-producer-batching-2026-11-04-source.json), [성공 원본](experiments/s8-producer-batching-2026-11-04-result.json),
+  [요약](experiments/s8-producer-batching-2026-11-04-summary.json)을 남겼다. DB/Outbox/Worker/HTTP 호출은0이다.
+  앱 경로의 producer 비교는 미완료이며 다음은 기존 순차ACK/linger0의 실제 HTTP 경로 none/LZ4 비교를 검토한다.
+  앱 동시 제출은 부분실패·중단·lease fencing 등 오류 경계를 먼저 검증한 뒤 결정한다.
+- 실험 종료 뒤 전체 build **19분59초/종료코드0**, 새 기본 회귀 **46개 클래스/363개 통과, 실패·오류·스킵0**이었다.
+  WorkerConcurrencyTest11개도 통과했고 bootJar는 UP-TO-DATE다. opt-in 실험은 기본 build에서 제외됐다.
+  소스163개 불변·운영 소스 diff0·JSON 민감 필드/비유한값·링크/원본·JUnit SHA를 대조하고 [최종 검증](experiments/s8-producer-batching-2026-11-04-validation.json)을 보존했다.
+  기존 사용자 MySQL은 healthy로 유지됐다. 새 CI 저장소 보완과 이 실험은 로컬 커밋이며 추가 푸시/원격CI 성공을 주장하지 않는다.

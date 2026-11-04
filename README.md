@@ -402,6 +402,10 @@ Consumer/Worker 활성 상한 1/1·2/2·3/3의 평균 처리량은 각각 47.324
 평균 처리량은 3개에서55.749건/초, 6개에서68.392건/초였다. 같은 3개 조건의 실행 간 차이도 커서 +22.68%를 인과적 개선율로 확정하지 않는다.
 운영 기본 파티션은 3을 유지한다. 테스트 전용 `./gradlew partitionScalingPilot -PcampaignPartitions=3`은 3/6만 허용한다.
 
+[S8 producer batching·압축 사전 비교](docs/S8_PRODUCER_BATCHING.md)는 Kafka 단독 4조건을 각2회/13200건 전수 대조했다.
+단건 ACK에서는 linger만 늘려도 묶음이 충분히 생기지 않았다. 제출창10/LZ4의 바이트 감소도 앱 처리량 개선으로 간주하지 않는다.
+운영 Relay/producer 기본값은 유지한다. 별도 `./gradlew producerBatchingPilot`은 DB/Worker/HTTP를 실행하지 않는다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

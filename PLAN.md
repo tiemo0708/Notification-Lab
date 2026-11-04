@@ -270,7 +270,8 @@ RECORD89.676~98.933/s, COUNT_TIME115.079~123.383/s를 관측했다. 마지막 of
 - [x] 격리 Kafka 토픽 3→6의 key mapping/순서/offset 초기화·live 재할당 계약 검증(앱 발송 경로 제외)
 - [x] 앱의 파티션 3개 가정(일시 복구 budget 포함)을 점검하고 토픽별 6개 파티션 구성의 오류 경계 검증
 - [x] 고정 Consumer/pool/quota의 1만 건 HTTP Mock 경로에서 파티션 3/6 반복 비교와 정합성 검증
-- [ ] producer batching과 압축 비교
+- [x] Kafka 단독 producer 단건 ACK/제출창10/none·LZ4 사전 비교와 전수 정합성 검증(각2회)
+- [ ] 앱 발송 경로의 producer batching과 압축 비교
 - [ ] 병목이 외부 I/O일 때만 스레드 풀 vs 가상 스레드 비교
 - [ ] 병렬 완료 순서가 달라도 미완료 offset을 건너뛰지 않는지 검증
 - [ ] Testcontainers 회귀 테스트 + Grafana 대시보드
@@ -292,6 +293,12 @@ latest 제어군은 6건을 건너뛰어도 최종 lag가 0이었다. 앱은 ear
 3→6→6→3 순서로 4회 통과했다. 캠페인40000+실시간2938건의 HTTP/DB/매핑/전체 offset을 대조했다.
 평균55.749→68.392건/초(+22.68%)를 관측했으나 3개 조건의 첫/마지막 차이도 커서 인과적 개선율로 확정하지 않는다.
 운영 기본 파티션은 3을 유지한다. 다음은 producer batching/압축의 적용 경계와 고정 조건 비교 설계다.
+
+[Producer 사전 비교](docs/S8_PRODUCER_BATCHING.md)는 4조건을 역순까지8회/13200건 검증했다(준비1200+본 측정12000).
+단건 ACK의 linger5는 본 측정 대기만 늘었고, 제출창10이 원래 linger0 단건보다 일관되게 빠르지는 않았다.
+같은 제출창의 LZ4는 outgoing byte counter가67.90% 줄었지만 평균 처리량은 낮고 클라이언트 CPU 평균은 높았다.
+앱 DB/Worker/HTTP는 포함하지 않는다. 다음은 순차 ACK/linger0의 실제 HTTP 경로에서 none/LZ4 비교를 검토하며,
+앱의 동시 제출 도입은 ACK/부분 실패/중단/lease fencing의 오류 경계를 별도로 검증한 뒤 결정한다.
 
 ### S9. 결과 정리와 선택적 배포
 - [ ] 3개 주제: 외부 API 보호 / 유실·중복 대응 / 병렬 처리·배포

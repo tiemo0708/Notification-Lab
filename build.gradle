@@ -50,7 +50,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe', 'api-wait-probe', 'api-failure-persistence', 'api-failure-pilot-controls' }
+    useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'producer-batching-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe', 'api-wait-probe', 'api-failure-persistence', 'api-failure-pilot-controls' }
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
@@ -188,6 +188,20 @@ tasks.register('partitionScalingPilot', Test) {
     systemProperty 'campaign.delivery.load', 'false'
     systemProperty 'campaign.delivery.publishBatchSize', '1'
     systemProperty 'campaign.delivery.transientQuotaRecovery', 'true'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
+// Broker-only producer experiment; no application DB or provider traffic.
+tasks.register('producerBatchingPilot', Test) {
+    description = 'Compare serial ACKs, bounded ten-record submission and LZ4 on isolated Kafka topics'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'producer-batching-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(4)
     outputs.upToDateWhen { false }
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }

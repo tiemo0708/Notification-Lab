@@ -1,0 +1,114 @@
+{
+  "result": "PASS",
+  "verifiedRecords": 13200,
+  "warmupRecords": 1200,
+  "measuredRecords": 12000,
+  "rawFile": "s8-producer-batching-2026-11-04-result.json",
+  "rawSha256": "694d10e5b2a4135642513ba69045a5978f5c817bfb028c7e48ae1ca0bb5dfea0",
+  "sourceFilesUnchanged": true,
+  "summary": [
+    {
+      "mode": "SERIAL_NONE_L0",
+      "runs": 2,
+      "throughputMean": 1249.4384316002624,
+      "throughputRange": [
+        1092.3558331911092,
+        1406.5210300094154
+      ],
+      "meanSendToLastAckSeconds": 1.2198200209999999,
+      "meanOutgoingBytesMeasured": 738500.0,
+      "compressionRateRange": [
+        1.0,
+        1.0
+      ],
+      "recordsPerRequestRange": [
+        1.0,
+        1.0
+      ],
+      "meanClientCpuPercentOneCore": 42.57030863775893,
+      "warmupRetries": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "mode": "SERIAL_NONE_L5",
+      "runs": 2,
+      "throughputMean": 122.87912136302609,
+      "throughputRange": [
+        118.77654653439512,
+        126.98169619165704
+      ],
+      "meanSendToLastAckSeconds": 12.220740958499999,
+      "meanOutgoingBytesMeasured": 738500.0,
+      "compressionRateRange": [
+        1.0,
+        1.0
+      ],
+      "recordsPerRequestRange": [
+        0.9993946731234867,
+        0.9993946731234867
+      ],
+      "meanClientCpuPercentOneCore": 11.951878684776155,
+      "warmupRetries": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "mode": "WINDOW10_NONE_L5",
+      "runs": 2,
+      "throughputMean": 1263.5130895064726,
+      "throughputRange": [
+        1242.11399935969,
+        1284.912179653255
+      ],
+      "meanSendToLastAckSeconds": 1.1875067915000002,
+      "meanOutgoingBytesMeasured": 548300.0,
+      "compressionRateRange": [
+        1.0,
+        1.0
+      ],
+      "recordsPerRequestRange": [
+        9.957831325301205,
+        10.0
+      ],
+      "meanClientCpuPercentOneCore": 11.545485796041504,
+      "warmupRetries": [
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "mode": "WINDOW10_LZ4_L5",
+      "runs": 2,
+      "throughputMean": 1208.56400567232,
+      "throughputRange": [
+        1202.9467383302135,
+        1214.1812730144266
+      ],
+      "meanSendToLastAckSeconds": 1.2411691875000002,
+      "meanOutgoingBytesMeasured": 176020.0,
+      "compressionRateRange": [
+        0.26428010251613393,
+        0.2645648009173812
+      ],
+      "recordsPerRequestRange": [
+        9.89820359281437,
+        9.939759036144578
+      ],
+      "meanClientCpuPercentOneCore": 20.173280338819612,
+      "warmupRetries": [
+        0.0,
+        3.0
+      ]
+    }
+  ],
+  "measuredOutgoingBytesLz4VsNonePercent": -67.89713660404888,
+  "notes": [
+    "Producer-only local broker, no application throughput claim",
+    "Average metrics include 150 warmup records; cumulative counter deltas exclude warmup",
+    "Outgoing bytes include producer protocol traffic, not just record payload",
+    "Two repeats per mode on one shared broker; no statistical significance claim"
+  ]
+}

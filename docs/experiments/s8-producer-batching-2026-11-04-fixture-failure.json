@@ -1,0 +1,77 @@
+{
+  "scope": "Kafka producer only; no Outbox, MySQL, Redis, Worker or provider calls",
+  "clientVersion": "3.9.2",
+  "broker": "apache/kafka:4.0.2",
+  "java": "Amazon.com Inc. 21.0.6",
+  "os": "Mac OS X aarch64",
+  "jvmMaxHeapBytes": 536870912,
+  "fixed": {
+    "batchSizeBytes": 16384,
+    "acks": "all",
+    "brokerCpu": 1,
+    "idempotence": true,
+    "recordsPerRun": 1500,
+    "bufferMemoryBytes": 1048576,
+    "maxInFlightRequestsPerConnection": 1,
+    "partitions": 3,
+    "brokerMemoryMiB": 1024
+  },
+  "fixtureSha256": "443e111883406eb5c615f51d84f07c60accf1c127e927ad659a43ce1d3503492",
+  "serializedValueBytesPerRun": 466890,
+  "sequence": [
+    "SERIAL_NONE_L0",
+    "SERIAL_NONE_L5",
+    "WINDOW10_NONE_L5",
+    "WINDOW10_LZ4_L5",
+    "WINDOW10_LZ4_L5",
+    "WINDOW10_NONE_L5",
+    "SERIAL_NONE_L5",
+    "SERIAL_NONE_L0"
+  ],
+  "rows": [
+    {
+      "mode": "SERIAL_NONE_L0",
+      "submissionWindow": 1,
+      "lingerMillis": 0,
+      "compression": "none",
+      "sendToLastAckSeconds": 1.838255917,
+      "recordsPerSecond": 815.9908455227347,
+      "clientJvmCpuPercentOneCore": 48.62124972558976,
+      "maxRetainedFutures": 1,
+      "metrics": {
+        "record-queue-time-avg": 0.076,
+        "record-size-avg": 413.3333333333333,
+        "buffer-total-bytes": 1048576.0,
+        "compression-rate-avg": 1.0,
+        "record-error-total": 0.0,
+        "outgoing-byte-total": 738780.0,
+        "batch-size-avg": 397.3333333333333,
+        "record-retry-total": 0.0,
+        "record-send-total": 1500.0,
+        "buffer-available-bytes": 1048576.0,
+        "records-per-request-avg": 1.0,
+        "request-total": 1505.0,
+        "request-latency-avg": 1.0653333333333332
+      },
+      "verifiedRecords": 1500,
+      "verifiedPartitionOffsets": [
+        500,
+        500,
+        500
+      ],
+      "verifiedContentAndPerPartitionOrder": true,
+      "committedEqualsEnd": true
+    }
+  ],
+  "result": "FAIL",
+  "failureType": "AssertionFailedError",
+  "fixtureDiagnosis": {
+    "failedRun": 2,
+    "reason": "New topic leader readiness retry entered the measured interval",
+    "gradleElapsed": "34s",
+    "testFailures": 1,
+    "productionFilesChanged": false,
+    "automaticRerun": false,
+    "consoleSha256": "d176258ebc56453167d082cf29b3e8557bb45dd1679cc0dd9c523417f835435a"
+  }
+}
