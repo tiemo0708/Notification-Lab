@@ -1,0 +1,75 @@
+{
+  "result": "PASS",
+  "baseCommit": "f8bf1c01ce61cd2fb401176086e76e36d538c459",
+  "sourceManifest": "s8-consumer-scaling-2026-11-04-group-2-source.json",
+  "sourceFilesUnchanged": true,
+  "frozenSourceCount": 160,
+  "productionDiffAgainstBase": false,
+  "experiment": {
+    "sequence": [
+      1,
+      2,
+      3,
+      3,
+      2,
+      1
+    ],
+    "validRuns": 6,
+    "initialInvalidRun": "FAIL (0 performance rows)",
+    "campaignAccepted": 60000,
+    "realtimeAccepted": 4558,
+    "httpAccepted": 64558,
+    "allOffsetsCommittedToEnd": true,
+    "duplicateAndInvalidHttp": 0
+  },
+  "focusedTests": {
+    "reproductionCommand": "./gradlew --no-daemon --console=plain test --tests \"*CampaignDeliveryBoundsTest\" --tests \"*CampaignDeliveryDiagnosticsTest\"",
+    "tests": 14,
+    "gradleElapsed": "6s",
+    "exitCode": 0
+  },
+  "fullBuild": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+    "gradleElapsed": "18m 18s",
+    "exitCode": 0,
+    "testTask": "EXECUTED",
+    "xmlSuites": 44,
+    "tests": 349,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "bootJar": "UP-TO-DATE",
+    "consolePassed": 349
+  },
+  "artifactSha256": {
+    "s8-consumer-scaling-2026-11-04-group-1-initial-failure.json": "5772b80e09e021a590a90e94099cda4b96fe6b2068ce90ec2fdec079d155a974",
+    "s8-consumer-scaling-2026-11-04-group-1-initial-verification.json": "2c3b010fb70e0f759c53a9be1ba857571e950228d2cd743ccf71eb2dad956e42",
+    "s8-consumer-scaling-2026-11-04-group-1-source.json": "2003691562c1150d32894f2f705f8ecc1c3d24d2b2ee0ee50504efacfa77f860",
+    "s8-consumer-scaling-2026-11-04-group-2-run-1-consumers-1.json": "b3ba0ba646ced5c04e9b227c65b5cc8c559980ff7e381f163bb1c89d3255d41a",
+    "s8-consumer-scaling-2026-11-04-group-2-run-2-consumers-2.json": "8d455e07963d9b0f5704be36b99a3b5de2da878aaefc57a64d4f1763f07e29ce",
+    "s8-consumer-scaling-2026-11-04-group-2-run-3-consumers-3.json": "5ce8495ac11408bbacfc39491565631312776830133871f6321820b628603992",
+    "s8-consumer-scaling-2026-11-04-group-2-run-4-consumers-3.json": "3e1673695a4b39aab2c338f5f4f317453eef58b8d35967bfba136ad8129248c9",
+    "s8-consumer-scaling-2026-11-04-group-2-run-5-consumers-2.json": "91b938fa1bdaf23ef54831bdad9e08cb0b81cd3c7787d4648d56a916bbbcbf90",
+    "s8-consumer-scaling-2026-11-04-group-2-run-6-consumers-1.json": "1f8f93677506d6eb6a4c79a1cc6cc6e6c809e2826b8ff7dea5f535e5eed06aa0",
+    "s8-consumer-scaling-2026-11-04-group-2-source.json": "ca92b48f36cc5a256ce31ef579c20c043ef857facacce71deb0334e180c5bc86",
+    "s8-consumer-scaling-2026-11-04-group-2-summary.json": "2e285d89a3120476c944d0f368d76379353da8f2e9cf77cc268188ca3c7c2b74"
+  },
+  "preservedMillionResults": [
+    {
+      "file": "docs/experiments/s7-delivery-million-2026-11-02-attempt-1-failure.json",
+      "sha256": "0f2752898e43efdba1594d97c4ac76881efabbd7f22a0d9112cae1bf8dbab79b"
+    },
+    {
+      "file": "docs/experiments/s7-delivery-million-2026-11-03-observed-attempt-2-result.json",
+      "sha256": "95dea1536b2b0fa47e235861976f9558168c1c87915ed7226a04f11ef39710c7"
+    },
+    {
+      "file": "docs/experiments/s7-delivery-million-2026-11-04-recovery-attempt-3-result.json",
+      "sha256": "a52527b9a9478e74b6a1eded4e5ab828908304eb38e1842750f6ebddf4920bfe"
+    }
+  ],
+  "boundedJsonChecks": 11,
+  "reportLocalLinksChecked": 23,
+  "remoteCi": "NOT_RUN",
+  "pushed": false
+}

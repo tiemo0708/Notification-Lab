@@ -13,6 +13,27 @@ class CampaignDeliveryBoundsTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
+    void consumerComparisonKeepsSmallRunBoundsForEachSupportedConcurrency() {
+        for (int consumers : new int[]{1, 2, 3}) {
+            var bounds = CampaignDeliveryBounds.forConsumerRun(false, 10_000, consumers, false);
+            assertThat(bounds.maxRealtimeProbes()).isEqualTo(5000);
+            assertThat(bounds.maxResourceSamples()).isEqualTo(452);
+        }
+    }
+
+    @Test
+    void consumerComparisonRejectsLargeRunsExtraConsumersAndMixedFactors() {
+        for (int consumers : new int[]{0, 4, 100}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forConsumerRun(false, 10_000, consumers, false)).isInstanceOf(IllegalArgumentException.class);
+        }
+        for (int targets : new int[]{1000, 100_000, 1_000_000}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forConsumerRun(false, targets, 3, false)).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forConsumerRun(true, 10_000, 3, false)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forConsumerRun(false, 10_000, 3, true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void offsetComparisonAllowsOnlySmallPilotsOrTheExplicitHundredThousandRun() {
         assertThat(CampaignDeliveryBounds.forOffsetRun(false, 1000).targets()).isEqualTo(1000);
         assertThat(CampaignDeliveryBounds.forOffsetRun(false, 10_000).targets()).isEqualTo(10_000);

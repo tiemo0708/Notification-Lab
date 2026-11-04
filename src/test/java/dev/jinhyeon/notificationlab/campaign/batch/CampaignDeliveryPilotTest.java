@@ -76,6 +76,7 @@ class CampaignDeliveryPilotTest {
     private String mockUrl;
     private int maxProbes;
     private int relayInstances;
+    private int campaignConsumers = 3;
     private ApiRequestTiming apiRequestTiming;
     private ApiDbObservation apiDbObservation;
     private ApiFailurePilotSupport failureSupport;
@@ -91,6 +92,7 @@ class CampaignDeliveryPilotTest {
         boolean dbObservation = Boolean.getBoolean("campaign.delivery.dbObservation");
         boolean connectionPilot = Boolean.getBoolean("campaign.delivery.connectionPilot");
         boolean failureWindow = Boolean.getBoolean("campaign.delivery.failureWindow");
+        boolean consumerComparison = Boolean.getBoolean("campaign.delivery.consumerComparison");
         if (connectionPilot && (!apiTiming || dbObservation || load)) throw new IllegalArgumentException("Connection pilot requires only bounded API timing");
         if (dbObservation && !apiTiming) throw new IllegalArgumentException("DB observation requires API timing");
         if (apiTiming && (load || !offsetComparison)) throw new IllegalArgumentException("API timing requires the small offset pilot");
@@ -105,7 +107,13 @@ class CampaignDeliveryPilotTest {
                 ApiFailurePilotSupport.Mode.valueOf(System.getProperty("campaign.delivery.failureMode", "NONE"))) : null;
         if (observation != null) observation.validate(load, targets, fineTiming, offsetComparison, scaling,
                 apiTiming || dbObservation || connectionPilot);
-        var bounds = offsetComparison ? CampaignDeliveryBounds.forOffsetRun(load, targets) : CampaignDeliveryBounds.forRun(load, targets);
+        campaignConsumers = Integer.getInteger("campaign.delivery.campaignConsumers", 3);
+        if (!consumerComparison && campaignConsumers != 3) throw new IllegalArgumentException("Campaign consumer override requires the consumer comparison task");
+        var bounds = consumerComparison ? CampaignDeliveryBounds.forConsumerRun(load, targets, campaignConsumers,
+                scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow)
+                : offsetComparison ? CampaignDeliveryBounds.forOffsetRun(load, targets) : CampaignDeliveryBounds.forRun(load, targets);
+        Path consumerOutput = consumerComparison ? Files.createTempDirectory(
+                Files.createDirectories(Path.of("build/reports/consumer-scaling")), "consumers-" + campaignConsumers + "-") : null;
         if (offsetComparison && relayInstances != 2) throw new IllegalArgumentException("Offset comparison requires exactly two campaign relays");
         maxProbes = bounds.maxRealtimeProbes();
         int drainLimitSeconds = bounds.drainLimitSeconds();
@@ -114,6 +122,8 @@ class CampaignDeliveryPilotTest {
         report.put("startedAtUtc", Instant.now().toString());
         report.put("scope", "preloaded campaign HTTP delivery " + (load ? targets + " target load" : "pilot") + "; same JVM independent app contexts");
         report.put("targets", targets);
+        if (consumerComparison) report.put("consumerComparison", Map.of("campaignConsumers", campaignConsumers,
+                "realtimeConsumers", 3, "campaignWorkerMaxActive", campaignConsumers, "realtimeWorkerMaxActive", 3, "partitionsPerTopic", 3));
         if (observation != null) {
             report.put("failureWindowMode", observation.mode().name());
             report.put("failureObservationProfile", observation.profile().name());
@@ -124,9 +134,14 @@ class CampaignDeliveryPilotTest {
         report.put("verificationVersion", "paged-latency-and-target-mapping-v2");
         report.put("diagnosticsVersion", "live-pools-and-cgroup-counters-v1");
         report.put("redisConnectionsPerLane", 3);
-        report.put("settings", Map.of("totalRate", 1000, "totalBurst", 100, "campaignRate", 200,
+        var settings = new LinkedHashMap<String, Object>(Map.of("totalRate", 1000, "totalBurst", 100, "campaignRate", 200,
                 "campaignBurst", 20, "workersPerLane", 3, "httpConnectionsPerLane", 3,
                 "probeDelayMillis", 200, "baselineProbes", BASELINE_PROBES, "mockDelayMillis", 1));
+        if (consumerComparison) {
+            settings.remove("workersPerLane");
+            settings.put("campaignWorkerMaxActive", campaignConsumers); settings.put("realtimeWorkerMaxActive", 3);
+        }
+        report.put("settings", settings);
         report.put("publishBatchSize", Integer.getInteger("campaign.delivery.publishBatchSize", 1));
         report.put("campaignRelayInstances", relayInstances == 0 ? 1 : relayInstances);
         report.put("relayScheduling", scaling ? "test-only-fixed-delay-group-v1" : "application-scheduled-bean");
@@ -193,6 +208,7 @@ class CampaignDeliveryPilotTest {
                      var admin = Admin.create(Map.of("bootstrap.servers", kafka.getBootstrapServers()))) {
                     try {
                         ready(realtime);
+                        if (consumerComparison) report.put("realtimeConsumerConfiguration", consumerConfiguration(realtime, 3));
                         var jdbc = realtime.getBean(JdbcTemplate.class);
                         long baselineStart = System.nanoTime();
                         for (int i = 0; i < BASELINE_PROBES; i++) {
@@ -211,6 +227,7 @@ class CampaignDeliveryPilotTest {
                              var relays = scaling ? CampaignRelayGroup.start(campaign, relayInstances) : null) {
                             try {
                                 ready(campaign);
+                                if (consumerComparison) report.put("campaignConsumerConfiguration", consumerConfiguration(campaign, campaignConsumers));
                                 long nextSample = 0;
                                 while (completed(campaign) < targets) {
                                     if (seconds(drainStart) > drainLimitSeconds) {
@@ -323,10 +340,10 @@ class CampaignDeliveryPilotTest {
                     failureSupport.release(); report.put("apiFailureWindow", failureSupport.window.snapshot());
                     report.put("failureWindowControl", failureSupport.control());
                 }
-                Path directory = failureSupport != null ? failureSupport.directory() : Path.of(connectionPilot ? "build/reports/api-connection-pilot" : dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
+                Path directory = consumerOutput != null ? consumerOutput : failureSupport != null ? failureSupport.directory() : Path.of(connectionPilot ? "build/reports/api-connection-pilot" : dbObservation ? "build/reports/api-db-observation-pilot" : apiTiming ? "build/reports/api-admission-pilot" : offsetComparison ? (load ? "build/reports/offset-commit-load" : "build/reports/offset-commit-pilot") : fineTiming ? "build/reports/delivery-timing-pilot" : scaling ? "build/reports/relay-scaling-pilot" :
                         load ? "build/reports/campaign-delivery-load" : "build/reports/campaign-delivery-pilot");
                 Files.createDirectories(directory);
-                String name = failureSupport != null ? "result" : connectionPilot ? (Boolean.getBoolean("campaign.delivery.connectionCalls") ? "ON" : "OFF") + "-targets-" + targets : dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
+                String name = consumerOutput != null ? "result" : failureSupport != null ? "result" : connectionPilot ? (Boolean.getBoolean("campaign.delivery.connectionCalls") ? "ON" : "OFF") + "-targets-" + targets : dbObservation ? (Boolean.parseBoolean(System.getProperty("campaign.delivery.dbObserveEnabled", "true")) ? "ON" : "OFF") + "-min-" + Long.getLong("campaign.delivery.dbMinCallMillis", 0) + "-targets-" + targets
                         : offsetComparison ? offsetMode.name() + "-targets-" + targets : scaling ? "relays-" + relayInstances + "-targets-" + targets : (load ? "load-" : "pilot-") + targets;
                 mapper.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), report);
             });
@@ -402,7 +419,7 @@ class CampaignDeliveryPilotTest {
         }
         return builder.run(
                         "--server.port=0", "--app.provider.mode=HTTP", "--app.provider.http.base-url=" + (mockUrl == null ? "http://127.0.0.1:18081" : mockUrl),
-                        "--app.provider.http.max-connections=3", "--app.worker.consumers=3", "--app.worker.max-active=3",
+                        "--app.provider.http.max-connections=3", "--app.worker.consumers=" + (lane.equals("CAMPAIGN") ? campaignConsumers : 3), "--app.worker.max-active=" + (lane.equals("CAMPAIGN") ? campaignConsumers : 3),
                         "--app.worker.queue-capacity=0", "--app.campaign.batch.enabled=" + !live,
                         "--app.async.relay.publish-batch-size=" + (lane.equals("CAMPAIGN") ? Integer.getInteger("campaign.delivery.publishBatchSize", 1) : 1),
                         "--app.campaign.batch.chunk-size=100", "--app.async.relay-enabled=" + (live && !(lane.equals("CAMPAIGN") && relayInstances > 0)), "--app.async.worker-enabled=" + live,
@@ -624,6 +641,20 @@ class CampaignDeliveryPilotTest {
     private boolean running(ConfigurableApplicationContext app) {
         return app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker").isRunning();
     }
+    private Map<String, Object> consumerConfiguration(ConfigurableApplicationContext app, int expected) {
+        var listener = (org.springframework.kafka.listener.ConcurrentMessageListenerContainer<?, ?>) app.getBean(KafkaListenerEndpointRegistry.class)
+                .getListenerContainer("notification-worker");
+        assertThat(listener.getConcurrency()).isEqualTo(expected);
+        int maxActive = app.getBean(dev.jinhyeon.notificationlab.config.WorkerProperties.class).maxActive();
+        assertThat(maxActive).isEqualTo(expected);
+        assertThat(listener.getContainers()).hasSize(expected);
+        assertThat(listener.getAssignedPartitions()).hasSize(6);
+        assertThat(listener.getContainerProperties().getAckMode().name()).isEqualTo("RECORD");
+        assertThat(listener.getContainerProperties().isSyncCommits()).isTrue();
+        return Map.of("configuredConsumers", listener.getConcurrency(), "childContainers", listener.getContainers().size(),
+                "assignedPartitions", listener.getAssignedPartitions().size(), "workerMaxActive", maxActive, "ackMode", "RECORD", "syncCommits", true);
+    }
+
     private void ready(ConfigurableApplicationContext app) {
         if (Boolean.getBoolean("campaign.delivery.fineTiming")) {
             var properties = app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker").getContainerProperties();

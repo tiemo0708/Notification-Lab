@@ -15,6 +15,13 @@ record CampaignDeliveryBounds(int targets, int maxRealtimeProbes, int drainLimit
         throw new IllegalArgumentException("Pilot targets must be 1000..10000; load targets must be 100000 or 1000000");
     }
 
+    static CampaignDeliveryBounds forConsumerRun(boolean load, int targets, int consumers, boolean conflictingMode) {
+        if (load || targets != 10_000 || consumers < 1 || consumers > 3 || conflictingMode) {
+            throw new IllegalArgumentException("Consumer comparison requires isolated 10k pilot and 1..3 campaign consumers");
+        }
+        return forRun(false, targets);
+    }
+
     int maxResourceSamples() { return drainLimitSeconds / 2 + 2; }
 
     static CampaignDeliveryBounds forOffsetRun(boolean load, int targets) {

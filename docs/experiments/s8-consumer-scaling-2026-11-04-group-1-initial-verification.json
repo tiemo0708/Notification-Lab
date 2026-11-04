@@ -1,0 +1,9 @@
+{
+  "result": "FAIL",
+  "exitCode": 1,
+  "gradleElapsed": "27s",
+  "reason": "Existing WorkerProperties requires maxActive <= consumers; initial consumer=1/maxActive=3 was invalid",
+  "performanceRowsCollected": 0,
+  "sourceManifest": "s8-consumer-scaling-2026-11-04-group-1-source.json",
+  "recovery": "Match campaign maxActive to campaign consumers; keep production validation and connection bounds"
+}
