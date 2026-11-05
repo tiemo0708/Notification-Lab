@@ -1,0 +1,48 @@
+name: notification-lab-monitoring
+
+# Optional Docker Desktop stack; independent from the application's data volumes.
+services:
+  prometheus:
+    image: prom/prometheus:v3.13.5
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-19090}:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=24h
+      - --storage.tsdb.retention.size=256MB
+      - --query.timeout=10s
+      - --query.max-concurrency=4
+      - --query.max-samples=1000000
+    environment:
+      GOMEMLIMIT: 320MiB
+    mem_limit: 384m
+
+  grafana:
+    image: grafana/grafana:13.3.0
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-13000}:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_AUTH_BASIC_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+    mem_limit: 512m
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
+  grafana-data:

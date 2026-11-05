@@ -1,0 +1,31 @@
+groups:
+  - name: notification-lab-observation
+    rules:
+      - alert: NotificationTargetDown
+        expr: up{job="notification-lab"} == 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "메트릭 대상 연결 실패"
+      - alert: NotificationDbSampleUnavailable
+        expr: (up{job="notification-lab"} == 1) unless on(job, instance) ((outbox_sample_age_seconds{job="notification-lab"} <= 15) and on(job, instance) (outbox_unpublished{job="notification-lab"} >= 0))
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB 표본이 없거나 NaN이거나 15초보다 오래됨"
+      - alert: NotificationKafkaSampleUnavailable
+        expr: (up{job="notification-lab"} == 1) unless on(job, instance) ((notification_consumer_sample_age_seconds{job="notification-lab"} <= 15) and on(job, instance) (notification_consumer_lag{job="notification-lab"} >= 0))
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka 표본이 없거나 NaN이거나 15초보다 오래됨"
+      - alert: NotificationWorkerStopped
+        expr: notification_worker_running{job="notification-lab"} == 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Worker 컨테이너 정지"

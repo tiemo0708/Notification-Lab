@@ -1,0 +1,332 @@
+{
+  "startedAtUtc" : "2026-11-05T21:29:41.463737Z",
+  "phases" : [ {
+    "phase" : "campaignPausedRealtimeCompleted",
+    "up" : [ {
+      "metric" : {
+        "__name__" : "up",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914203296E9, "1" ]
+    }, {
+      "metric" : {
+        "__name__" : "up",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914203296E9, "1" ]
+    } ],
+    "notification_worker_running" : [ {
+      "metric" : {
+        "__name__" : "notification_worker_running",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914203298E9, "1" ]
+    }, {
+      "metric" : {
+        "__name__" : "notification_worker_running",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914203298E9, "1" ]
+    } ],
+    "notification_consumer_lag" : [ {
+      "metric" : {
+        "__name__" : "notification_consumer_lag",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914203299E9, "3" ]
+    }, {
+      "metric" : {
+        "__name__" : "notification_consumer_lag",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914203299E9, "0" ]
+    } ],
+    "outbox_unpublished" : [ {
+      "metric" : {
+        "__name__" : "outbox_unpublished",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914203302E9, "0" ]
+    }, {
+      "metric" : {
+        "__name__" : "outbox_unpublished",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914203302E9, "0" ]
+    } ],
+    "outbox_sample_age_seconds" : [ {
+      "metric" : {
+        "__name__" : "outbox_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914203304E9, "0.041494875" ]
+    }, {
+      "metric" : {
+        "__name__" : "outbox_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914203304E9, "2.997966042" ]
+    } ],
+    "notification_consumer_sample_age_seconds" : [ {
+      "metric" : {
+        "__name__" : "notification_consumer_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914203305E9, "0.034403416" ]
+    }, {
+      "metric" : {
+        "__name__" : "notification_consumer_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914203305E9, "2.9687915" ]
+    } ],
+    "notification_completed_total" : [ {
+      "metric" : {
+        "__name__" : "notification_completed_total",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN",
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "value" : [ 1.793914203307E9, "1" ]
+    }, {
+      "metric" : {
+        "__name__" : "notification_completed_total",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME",
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "value" : [ 1.793914203307E9, "1" ]
+    } ]
+  }, {
+    "phase" : "bothRecoveredEightAcceptances",
+    "up" : [ {
+      "metric" : {
+        "__name__" : "up",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914208308E9, "1" ]
+    }, {
+      "metric" : {
+        "__name__" : "up",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914208308E9, "1" ]
+    } ],
+    "notification_worker_running" : [ {
+      "metric" : {
+        "__name__" : "notification_worker_running",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.79391420831E9, "1" ]
+    }, {
+      "metric" : {
+        "__name__" : "notification_worker_running",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.79391420831E9, "1" ]
+    } ],
+    "notification_consumer_lag" : [ {
+      "metric" : {
+        "__name__" : "notification_consumer_lag",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914208312E9, "0" ]
+    }, {
+      "metric" : {
+        "__name__" : "notification_consumer_lag",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914208312E9, "0" ]
+    } ],
+    "outbox_unpublished" : [ {
+      "metric" : {
+        "__name__" : "outbox_unpublished",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914208313E9, "0" ]
+    }, {
+      "metric" : {
+        "__name__" : "outbox_unpublished",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914208313E9, "0" ]
+    } ],
+    "outbox_sample_age_seconds" : [ {
+      "metric" : {
+        "__name__" : "outbox_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914208314E9, "0.086858708" ]
+    }, {
+      "metric" : {
+        "__name__" : "outbox_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914208314E9, "0.082995125" ]
+    } ],
+    "notification_consumer_sample_age_seconds" : [ {
+      "metric" : {
+        "__name__" : "notification_consumer_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914208315E9, "0.082022834" ]
+    }, {
+      "metric" : {
+        "__name__" : "notification_consumer_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914208315E9, "0.077143166" ]
+    } ],
+    "notification_completed_total" : [ {
+      "metric" : {
+        "__name__" : "notification_completed_total",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN",
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "value" : [ 1.793914208315E9, "4" ]
+    }, {
+      "metric" : {
+        "__name__" : "notification_completed_total",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME",
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "value" : [ 1.793914208315E9, "4" ]
+    } ]
+  }, {
+    "phase" : "campaignTargetLostWithoutZeroLagFallback",
+    "up" : [ {
+      "metric" : {
+        "__name__" : "up",
+        "instance" : "host.testcontainers.internal:64509",
+        "job" : "notification-lab",
+        "lane" : "CAMPAIGN"
+      },
+      "value" : [ 1.793914213275E9, "0" ]
+    }, {
+      "metric" : {
+        "__name__" : "up",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914213275E9, "1" ]
+    } ],
+    "notification_worker_running" : [ {
+      "metric" : {
+        "__name__" : "notification_worker_running",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914213277E9, "1" ]
+    } ],
+    "notification_consumer_lag" : [ {
+      "metric" : {
+        "__name__" : "notification_consumer_lag",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914213278E9, "0" ]
+    } ],
+    "outbox_unpublished" : [ {
+      "metric" : {
+        "__name__" : "outbox_unpublished",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914213279E9, "0" ]
+    } ],
+    "outbox_sample_age_seconds" : [ {
+      "metric" : {
+        "__name__" : "outbox_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.79391421328E9, "0.130881875" ]
+    } ],
+    "notification_consumer_sample_age_seconds" : [ {
+      "metric" : {
+        "__name__" : "notification_consumer_sample_age_seconds",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME"
+      },
+      "value" : [ 1.793914213282E9, "0.12586425" ]
+    } ],
+    "notification_completed_total" : [ {
+      "metric" : {
+        "__name__" : "notification_completed_total",
+        "instance" : "host.testcontainers.internal:64499",
+        "job" : "notification-lab",
+        "lane" : "REALTIME",
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "value" : [ 1.793914213282E9, "4" ]
+    } ]
+  } ],
+  "scope" : "eight synthetic HTTP Mock acceptances; not a performance or physical-device experiment",
+  "promtoolRuleCases" : 8,
+  "dashboardPanels" : 22,
+  "httpAccepted" : 8,
+  "logicalTasks" : 8,
+  "dashboardQueriesExecuted" : 27,
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-05T21:30:14.293628Z"
+}

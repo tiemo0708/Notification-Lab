@@ -3009,3 +3009,38 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   알림/HTTP Mock0.3.0 실행 JAR task는 UP-TO-DATE이며 기존0.2.0 산출물은 검증 대상과 구분해 보존했다.
   [최종 로컬 검증](experiments/s8-offset-order-2026-11-06-validation.json)을 남겼다. 다음 작은 단계는 Grafana 대시보드와 기존 메트릭 연결·회귀 점검이다.
   가상 스레드는 외부 I/O 주병목 근거가 있을 때의 조건부 후보이며 환경별 반복/S9 로컬 LB 검증은 별도 항목으로 남긴다.
+
+## 2026-11-06: S8 Prometheus/Grafana의 실제 수집·표시·회귀
+
+- 시작 main=f8c7f95/작업 트리 clean이었다. 앱의 메트릭 노출은 있었지만 수집 서버·Grafana 파일은 없었다.
+  선택 compose.monitoring.yml과 Prometheus3.13.5 LTS/Grafana OSS13.3.0 provisioning을 추가했다.
+  기존 앱 compose/DB 볼륨/.env/운영 소스·정책을 바꾸지 않았다. localhost19090/13000의 별도 프로젝트·볼륨이다.
+- 5초 scrape/3초 timeout, 메모리384/512MiB·보관24시간/256MB·쿼리10초/동시4/100만 표본 상한을 두었다.
+  TSDB 보관 크기가 전체 디스크 하드 쿼터가 아님을 명시했다. 익명 Viewer/관리자 자동 생성OFF의 로컬 읽기 구성이며 외부 공개 배포가 아니다.
+- 22개 패널/27개 쿼리에서 역할별 적체·표본 신선도·Worker·시도/최종 결과·처리 p95/구간 평균·CPU/heap/pool을 표시한다.
+  같은 DB/그룹을 관찰한 lag/Outbox를 합산하지 않고 역할별 최대값으로 구분한다. 표본 경과는 인스턴스별로 보며 누락/NaN을0으로 채우지 않는다.
+  상태별 histogram p95와 접수 HTTP 평균의 범위를 설명하고 단말 도착/클라이언트 p95/전체 서버 자원으로 오인하지 않게 했다.
+- 대상 연결/DB·Kafka 표본/Worker 정지의 로컬 경고를 추가했다. 최근 성공 시각이 있어도 현재 lag/DB 값이NaN이면 정상으로 보지 않도록 보완했다.
+  정상0·누락·오래된 표본·NaN·대상 종료·Worker 정지·중복 관찰·현재 값NaN의 promtool 제어8개가 통과했다. Alertmanager/외부 전송은 연결하지 않았다.
+- 새 MonitoringIntegrationTest는 Compose의 실제 이미지/환경/명령/메모리와 원본 provisioning을 읽고 임시 주소만 바꾼다.
+  MySQL/Kafka/Redis/HTTP Mock·두 역할 앱과 실제 Prometheus/Grafana를 사용한다. 계정/토큰/수신자/본문을 관측 JSON에 넣지 않는다.
+  캠페인 pause 중 실시간4개 수락/캠페인lag3·running1, 재개 뒤 DB/시도8개·HTTP8회·역할별완료4개/lag0을 대조했다.
+  캠페인 앱 종료 뒤 실시간up1/캠페인up0·캠페인lag빈시계열을 확인했다. Grafana의 22개 패널 쿼리/설명/배치/옵션과 datasource proxy도 확인했다.
+- 초기 compileTestJava는 같은 이름의 유틸리티/애너테이션 import 충돌로6초/종료1/실행테스트0이었다.
+  다음 실행은 Mock 시작 helper를 우회해 기본 설정이 누락된 새 테스트 구성 오류로15초/종료1/테스트1개 실패·HTTP0이었다.
+  기존 MockServerApplication.start로 보완했다. [실패/당시 소스·로그 SHA](experiments/s8-monitoring-2026-11-06-failures.json)와 실패 원본을 보존한다.
+- 최종 집중은 **48초/종료코드0/통합1개 통과·실패/오류/스킵0**이며 내부 규칙8개/패널쿼리27개를 확인했다.
+  초기 보완 후 중간 집중도56초/47초에 통과했으나 최종 고정 소스와 구분한다. 기본 test 입력에 모니터링 파일을 등록해 JSON/YAML 변경도 회귀 대상이다.
+  [실행·해석·한계](S8_MONITORING.md), [고정 소스168개/구성·집중 검증](experiments/s8-monitoring-2026-11-06-focused.json),
+  [관측 원본](experiments/s8-monitoring-2026-11-06-observation.json)을 남겼다.
+- 이 Mac의 Docker Desktop→host.docker.internal→127.0.0.1 전용 임시 HTTP 연결을 확인하고 임시 서버를 닫았다.
+  별도 로컬 모니터링도 실행해 UI에서 대상0·업무 데이터 없음과 중립색을 확인하고 화면을 보존했다. 이 화면은 통합 실험 데이터가 아니다.
+  8080/8082의 사용자 앱을 자동 실행하지 않았다. 별도 볼륨/모니터링은 유지했고 정지 명령을 문서화했다.
+  이후 같은 고정 소스·설정의 전체 build를 실행했다. 원격 CI/푸시·S9 LB/클라우드 배포·대량 부하 재실행은 미실행이다.
+- 최종 전체 build는 **17분30초/종료코드0**, 기본 test 새 실행 **49개 클래스/389개 통과, 실패·오류·스킵0**이었다.
+  기존388개+새 통합1개이며 내부 promtool8개를 JUnit 수에 합산하지 않는다. WorkerConcurrencyTest15개도 다시 통과했다.
+  소스168개/설정10개와 source inventory가 고정 시점과 같은지 대조했다. 운영 Java/resources/기존 compose.yml diff0이다.
+  전체 회귀의 새 관측도 up/역할별lag/완료카운터4+4/HTTP8개를 대조하고 JUnit·집중/전체 원본·구성·소스·JAR SHA를 남겼다.
+  알림/HTTP Mock0.3.0 JAR task는 UP-TO-DATE이며 기존0.2.0 산출물은 보존하고 검증 대상에서 구분했다.
+  [최종 로컬 검증](experiments/s8-monitoring-2026-11-06-validation.json)을 보존한다. 로컬 두 모니터링 서버는 health200으로 확인했다.
+  다음은 S8 실험별 반복 조건·원본과 기본값 선택 근거의 종합 대조이며, 가상 스레드는 조건부 보류/S9는 별도다.

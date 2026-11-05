@@ -1,0 +1,470 @@
+{
+  "rule_files": [
+    "rules.yml"
+  ],
+  "evaluation_interval": "5s",
+  "tests": [
+    {
+      "name": "healthy-zero-lag-is-not-an-error",
+      "interval": "5s",
+      "input_series": [
+        {
+          "series": "up{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_consumer_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_worker_running{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_unpublished{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_consumer_lag{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationTargetDown",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationDbSampleUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationKafkaSampleUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationWorkerStopped",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "missing-db-sample-is-not-zero",
+      "interval": "5s",
+      "input_series": [
+        {
+          "series": "up{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "notification_consumer_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_worker_running{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_unpublished{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_consumer_lag{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationTargetDown",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationDbSampleUnavailable",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "job": "notification-lab",
+                "instance": "one",
+                "lane": "REALTIME",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "DB 표본이 없거나 NaN이거나 15초보다 오래됨"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationKafkaSampleUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationWorkerStopped",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "stale-db-sample",
+      "interval": "5s",
+      "input_series": [
+        {
+          "series": "up{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "20+0x12"
+        },
+        {
+          "series": "notification_consumer_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_worker_running{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_unpublished{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_consumer_lag{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationTargetDown",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationDbSampleUnavailable",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "job": "notification-lab",
+                "instance": "one",
+                "lane": "REALTIME",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "DB 표본이 없거나 NaN이거나 15초보다 오래됨"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationKafkaSampleUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationWorkerStopped",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "nan-samples-remain-unavailable",
+      "interval": "5s",
+      "input_series": [
+        {
+          "series": "up{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN"
+        },
+        {
+          "series": "notification_consumer_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN"
+        },
+        {
+          "series": "notification_worker_running{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_unpublished{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_consumer_lag{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationTargetDown",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationDbSampleUnavailable",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "job": "notification-lab",
+                "instance": "one",
+                "lane": "REALTIME",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "DB 표본이 없거나 NaN이거나 15초보다 오래됨"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationKafkaSampleUnavailable",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "job": "notification-lab",
+                "instance": "one",
+                "lane": "REALTIME",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "Kafka 표본이 없거나 NaN이거나 15초보다 오래됨"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationWorkerStopped",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "target-down-is-not-db-success",
+      "interval": "5s",
+      "input_series": [
+        {
+          "series": "up{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationTargetDown",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "job": "notification-lab",
+                "instance": "one",
+                "lane": "REALTIME",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "메트릭 대상 연결 실패"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationDbSampleUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationKafkaSampleUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationWorkerStopped",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "worker-stopped-while-scrape-works",
+      "interval": "5s",
+      "input_series": [
+        {
+          "series": "up{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_consumer_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_worker_running{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "outbox_unpublished{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_consumer_lag{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationTargetDown",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationDbSampleUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationKafkaSampleUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationWorkerStopped",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "job": "notification-lab",
+                "instance": "one",
+                "lane": "REALTIME",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "Worker 컨테이너 정지"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "shared-group-observations-must-not-be-summed",
+      "interval": "5s",
+      "input_series": [
+        {
+          "series": "notification_consumer_lag{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "10+0x12"
+        },
+        {
+          "series": "notification_consumer_lag{job=\"notification-lab\",instance=\"two\",lane=\"REALTIME\"}",
+          "values": "10+0x12"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "max by(lane) (notification_consumer_lag{job=\"notification-lab\",lane=~\".*\"})",
+          "eval_time": "40s",
+          "exp_samples": [
+            {
+              "labels": "{lane=\"REALTIME\"}",
+              "value": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "recent-age-does-not-hide-current-nan-values",
+      "interval": "5s",
+      "input_series": [
+        {
+          "series": "up{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_consumer_sample_age_seconds{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "0+0x12"
+        },
+        {
+          "series": "notification_worker_running{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "1+0x12"
+        },
+        {
+          "series": "outbox_unpublished{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN"
+        },
+        {
+          "series": "notification_consumer_lag{job=\"notification-lab\",instance=\"one\",lane=\"REALTIME\"}",
+          "values": "NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationTargetDown",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationDbSampleUnavailable",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "job": "notification-lab",
+                "instance": "one",
+                "lane": "REALTIME",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "DB 표본이 없거나 NaN이거나 15초보다 오래됨"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationKafkaSampleUnavailable",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "job": "notification-lab",
+                "instance": "one",
+                "lane": "REALTIME",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "Kafka 표본이 없거나 NaN이거나 15초보다 오래됨"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "40s",
+          "alertname": "NotificationWorkerStopped",
+          "exp_alerts": []
+        }
+      ]
+    }
+  ]
+}

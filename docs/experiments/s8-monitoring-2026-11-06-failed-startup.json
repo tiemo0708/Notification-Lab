@@ -1,0 +1,8 @@
+{
+  "startedAtUtc" : "2026-11-05T21:24:41.182330Z",
+  "phases" : [ ],
+  "scope" : "eight synthetic HTTP Mock acceptances; not a performance or physical-device experiment",
+  "result" : "FAIL",
+  "failureType" : "UnsatisfiedDependencyException",
+  "finishedAtUtc" : "2026-11-05T21:24:42.074630Z"
+}

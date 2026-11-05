@@ -1,0 +1,1210 @@
+{
+  "uid": "notification-lab-s8",
+  "title": "Notification-Lab · 파이프라인 관찰",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "notification-lab",
+    "s8"
+  ],
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "lane",
+        "label": "역할",
+        "type": "custom",
+        "query": "REALTIME,CAMPAIGN",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "REALTIME",
+            "value": "REALTIME"
+          },
+          {
+            "selected": false,
+            "text": "CAMPAIGN",
+            "value": "CAMPAIGN"
+          }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "읽는 순서: 대상 연결 → 표본 신선도 → Worker → 적체·처리",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "역할별 프로세스의 **관찰 화면**입니다. `up=1`은 메트릭 HTTP 연결 성공이며 Worker 정상·발송 성공을 뜻하지 않습니다. DB/Kafka **표본 경과가 15초 초과하거나 데이터 없음이면 적체 0으로 판단하지 마세요.** lag/Outbox는 같은 그룹·DB의 중복 관찰을 합산하지 않고 역할별 최댓값으로 표시합니다. 수락은 HTTP Mock 기준이며 단말 도착이 아닙니다. 선택 기능·아직 발생하지 않은 카운터는 데이터가 없을 수 있습니다. 경고는 Prometheus `/alerts`에서만 평가하며 외부 알림은 연결하지 않습니다."
+      }
+    },
+    {
+      "id": 2,
+      "title": "메트릭 대상 연결 (1/0)",
+      "description": "프로세스별 scrape 성공. 한 앱만 실행하면 다른 역할은 0입니다.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}}",
+          "range": false,
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Worker 실행 (1/0)",
+      "description": "컨테이너 running 상태이며 pause 중에도 1일 수 있습니다. 메모리 비교 프로필에는 없습니다.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "notification_worker_running{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}}",
+          "range": false,
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "DB 표본 경과",
+      "description": "마지막 성공 수집 뒤 경과. 없음/NaN도 경고 대상입니다. 15초는 관찰 기준이며 SLO가 아닙니다.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "outbox_sample_age_seconds{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}}",
+          "range": false,
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "데이터 없음",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 15
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Kafka 표본 경과",
+      "description": "lag가 NaN이면 경과 시간과 함께 확인하세요.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "notification_consumer_sample_age_seconds{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}}",
+          "range": false,
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "데이터 없음",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 15
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 28
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Consumer lag (역할별 최대)",
+      "description": "요청+Retry의 end−committed 합계. DLQ 제외. 같은 그룹을 보는 replica를 합산하지 않습니다. Offset이 없는 신규 파티션의 시작 가정은 별도 확인해야 합니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (lane) (notification_consumer_lag{job=\"notification-lab\",lane=~\"$lane\"})",
+          "legendFormat": "{{lane}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "미발행 Outbox (역할별 최대)",
+      "description": "FAILED 포함. 공유 DB를 보는 replica는 최댓값으로 중복 관찰을 제거합니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (lane) (outbox_unpublished{job=\"notification-lab\",lane=~\"$lane\"})",
+          "legendFormat": "{{lane}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "가장 오래된 미발행 시간",
+      "description": "PUBLISHED 이외 레코드의 생성 시각 기준. 미래 dueAt의 정상 Retry도 포함될 수 있습니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (lane) (outbox_oldest_age_seconds{job=\"notification-lab\",lane=~\"$lane\"})",
+          "legendFormat": "{{lane}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "실패 Outbox",
+      "description": "발행 시도 상한을 소진한 Outbox. DLQ 개수나 공급자 실패 횟수와 다릅니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (lane) (outbox_failed{job=\"notification-lab\",lane=~\"$lane\"})",
+          "legendFormat": "{{lane}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "공급자 시도율",
+      "description": "재시도 포함 프로세스 카운터. rate를 먼저 적용해 재시작 reset을 처리합니다. 정확한 전수 대조는 DB/offset으로 수행합니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (lane) (rate(notification_provider_attempts_total{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval]))",
+          "legendFormat": "{{lane}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "저장된 최종 결과율",
+      "description": "성공 수락·최종 실패 등 저장된 결과. 중간 재시도 예약은 완료 카운터에서 제외됩니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (lane,status) (rate(notification_completed_total{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval]))",
+          "legendFormat": "{{lane}} · {{status}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Worker 활성 / 대기",
+      "description": "프로세스별 슬롯 사용량. 서로 다른 두 개의 카운터를 합치지 않습니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "notification_worker_active{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}} · active",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "notification_worker_waiting{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}} · waiting",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Redis 허가 판정율",
+      "description": "선택적 Redis 제한기에서 allowed/limited/unavailable. 허가는 실제 HTTP 요청 횟수와 다릅니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (lane,outcome) (rate(notification_rate_limit_decisions_total{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval]))",
+          "legendFormat": "{{lane}} · {{outcome}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "재개 예약 대기",
+      "description": "pause 요청/예약 수. 확정 pause 상태가 아니며 quota 대기의 worker.quota.waiting은 pause 모드에서 0일 수 있습니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 44
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "notification_worker_quota_pauses_pending{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}} · quota",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "notification_worker_circuit_pauses_pending{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}} · circuit",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        },
+        {
+          "refId": "C",
+          "expr": "notification_worker_quota_transient_pauses_pending{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}} · transient",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "처리·발행·진입 오류율",
+      "description": "아직 발생하지 않은 오류 카운터는 미등록일 수 있습니다. 데이터 없음을 0으로 치환하지 않습니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 44
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(lane) (rate(notification_worker_failures_total{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval]))",
+          "legendFormat": "{{lane}} · worker",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "sum by(lane) (rate(outbox_publish_failures_total{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval]))",
+          "legendFormat": "{{lane}} · publish",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        },
+        {
+          "refId": "C",
+          "expr": "sum by(lane,reason) (rate(notification_worker_admission_rejected_total{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval]))",
+          "legendFormat": "{{lane}} · admission · {{reason}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "공급자 회로 상태",
+      "description": "프로세스별 0=CLOSED, 1=OPEN, 2=HALF_OPEN. 기능 비활성화 여부는 앱 설정으로 확인합니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 52
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "notification_provider_circuit_state{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "title": "파이프라인 구간 평균",
+      "description": "관찰 창의 합계/횟수. handler는 하위 구간을 포함하므로 구간 평균을 더해 총시간으로 해석하지 않습니다. Relay ACK는 제출 창에 따라 관찰 의미도 달라집니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 52
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(lane,stage) (rate(notification_pipeline_stage_seconds_sum{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval])) / sum by(lane,stage) (rate(notification_pipeline_stage_seconds_count{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval]))",
+          "legendFormat": "{{lane}} · {{stage}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "title": "처리 시도 p95 (히스토그램 추정)",
+      "description": "상태별 처리 Timer의 bucket 추정. 큐 대기/생성→완료/단말 도착 p95가 아닙니다. 개별 p95를 평균하지 않습니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by(lane,status,le) (rate(notification_processing_seconds_bucket{job=\"notification-lab\",lane=~\"$lane\"}[$__rate_interval])))",
+          "legendFormat": "{{lane}} · {{status}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "title": "알림 접수 HTTP 평균",
+      "description": "서버 POST /notifications 처리 평균. 클라이언트 지연·p95·처리량과 구분합니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(lane) (rate(http_server_requests_seconds_sum{job=\"notification-lab\",lane=~\"$lane\",method=\"POST\",uri=\"/notifications\"}[$__rate_interval])) / sum by(lane) (rate(http_server_requests_seconds_count{job=\"notification-lab\",lane=~\"$lane\",method=\"POST\",uri=\"/notifications\"}[$__rate_interval]))",
+          "legendFormat": "{{lane}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "title": "앱 프로세스 CPU",
+      "description": "앱 JVM 프로세스의 CPU 비율. Docker/MySQL/Kafka 전체 CPU 합계가 아닙니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 68
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_cpu_usage{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "JVM heap 사용량",
+      "description": "역할별 앱 JVM heap 사용량. 호스트나 DB/브로커 메모리가 아닙니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 68
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(lane,instance) (jvm_memory_used_bytes{job=\"notification-lab\",lane=~\"$lane\",area=\"heap\"})",
+          "legendFormat": "{{lane}} · {{instance}}",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "DB 연결 사용 / 대기",
+      "description": "앱의 Hikari pool별 active/pending. 연결 취득 지연 자체는 아닙니다.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "nl-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 76
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hikaricp_connections_active{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}} · {{pool}} · active",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "hikaricp_connections_pending{job=\"notification-lab\",lane=~\"$lane\"}",
+          "legendFormat": "{{lane}} · {{instance}} · {{pool}} · pending",
+          "range": true,
+          "instant": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "nl-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "데이터 없음",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,1032 @@
+{
+  "date": "2026-11-06",
+  "baseCommit": "f8c7f95fdcd79f30c161e0544bd30763b1b1f083",
+  "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+  "exitCode": 0,
+  "buildSeconds": 1050,
+  "classes": 49,
+  "counts": {
+    "tests": 389,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "monitoringJUnitTests": 1,
+  "promtoolRuleCasesInsideMonitoringTest": 8,
+  "workerConcurrencyTests": 15,
+  "dashboardPanels": 22,
+  "dashboardQueriesExecuted": 27,
+  "focusedMetadata": "docs/experiments/s8-monitoring-2026-11-06-focused.json",
+  "focusedMetadataSha256": "605f79408c43e3a8ddd879705d59eeeded6fe688c8433adfa467f4711a893407",
+  "fixedSourceFiles": 168,
+  "sourceAndConfigurationHashesUnchanged": true,
+  "consoleSha256": "934403f2fa51402ace0d09b4ad8347fbd25305f805c738e858471d89f8531092",
+  "junitSuites": [
+    {
+      "class": "dev.jinhyeon.notificationlab.api.NotificationApiTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.api.NotificationApiTest.xml",
+      "sha256": "cbaed56627f6f189e2690c5cd7e44e7306ff07055aa2f4aed5d0e3d63b2c2f98",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.api.NotificationFailureApiTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.api.NotificationFailureApiTest.xml",
+      "sha256": "b03c9307f873f5c3522fa80008e6006ef71e9561460b6718cd89680d7b5f1036",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.CampaignApiTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.CampaignApiTest.xml",
+      "sha256": "1cd58465cd1bfd5ca6586a15021b2a66a2d26c0c12ee28a2d238d6257506485c",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.SyntheticCampaignAudienceTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.SyntheticCampaignAudienceTest.xml",
+      "sha256": "c15cdb6bb461b69c385adb891e142a6ebbade9f6b8135cf17d67652e983afda9",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiDbObservationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiDbObservationTest.xml",
+      "sha256": "35beb3f5e707be229545204461f19db6e03f8645fdb5bcda07d2eeba9caa9fd3",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiFailureObservationPlanTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiFailureObservationPlanTest.xml",
+      "sha256": "2e2a709d670de78c33b0e3afabd80cb5f0a3febd6eae9d87b269e5d5a4f21504",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiFailurePilotSupportTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiFailurePilotSupportTest.xml",
+      "sha256": "cf6b4445e4dc81a9f32e91ab5e919256aba2217f3d8978cfb93c584f0d2aa820",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiFailureWindowTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiFailureWindowTest.xml",
+      "sha256": "ecea96670d8a22c6ded88b57a7fc346af8637487f4f0e5121d019e02befc1a4f",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiRequestTimingTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiRequestTimingTest.xml",
+      "sha256": "047882c614eae636e8c8ba9cd27de66dbef151e3c422c03612b39ac803112855",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignBatchTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignBatchTest.xml",
+      "sha256": "ec673eba2290bd8ffb2142660f12ea1719eed952cc6a98417f4a3defe6416d13",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignCheckpointTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignCheckpointTest.xml",
+      "sha256": "bae68bbbab560fffcd0bacbd514fb274dc854896de3f3ce83a1c15284f983d40",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignDeliveryBoundsTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignDeliveryBoundsTest.xml",
+      "sha256": "59bb802b225f4b28535bcb037cf0650e5e681556c42a7b694ee8fef3827a15bd",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignDeliveryDiagnosticsTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignDeliveryDiagnosticsTest.xml",
+      "sha256": "9c60caab5eb7dc8231bf7185a430a03ee767945c0901fe162fd4242a2aab7275",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignRelayGroupTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignRelayGroupTest.xml",
+      "sha256": "2b8cdb295cee5f7e5b7662fd588681021bcf2d812a053a204705e69fa385d39c",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.DeliveryProducerObservationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.DeliveryProducerObservationTest.xml",
+      "sha256": "5fafa52ef735ec78b9f9ae61b445911dd1aed876a4db59dfd22c3a3d3bd508b7",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.DeliveryRelayObservationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.DeliveryRelayObservationTest.xml",
+      "sha256": "66b91e1345200cf5770cb26f1efd5956e9367ae6085ca0150469c587d2cce74b",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.DeliveryTimingTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.DeliveryTimingTest.xml",
+      "sha256": "0c51a2ddb2a2484c8025e09e49299d1d14e433a869fe0db9b704935b367c2ffb",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.FailureSnapshotStoreTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.FailureSnapshotStoreTest.xml",
+      "sha256": "ffd3864966b9598f0182b89cd923dffa741c4c0094389834d19bb87e7ae352be",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.OffsetCommitPolicyTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.OffsetCommitPolicyTest.xml",
+      "sha256": "51ff73dfdacb48f147f680250e22140abd30d1aeeacbc451355daeaf88b2d7d5",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.PilotFinalizationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.PilotFinalizationTest.xml",
+      "sha256": "2b7a2ba652308cca9c587aadcea542a3a2046b38d27d230829300d369b6d6544",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.config.AsyncPropertiesTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.config.AsyncPropertiesTest.xml",
+      "sha256": "3af8345c2c3161476d70863ab97c8314a5752dc156caf77dc7bbe0f698037c5b",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.config.RateLimitConfigurationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.config.RateLimitConfigurationTest.xml",
+      "sha256": "60e8db886888a0baa6ca13ce20df3f94154f49a7fbfb205f11330eb97f4f6c58",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.monitoring.MonitoringIntegrationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.monitoring.MonitoringIntegrationTest.xml",
+      "sha256": "9eea0194417214ac45c39f8a6398288918fe00d81dce811e9250347983a89984",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.notification.InMemoryNotificationStoreTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.notification.InMemoryNotificationStoreTest.xml",
+      "sha256": "4d7d1d629c45b4df707918a16259d8d2cc6d8a9d5f12b3780d8770b6dd42a90f",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.notification.MySqlNotificationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.notification.MySqlNotificationTest.xml",
+      "sha256": "b7dc6f3cd6b29f33418a5b7e641f2917a2231e277981d07e7c85d24d1588f643",
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.notification.NotificationServiceTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.notification.NotificationServiceTest.xml",
+      "sha256": "bc512ffc57a8ab338db79476e8791f0a46f01543396934568c57e02728dc1873",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.AsyncNotificationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.AsyncNotificationTest.xml",
+      "sha256": "6b88d5f35f2ed5f376f6f0f378b5db1a4a1b331070110a6ef7411802531908dc",
+      "tests": 65,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.KafkaPartitionExpansionTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.KafkaPartitionExpansionTest.xml",
+      "sha256": "c148ca8fa71f15f714026667286da5e9ecc52d676dc57928d1d5429d7f1ad457",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.KafkaRecoveryTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.KafkaRecoveryTest.xml",
+      "sha256": "342272208f36ee61c89e4042b7f630279f6d72edd04de61fdcdf138b58aef17c",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.OutboxProcessCrashTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.OutboxProcessCrashTest.xml",
+      "sha256": "e3a390c264cf4736c661c26f269ed517ae8fc5ab6f6128b765e05ca5ae69a86e",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.OutboxPublishProbeTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.OutboxPublishProbeTest.xml",
+      "sha256": "4bb605b1e1b8d98ac9406beeef98d6016a315e523701f443186f1ccaa648699a",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.provider.HttpPushProviderTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.provider.HttpPushProviderTest.xml",
+      "sha256": "33349f7f9a9986d22a0a15075c0ad8ff083aaf981ad5d6455e52a5d0a03baf2d",
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.provider.MockPushProviderTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.provider.MockPushProviderTest.xml",
+      "sha256": "122f4fd6cb1b82fbc7e107da9b476da1f9d4f17d2da3e75b455c5565620eda8b",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.provider.ProviderCircuitBreakerTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.provider.ProviderCircuitBreakerTest.xml",
+      "sha256": "1747bdc679f1c008fd54f6fc2856345c0515864394db7e25194d3b12a86d4f53",
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiterTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiterTest.xml",
+      "sha256": "a7c4bdde162b362638c035025d9ce72dcecd5226d3fa5f9c0353d199237375eb",
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.GracefulShutdownTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.GracefulShutdownTest.xml",
+      "sha256": "1e589a2f3501e086b97851ab9872cdfeb92b560039a17c7e6522b6366803f4ea",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.HttpWorkerTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.HttpWorkerTest.xml",
+      "sha256": "758fc4127a089fbed347914c7d73127f19145c87a58c97337efc4268e25010af",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.RetryPolicyTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.RetryPolicyTest.xml",
+      "sha256": "3311508ed298340cc48d38fb895c324caee16f68fe8bbb37d206857aead8c86a",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.TrafficIsolationIntegrationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.TrafficIsolationIntegrationTest.xml",
+      "sha256": "148559efe5c9e2e8e89e4632feba024025e525859f704be95891384b22f7c88c",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerAdmissionTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerAdmissionTest.xml",
+      "sha256": "8679d65e1d5e36e7924319555a8d44a3e8f3062d8d642804107aaaf1cad65504",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerCircuitBreakerIntegrationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerCircuitBreakerIntegrationTest.xml",
+      "sha256": "946d311a3f559b159cc72e6685407d5e398f86e0f264c80d14bf8b9d0c727fe8",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerConcurrencyTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerConcurrencyTest.xml",
+      "sha256": "0851a4b3c1e90a1d6c6596a041880646012cab43876f8d2a4c1b8935ac14048b",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerPauseErrorHandlerTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerPauseErrorHandlerTest.xml",
+      "sha256": "361c9a432c7658e794c35b2b93b3f070fe065e696d714ffc22bc881db5a2928a",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerProcessCrashTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerProcessCrashTest.xml",
+      "sha256": "6bd830df15dad9bea9804f3c66fce2a1c31ed5e154528fdd625bdca7af7e7f6c",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerQuotaIntegrationTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerQuotaIntegrationTest.xml",
+      "sha256": "f52510348047e4b33c4c700f89748a45e9ad4c18882993683726c4a37beb696a",
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerQuotaTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerQuotaTest.xml",
+      "sha256": "4ce76529e29ca018ce0ae916d5569cd18fbad3c001c7f86142da1e6055dfab29",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerRebalanceTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerRebalanceTest.xml",
+      "sha256": "217f92f5523eb5f76ac1a1715d9e4cda9935a86db0b33e506112a99298b74156",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationmock.FixedWindowQuotaTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationmock.FixedWindowQuotaTest.xml",
+      "sha256": "adbcb67531682d8ea892d7c38d48676e59f013d91f1721656736e9395b01a121",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationmock.HttpMockServerTest",
+      "path": "build/test-results/test/TEST-dev.jinhyeon.notificationmock.HttpMockServerTest.xml",
+      "sha256": "a6092bfde16a4dd0399df78feaf5024851288822a74b0e0ebdfce8bf159291f9",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "regressionObservation": {
+    "path": "build/reports/monitoring/observation-5083143110016524827/result.json",
+    "sha256": "694355ada04a6207394b4b8836164cae81df86d2c23cae80e390175c4c848915",
+    "snapshot": {
+      "startedAtUtc": "2026-11-05T21:32:13.805274Z",
+      "phases": [
+        {
+          "phase": "campaignPausedRealtimeCompleted",
+          "up": [
+            {
+              "metric": {
+                "__name__": "up",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914349.528,
+                "1"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "up",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914349.528,
+                "1"
+              ]
+            }
+          ],
+          "notification_worker_running": [
+            {
+              "metric": {
+                "__name__": "notification_worker_running",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914349.528,
+                "1"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "notification_worker_running",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914349.528,
+                "1"
+              ]
+            }
+          ],
+          "notification_consumer_lag": [
+            {
+              "metric": {
+                "__name__": "notification_consumer_lag",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914349.529,
+                "3"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "notification_consumer_lag",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914349.529,
+                "0"
+              ]
+            }
+          ],
+          "outbox_unpublished": [
+            {
+              "metric": {
+                "__name__": "outbox_unpublished",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914349.53,
+                "0"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "outbox_unpublished",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914349.53,
+                "0"
+              ]
+            }
+          ],
+          "outbox_sample_age_seconds": [
+            {
+              "metric": {
+                "__name__": "outbox_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914349.531,
+                "0.033167875"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "outbox_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914349.531,
+                "4.534029375"
+              ]
+            }
+          ],
+          "notification_consumer_sample_age_seconds": [
+            {
+              "metric": {
+                "__name__": "notification_consumer_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914349.531,
+                "0.01960675"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "notification_consumer_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914349.531,
+                "4.512543542"
+              ]
+            }
+          ],
+          "notification_completed_total": [
+            {
+              "metric": {
+                "__name__": "notification_completed_total",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN",
+                "status": "PROVIDER_ACCEPTED"
+              },
+              "value": [
+                1793914349.532,
+                "1"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "notification_completed_total",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME",
+                "status": "PROVIDER_ACCEPTED"
+              },
+              "value": [
+                1793914349.532,
+                "1"
+              ]
+            }
+          ]
+        },
+        {
+          "phase": "bothRecoveredEightAcceptances",
+          "up": [
+            {
+              "metric": {
+                "__name__": "up",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914354.447,
+                "1"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "up",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914354.447,
+                "1"
+              ]
+            }
+          ],
+          "notification_worker_running": [
+            {
+              "metric": {
+                "__name__": "notification_worker_running",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914354.447,
+                "1"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "notification_worker_running",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914354.447,
+                "1"
+              ]
+            }
+          ],
+          "notification_consumer_lag": [
+            {
+              "metric": {
+                "__name__": "notification_consumer_lag",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914354.448,
+                "0"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "notification_consumer_lag",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914354.448,
+                "0"
+              ]
+            }
+          ],
+          "outbox_unpublished": [
+            {
+              "metric": {
+                "__name__": "outbox_unpublished",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914354.448,
+                "0"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "outbox_unpublished",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914354.448,
+                "0"
+              ]
+            }
+          ],
+          "outbox_sample_age_seconds": [
+            {
+              "metric": {
+                "__name__": "outbox_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914354.449,
+                "0.119696292"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "outbox_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914354.449,
+                "0.063592459"
+              ]
+            }
+          ],
+          "notification_consumer_sample_age_seconds": [
+            {
+              "metric": {
+                "__name__": "notification_consumer_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914354.449,
+                "0.11465125"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "notification_consumer_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914354.449,
+                "0.0573795"
+              ]
+            }
+          ],
+          "notification_completed_total": [
+            {
+              "metric": {
+                "__name__": "notification_completed_total",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN",
+                "status": "PROVIDER_ACCEPTED"
+              },
+              "value": [
+                1793914354.449,
+                "4"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "notification_completed_total",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME",
+                "status": "PROVIDER_ACCEPTED"
+              },
+              "value": [
+                1793914354.449,
+                "4"
+              ]
+            }
+          ]
+        },
+        {
+          "phase": "campaignTargetLostWithoutZeroLagFallback",
+          "up": [
+            {
+              "metric": {
+                "__name__": "up",
+                "instance": "host.testcontainers.internal:65199",
+                "job": "notification-lab",
+                "lane": "CAMPAIGN"
+              },
+              "value": [
+                1793914359.464,
+                "0"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "up",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914359.464,
+                "1"
+              ]
+            }
+          ],
+          "notification_worker_running": [
+            {
+              "metric": {
+                "__name__": "notification_worker_running",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914359.465,
+                "1"
+              ]
+            }
+          ],
+          "notification_consumer_lag": [
+            {
+              "metric": {
+                "__name__": "notification_consumer_lag",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914359.466,
+                "0"
+              ]
+            }
+          ],
+          "outbox_unpublished": [
+            {
+              "metric": {
+                "__name__": "outbox_unpublished",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914359.468,
+                "0"
+              ]
+            }
+          ],
+          "outbox_sample_age_seconds": [
+            {
+              "metric": {
+                "__name__": "outbox_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914359.469,
+                "0.180536958"
+              ]
+            }
+          ],
+          "notification_consumer_sample_age_seconds": [
+            {
+              "metric": {
+                "__name__": "notification_consumer_sample_age_seconds",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME"
+              },
+              "value": [
+                1793914359.471,
+                "0.172417625"
+              ]
+            }
+          ],
+          "notification_completed_total": [
+            {
+              "metric": {
+                "__name__": "notification_completed_total",
+                "instance": "host.testcontainers.internal:65190",
+                "job": "notification-lab",
+                "lane": "REALTIME",
+                "status": "PROVIDER_ACCEPTED"
+              },
+              "value": [
+                1793914359.473,
+                "4"
+              ]
+            }
+          ]
+        }
+      ],
+      "scope": "eight synthetic HTTP Mock acceptances; not a performance or physical-device experiment",
+      "promtoolRuleCases": 8,
+      "dashboardPanels": 22,
+      "httpAccepted": 8,
+      "logicalTasks": 8,
+      "dashboardQueriesExecuted": 27,
+      "result": "PASS",
+      "finishedAtUtc": "2026-11-05T21:32:40.557820Z"
+    }
+  },
+  "experimentAssetsSha256": {
+    "docs/experiments/s8-monitoring-2026-11-06-failed-startup.json": "4b16261f1d0dbeb9b93fb05d13ee076a364fa8d7dc1591e037b5b58c31c08ad4",
+    "docs/experiments/s8-monitoring-2026-11-06-failures.json": "f12927af0248044efb11fe037c0a7266eded250ad14f0a45094fcfd0ada68f6c",
+    "docs/experiments/s8-monitoring-2026-11-06-focused.json": "605f79408c43e3a8ddd879705d59eeeded6fe688c8433adfa467f4711a893407",
+    "docs/experiments/s8-monitoring-2026-11-06-no-targets.png": "44720c98efb19f4bd06e527d3d8b784fd0b4b38aeaf7ca2bc5b18002b266bd20",
+    "docs/experiments/s8-monitoring-2026-11-06-observation.json": "49e7e103bf7f4d094e0dd781943c033e925a06f1e365a7553432918cc0e62e19"
+  },
+  "jars": {
+    "build/libs/notification-lab-0.3.0-SNAPSHOT-http-mock.jar": {
+      "sha256": "3e4e2d006713a6977be647be7504cadb149306f6aa6a55ee88ccea931207b728",
+      "bytes": 59271623
+    },
+    "build/libs/notification-lab-0.3.0-SNAPSHOT.jar": {
+      "sha256": "429caa9dd750147da88ee8f9b889703f0e64cbace06fd11d6ab9be34522b4958",
+      "bytes": 59422450
+    }
+  },
+  "jarTasks": "UP-TO-DATE; pre-existing 0.2.0 files are preserved and excluded",
+  "productionSourceAndOriginalComposeDiff": [],
+  "remoteCiRun": false,
+  "pushed": false,
+  "largeLoadRepeated": false,
+  "cloudResourcesCreated": false,
+  "loadBalancerDeployed": false,
+  "localMonitoringRunning": true,
+  "limitations": [
+    "No physical-device delivery or performance effect established",
+    "No external alert notifications",
+    "Docker Desktop native path tested on this Mac; Linux native Compose path unverified",
+    "Separate hosts/HA/LB not tested"
+  ],
+  "localRuntime": {
+    "observedAtUtc": "2026-11-05T21:49:34.472045+00:00",
+    "health": {
+      "grafana": 200,
+      "prometheus": 200
+    },
+    "portBindings": {
+      "grafana": {
+        "3000/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "13000"
+          }
+        ]
+      },
+      "prometheus": {
+        "9090/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "19090"
+          }
+        ]
+      }
+    },
+    "targetUp": {
+      "CAMPAIGN": "0",
+      "REALTIME": "0"
+    }
+  }
+}

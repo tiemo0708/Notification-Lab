@@ -477,6 +477,15 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 카운터는 프로세스 기준이며 정확한 대조는 DB/offset으로 수행한다. ID나 수신자/payload를 메트릭 label에 넣지 않는다.
 `health UP`만으로 Worker 정상 처리나 lag 0을 판단하지 않는다.
 
+## 로컬 모니터링
+
+선택 구성 `docker compose -f compose.monitoring.yml up -d`로 Prometheus와 Grafana를 실행한다.
+[Grafana 대시보드](http://127.0.0.1:13000/d/notification-lab-s8)는 22개 패널로 역할별 적체·Worker·처리 지연·자원을 표시한다.
+앱은 별도로 8080(REALTIME)/8082(CAMPAIGN)에 실행해야 한다. 앱이 없으면 대상 연결0·업무 지표 데이터 없음이 정상적인 표시다.
+기본 앱/기존 DB 볼륨을 바꾸지 않는 Docker Desktop용 localhost 전용 읽기 구성이다.
+[실행·메트릭 해석·검증·제한](docs/S8_MONITORING.md)을 참고한다. 외부 경고 전송은 연결하지 않았다.
+추가 후 전체 build는17분30초/49개 클래스·389개 통과(실패·오류·스킵0)였다. [로컬 검증 원본](docs/experiments/s8-monitoring-2026-11-06-validation.json)을 보존했다.
+
 ## 한계와 문서
 
 자동 Redis failover, 실제 회원 DB 대상자 조회, 다중 DB/failover 환경의 Batch 복구, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.

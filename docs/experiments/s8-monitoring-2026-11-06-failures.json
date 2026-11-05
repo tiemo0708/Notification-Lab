@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-06",
+  "attempts": [
+    {
+      "stage": "compileTestJava",
+      "exitCode": 1,
+      "seconds": 6,
+      "executedTests": 0,
+      "compilerErrors": 3,
+      "cause": "Testcontainers utility and JUnit annotation imported with identical simple name",
+      "consoleSha256": "8dce88079d189984b4d23b9a522e0fc4b73e5381eb250bc79105335e193751bf",
+      "testSourceSha256": "2e9c0b95e54a02734b097ac6eb0677cae3882ad499acc7a990ea0aa84440f201"
+    },
+    {
+      "stage": "test app startup",
+      "exitCode": 1,
+      "seconds": 15,
+      "tests": 1,
+      "failures": 1,
+      "httpAcceptances": 0,
+      "cause": "Mock fixture bypassed MockServerApplication.start and therefore did not load mock-server.yml defaults",
+      "consoleSha256": "51d6e2ee356df7de5af5a45138480aee0311de9c895fda0f8bb56e2a39f0c05d",
+      "testSourceSha256": "19f2c169036150041329bc43e3406cefacad3d042b9ca46d75b32b8f045bcc88",
+      "originalResult": "docs/experiments/s8-monitoring-2026-11-06-failed-startup.json",
+      "originalResultSha256": "4b16261f1d0dbeb9b93fb05d13ee076a364fa8d7dc1591e037b5b58c31c08ad4"
+    }
+  ]
+}
