@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-05",
+  "phase": "interrupted full regression before isolating binding test configuration",
+  "reason": "The nested binding-only helper had @Configuration and could be picked up by unrelated application component scans. Remove the component stereotype, keep explicit @EnableConfigurationProperties import through ApplicationContextRunner, and assert helper absence in app integration contexts.",
+  "passedCaseLinesBeforeStop": 331,
+  "failedCaseLinesBeforeStop": 0,
+  "fullBuildCompleted": false,
+  "fullBuildClaimedPassed": false,
+  "logSha256BeforeStop": "d0d481194af7a5b3a2a1212aae5ef0ae9650f0d864d4a33a3edd94b3965cdc95"
+}

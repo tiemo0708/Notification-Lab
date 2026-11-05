@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-05",
+  "phase": "interrupted full regression before further window bound repair",
+  "reason": "Review found unresolved producer futures could survive a timeout into the next scheduled invocation. Stop current build, retain fixed-size unresolved futures, verify no refilling until settled, then restart full regression.",
+  "passedCaseLinesBeforeStop": 208,
+  "failedCaseLinesBeforeStop": 0,
+  "fullBuildCompleted": false,
+  "fullBuildClaimedPassed": false,
+  "logSha256BeforeStop": "a63f23e032d47ff00816fe883b72100c48d4f463ef246e029d3502dcad0b1b02"
+}

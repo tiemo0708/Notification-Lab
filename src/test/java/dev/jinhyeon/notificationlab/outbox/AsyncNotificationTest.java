@@ -32,6 +32,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import dev.jinhyeon.notificationlab.notification.NotificationRequest;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -124,6 +125,9 @@ class AsyncNotificationTest {
                 "--app.async.relay-initial-delay-ms=" + (experiment ? "0" : "86400000"),
                 "--logging.level.org.apache.kafka=WARN", "--logging.level.org.springframework.kafka=WARN"),
                 Arrays.stream(overrides)).toArray(String[]::new));
+        assertThat(Arrays.stream(app.getBeanDefinitionNames())
+                .map(name -> app.getBeanFactory().getBeanDefinition(name).getBeanClassName()).toList())
+                .doesNotContain("dev.jinhyeon.notificationlab.config.AsyncPropertiesTest$RelayConfiguration");
     }
 
     @AfterEach
@@ -226,6 +230,352 @@ class AsyncNotificationTest {
     private OutboxRelay batchRelay(KafkaTemplate<String, String> template) {
         return new OutboxRelay(app.getBean(OutboxStore.class), template, app.getBean(AsyncProperties.class), registry(),
                 app.getBean(dev.jinhyeon.notificationlab.config.TrafficRouting.class), new dev.jinhyeon.notificationlab.config.RelayProperties(10));
+    }
+
+    @Test
+    void submissionWindowBoundsOutstandingSendsAndRejectsOverlappingRuns() throws Exception {
+        for (int i = 0; i < 11; i++) post();
+        var submitted = new CountDownLatch(10);
+        var futures = new CopyOnWriteArrayList<CompletableFuture<SendResult<String, String>>>();
+        var fake = windowTemplate((destination, key, data) -> {
+            var future = new CompletableFuture<SendResult<String, String>>();
+            futures.add(future);
+            submitted.countDown();
+            if (futures.size() > 10) future.complete(null);
+            return future;
+        });
+        var relay = windowRelay(fake, 10);
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(relay::relay);
+            try {
+                assertThat(submitted.await(8, TimeUnit.SECONDS)).isTrue();
+                relay.relay(); // A manual overlapping invocation must not create another window.
+                assertThat(futures).hasSize(10);
+                assertThat(outboxCount("PROCESSING", 1)).isEqualTo(10);
+                assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+                assertThat(outboxCount("PUBLISHED", 1)).isZero();
+            } finally {
+                futures.forEach(f -> f.complete(null));
+            }
+            running.get(8, TimeUnit.SECONDS);
+        }
+        assertThat(futures).hasSize(11);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(11);
+        assertThat(probe().attempts.get()).isZero(); // Synthetic ACKs, not actual broker delivery.
+    }
+
+    @Test
+    void submissionWindowDrainsOutOfOrderAcksAfterPartialFailureWithoutRefilling() throws Exception {
+        for (int i = 0; i < 4; i++) post();
+        var submitted = new CountDownLatch(3);
+        var futures = new CopyOnWriteArrayList<CompletableFuture<SendResult<String, String>>>();
+        var fake = windowTemplate((destination, key, data) -> {
+            var future = new CompletableFuture<SendResult<String, String>>();
+            futures.add(future);
+            submitted.countDown();
+            return future;
+        });
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(windowRelay(fake, 3)::relay);
+            try {
+                assertThat(submitted.await(8, TimeUnit.SECONDS)).isTrue();
+                futures.get(2).complete(null);
+                assertThat(outboxCount("PUBLISHED", 1)).isZero();
+                futures.get(0).completeExceptionally(new IllegalStateException("synthetic broker failure"));
+                futures.get(1).complete(null);
+                running.get(8, TimeUnit.SECONDS);
+            } finally {
+                futures.forEach(f -> f.complete(null));
+            }
+        }
+        assertThat(futures).hasSize(3);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(2);
+        assertThat(outboxCount("PENDING", 1)).isEqualTo(1);
+        assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+    }
+
+    @Test
+    void submissionWindowDrainsEarlierSendsWhenSendThrowsSynchronously() throws Exception {
+        for (int i = 0; i < 4; i++) post();
+        var submitted = new CountDownLatch(3);
+        var sends = new AtomicInteger();
+        var futures = new CopyOnWriteArrayList<CompletableFuture<SendResult<String, String>>>();
+        var fake = windowTemplate((destination, key, data) -> {
+            int number = sends.incrementAndGet();
+            if (number == 3) {
+                submitted.countDown();
+                throw new IllegalStateException("synthetic send rejection");
+            }
+            var future = new CompletableFuture<SendResult<String, String>>();
+            futures.add(future);
+            submitted.countDown();
+            return future;
+        });
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(windowRelay(fake, 3)::relay);
+            try {
+                assertThat(submitted.await(8, TimeUnit.SECONDS)).isTrue();
+            } finally {
+                futures.forEach(f -> f.complete(null));
+            }
+            running.get(8, TimeUnit.SECONDS);
+        }
+        assertThat(sends.get()).isEqualTo(3);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(2);
+        assertThat(outboxCount("PENDING", 1)).isEqualTo(1);
+        assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+    }
+
+    @Test
+    void submissionWindowUsesOneDeadlineAndLateAcksCannotPublishTimedOutLeases() throws Exception {
+        for (int i = 0; i < 4; i++) post();
+        var submitted = new CountDownLatch(3);
+        var futures = new CopyOnWriteArrayList<CompletableFuture<SendResult<String, String>>>();
+        var fake = windowTemplate((destination, key, data) -> {
+            var future = new CompletableFuture<SendResult<String, String>>();
+            futures.add(future);
+            submitted.countDown();
+            if (futures.size() > 3) future.complete(null);
+            return future;
+        });
+        // Two missing ACKs share five seconds, rather than waiting five seconds for each.
+        var relay = new OutboxRelay(app.getBean(OutboxStore.class), fake, app.getBean(AsyncProperties.class), registry(),
+                app.getBean(dev.jinhyeon.notificationlab.config.TrafficRouting.class),
+                new dev.jinhyeon.notificationlab.config.RelayProperties(10, 3), Duration.ofSeconds(5));
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(relay::relay);
+            try {
+                assertThat(submitted.await(8, TimeUnit.SECONDS)).isTrue();
+                futures.get(2).complete(null);
+                running.get(8, TimeUnit.SECONDS);
+                assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(1);
+                assertThat(outboxCount("PROCESSING", 1)).isEqualTo(2);
+                assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+                assertThat(registry().get("outbox.publish.unconfirmed").counter().count()).isEqualTo(2);
+                relay.relay();
+                assertThat(futures).hasSize(3);
+                assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+            } finally {
+                futures.forEach(f -> f.complete(null));
+            }
+        }
+        assertThat(outboxCount("PROCESSING", 1)).isEqualTo(2);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(1);
+        assertThat(futures).allSatisfy(f -> assertThat(f.isCancelled()).isFalse());
+        relay.relay(); // Completed late futures free capacity, but are never used as DB ACK callbacks.
+        assertThat(futures).hasSize(4);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(2);
+        assertThat(outboxCount("PROCESSING", 1)).isEqualTo(2);
+    }
+
+    @Test
+    void stoppingSubmissionWindowDrainsSubmittedAcksAndLeavesUnclaimedRows() throws Exception {
+        for (int i = 0; i < 5; i++) post();
+        var submitted = new CountDownLatch(3);
+        var futures = new CopyOnWriteArrayList<CompletableFuture<SendResult<String, String>>>();
+        var fake = windowTemplate((destination, key, data) -> {
+            var future = new CompletableFuture<SendResult<String, String>>();
+            futures.add(future);
+            submitted.countDown();
+            return future;
+        });
+        var relay = windowRelay(fake, 3);
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(relay::relay);
+            try {
+                assertThat(submitted.await(8, TimeUnit.SECONDS)).isTrue();
+                relay.stopClaiming();
+            } finally {
+                futures.forEach(f -> f.complete(null));
+            }
+            running.get(8, TimeUnit.SECONDS);
+        }
+        relay.relay();
+        assertThat(futures).hasSize(3);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(3);
+        assertThat(outboxCount("PENDING", 0)).isEqualTo(2);
+    }
+
+    @Test
+    void interruptedSubmissionWindowPreservesLeasesAndInterruptFlag() throws Exception {
+        for (int i = 0; i < 4; i++) post();
+        var submitted = new CountDownLatch(3);
+        var thread = new AtomicReference<Thread>();
+        var futures = new CopyOnWriteArrayList<CompletableFuture<SendResult<String, String>>>();
+        var fake = windowTemplate((destination, key, data) -> {
+            var future = new CompletableFuture<SendResult<String, String>>();
+            futures.add(future);
+            submitted.countDown();
+            return future;
+        });
+        var relay = windowRelay(fake, 3);
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(() -> {
+                thread.set(Thread.currentThread());
+                relay.relay();
+                return Thread.currentThread().isInterrupted();
+            });
+            try {
+                assertThat(submitted.await(8, TimeUnit.SECONDS)).isTrue();
+                thread.get().interrupt();
+                assertThat(running.get(8, TimeUnit.SECONDS)).isTrue();
+                relay.relay();
+                assertThat(futures).hasSize(3);
+                assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+            } finally {
+                futures.forEach(f -> f.complete(null));
+            }
+        }
+        assertThat(outboxCount("PROCESSING", 1)).isEqualTo(3);
+        assertThat(outboxCount("PUBLISHED", 1)).isZero();
+        assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+    }
+
+    @Test
+    void submissionWindowFencesBothAckAndFailureAfterLeaseReclaim() throws Exception {
+        for (int i = 0; i < 3; i++) post();
+        var submitted = new CountDownLatch(3);
+        var keys = new CopyOnWriteArrayList<String>();
+        var futures = new CopyOnWriteArrayList<CompletableFuture<SendResult<String, String>>>();
+        var fake = windowTemplate((destination, key, data) -> {
+            keys.add(key);
+            var future = new CompletableFuture<SendResult<String, String>>();
+            futures.add(future);
+            submitted.countDown();
+            return future;
+        });
+        var store = app.getBean(OutboxStore.class);
+        var replacements = new java.util.ArrayList<OutboxStore.Claim>();
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(windowRelay(fake, 3)::relay);
+            try {
+                assertThat(submitted.await(8, TimeUnit.SECONDS)).isTrue();
+                for (int i = 0; i < 2; i++) {
+                    jdbc().update("UPDATE outbox_event SET available_at=TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP(6)) WHERE notification_id=?", keys.get(i));
+                    replacements.add(store.claim(10).orElseThrow());
+                }
+                futures.get(0).complete(null);
+                futures.get(1).completeExceptionally(new IllegalStateException("synthetic late failure"));
+                futures.get(2).complete(null);
+                running.get(8, TimeUnit.SECONDS);
+            } finally {
+                futures.forEach(f -> f.complete(null));
+            }
+        }
+        assertThat(outboxCount("PROCESSING", 2)).isEqualTo(2);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(1);
+        for (var claim : replacements) {
+            assertThat(jdbc().queryForObject("SELECT lease_token FROM outbox_event WHERE event_id=?", String.class, claim.eventId())).isEqualTo(claim.token());
+        }
+        assertThat(registry().get("outbox.published").counter().count()).isEqualTo(1);
+    }
+
+    @Test
+    void submissionWindowRecoversRealBrokerDuplicatesAfterPublishedCommitFailure() throws Exception {
+        for (int i = 0; i < 3; i++) post();
+        String rejected = jdbc().queryForObject("SELECT event_id FROM outbox_event ORDER BY event_id LIMIT 1", String.class);
+        root("CREATE TRIGGER reject_window_publish BEFORE UPDATE ON outbox_event FOR EACH ROW "
+                + "BEGIN IF NEW.status = 'PUBLISHED' AND NEW.event_id = '" + rejected
+                + "' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'synthetic commit failure'; END IF; END");
+        try {
+            windowRelay(kafka(), 3).relay();
+            assertThat(recordsOn(topic, 3)).hasSize(3);
+            assertThat(outboxCount("PROCESSING", 1)).isEqualTo(3);
+            assertThat(outboxCount("PUBLISHED", 1)).isZero();
+        } finally {
+            root("DROP TRIGGER reject_window_publish");
+        }
+        expireOutbox();
+        windowRelay(kafka(), 3).relay();
+        var copies = recordsOn(topic, 6);
+        assertThat(copies).hasSize(6);
+        assertThat(copies.stream().collect(java.util.stream.Collectors.groupingBy(r -> r.value(), java.util.stream.Collectors.counting())).values()).containsOnly(2L);
+        assertThat(outboxCount("PUBLISHED", 2)).isEqualTo(3);
+        startWorker();
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
+            assertThat(probe().attempts.get()).isEqualTo(3);
+            assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'", Integer.class)).isEqualTo(3);
+            assertThat(count("delivery_attempt")).isEqualTo(3);
+        });
+        awaitCommitted(6);
+    }
+
+    private int outboxCount(String state, int attempts) {
+        return jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE status=? AND attempt_count=?", Integer.class, state, attempts);
+    }
+
+    @Test
+    void submissionWindowRetainsTheFiftyClaimRunLimitAndFlushesTheLastPartialWindow() throws Exception {
+        for (int i = 0; i < 51; i++) post();
+        var sends = new AtomicInteger();
+        var fake = windowTemplate((destination, key, data) -> {
+            sends.incrementAndGet();
+            return CompletableFuture.completedFuture(null);
+        });
+        windowRelay(fake, 3).relay();
+        assertThat(sends.get()).isEqualTo(50);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(50);
+        assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+    }
+
+    @Test
+    void submissionWindowDrainsSubmittedAcksEvenWhenTheNextClaimFails() throws Exception {
+        for (int i = 0; i < 3; i++) post();
+        var delegate = app.getBean(OutboxStore.class);
+        var claims = new AtomicInteger();
+        var broken = new OutboxStore(null, null) {
+            @Override
+            public java.util.Optional<Claim> claim(int maxAttempts) {
+                if (claims.incrementAndGet() == 3) throw new IllegalStateException("synthetic claim failure");
+                return delegate.claim(maxAttempts);
+            }
+
+            @Override
+            public int published(List<Claim> batch) { return delegate.published(batch); }
+        };
+        var submitted = new CountDownLatch(2);
+        var futures = new CopyOnWriteArrayList<CompletableFuture<SendResult<String, String>>>();
+        var fake = windowTemplate((destination, key, data) -> {
+            var future = new CompletableFuture<SendResult<String, String>>();
+            futures.add(future);
+            submitted.countDown();
+            return future;
+        });
+        var relay = new OutboxRelay(broken, fake, app.getBean(AsyncProperties.class), registry(),
+                app.getBean(dev.jinhyeon.notificationlab.config.TrafficRouting.class),
+                new dev.jinhyeon.notificationlab.config.RelayProperties(10, 3));
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var running = executor.submit(relay::relay);
+            try {
+                assertThat(submitted.await(8, TimeUnit.SECONDS)).isTrue();
+            } finally {
+                futures.forEach(f -> f.complete(null));
+            }
+            running.get(8, TimeUnit.SECONDS);
+        }
+        assertThat(claims.get()).isEqualTo(3);
+        assertThat(outboxCount("PUBLISHED", 1)).isEqualTo(2);
+        assertThat(outboxCount("PENDING", 0)).isEqualTo(1);
+    }
+
+    private OutboxRelay windowRelay(KafkaTemplate<String, String> template, int size) {
+        return new OutboxRelay(app.getBean(OutboxStore.class), template, app.getBean(AsyncProperties.class), registry(),
+                app.getBean(dev.jinhyeon.notificationlab.config.TrafficRouting.class), new dev.jinhyeon.notificationlab.config.RelayProperties(10, size));
+    }
+
+    @FunctionalInterface
+    private interface WindowSend {
+        CompletableFuture<SendResult<String, String>> send(String destination, String key, String data);
+    }
+
+    private KafkaTemplate<String, String> windowTemplate(WindowSend sender) {
+        return new KafkaTemplate<String, String>(kafka().getProducerFactory()) {
+            @Override
+            public CompletableFuture<SendResult<String, String>> send(String destination, String key, String data) {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                return sender.send(destination, key, data);
+            }
+        };
     }
 
     @Test

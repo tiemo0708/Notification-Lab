@@ -150,7 +150,7 @@ DLQ는 자동 소비/재발송하지 않는다. 선택한 PUBLISHED DLQ는 사�
 ./gradlew bootRun --args='--app.mock.delay-ms=1000'
 ```
 
-DB 풀은 최대 8개, Relay는 한 번에 한 publish/한 주기 최대 50건, Worker 기본 소비 스레드 1/처리 1/poll 1건이다.
+DB 풀은 최대 8개, Relay 기본값은 한 번에 한 publish/한 주기 최대 50건, Worker 기본 소비 스레드 1/처리 1/poll 1건이다.
 단일 브로커 고가용성, 다중 인스턴스의 모든 장애 조합, 운영 성능을 입증한 구성이 아니다.
 
 ## HTTP Mock과 Worker 연동 (S6)
@@ -410,6 +410,17 @@ Consumer/Worker 활성 상한 1/1·2/2·3/3의 평균 처리량은 각각 47.324
 producer outgoing byte counter 평균은4.79% 줄었지만 처리량/실시간 지연 개선은 확인하지 못했다.
 실행 변동과 측정 범위를 함께 남기고 운영 기본none·순차ACK·linger0을 유지한다.
 명시적 `./gradlew compressionDeliveryPilot -PcampaignCompression=none`은 none/lz4만 허용한다.
+
+[S8 Relay 제출 창 오류 경계](docs/S8_RELAY_WINDOW.md)에서는 선택 옵션
+`app.async.relay.submission-window-size=2..10`을 추가했다. 기본1은 기존 순차 ACK 경로다.
+ACK 후 DB 갱신 묶음인 `publish-batch-size`와 별도이며, producer/broker 요청 개수 설정도 아니다.
+창 하나를 모두 확인한 뒤 다음 창으로 넘어가고, ACK 미확인·일부 실패에서는 해당 호출의 새 창을 채우지 않는다.
+이전 주기에 남은 미완료 future도 최대 한 창만 보관하며, 해소되기 전에는 다음 주기의 선점·제출을 막는다.
+timeout/interrupt의 미확인 전송은 취소됐다고 가정하지 않고 lease로 복구하므로 재발행 중복은 가능하다.
+집중13개에서 실제 DB와 합성 future 오류, 실제 Kafka 6개 기록/Worker 호출3회 복구를 확인했다.
+실제 HTTP 경로의 처리량·실시간 지연 비교와 제출 중 강제 프로세스 종료는 이번 검증 범위 밖이다.
+기본1/linger0/none과 Worker/quota/토픽은 유지한다.
+최종 전체 build는16분30초/47개 클래스·379개 통과(실패·오류·스킵0)였다. [검증 원본](docs/experiments/s8-relay-window-2026-11-05-validation.json)을 참고한다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.

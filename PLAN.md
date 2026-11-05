@@ -272,7 +272,7 @@ RECORD89.676~98.933/s, COUNT_TIME115.079~123.383/s를 관측했다. 마지막 of
 - [x] 고정 Consumer/pool/quota의 1만 건 HTTP Mock 경로에서 파티션 3/6 반복 비교와 정합성 검증
 - [x] Kafka 단독 producer 단건 ACK/제출창10/none·LZ4 사전 비교와 전수 정합성 검증(각2회)
 - [x] 순차 ACK/linger0의 실제 HTTP Mock 경로 none/LZ4 압축 반복 비교(1만 건, 각2회)
-- [ ] 유한 제출 창의 ACK/부분 실패/timeout/중단/lease fencing·복구 경계 검증
+- [x] 유한 제출 창의 ACK/부분 실패/timeout/중단/lease fencing·복구 경계 검증(선택1~10/기본1, 주기 사이 미완료 future 상한 포함)
 - [ ] 오류 경계 검증 후 앱 발송 경로의 유한 제출/batching 비교
 - [ ] 병목이 외부 I/O일 때만 스레드 풀 vs 가상 스레드 비교
 - [ ] 병렬 완료 순서가 달라도 미완료 offset을 건너뛰지 않는지 검증
@@ -304,11 +304,18 @@ latest 제어군은 6건을 건너뛰어도 최종 lag가 0이었다. 앱은 ear
 [앱 경로 압축 비교](docs/S8_COMPRESSION_DELIVERY.md)는 순차ACK/linger0과 자원/quota를 고정한 none→lz4→lz4→none에서
 캠페인40000+실시간2352건을 전수 대조했다. producer outgoing byte counter 평균은4.79% 줄었지만,
 평균 처리량은 none90.019건/초, LZ4 74.970건/초였고 동일none의70.064~109.973 변동도 커서 인과적 성능 효과를 확정하지 않는다.
-운영 기본none을 유지한다. 다음은 유한 제출 창의 오류 경계 검증이며 앱 batching 비교와 구분한다.
+운영 기본none을 유지한다. 유한 제출 창의 오류 경계는 아래 후속 검증으로 완료했으며 앱 batching 비교와 구분한다.
+
+[유한 제출 창 오류 경계](docs/S8_RELAY_WINDOW.md)는 기본1/선택2~10의 제출·공통 ACK deadline·미완료 future 보존을 구현했다.
+부분 실패·claim/send 예외·timeout·중단·lease fencing·50건 상한과 실제 Kafka 재발행 뒤 Worker 중복 차단을 검증했다.
+최종 집중13개/전체379개가 통과했다. 프로세스 강제 종료와 실제 HTTP 성능 비교는 이번 검증 범위 밖이다.
+다음은 producer/Consumer/pool/quota·완료 저장 묶음을 고정한 실제 HTTP 경로의 제출창1/10 비교다.
 
 ### S9. 결과 정리와 선택적 배포
 - [ ] 3개 주제: 외부 API 보호 / 유실·중복 대응 / 병렬 처리·배포
 - [ ] 문제 -> 변경 이유 -> 전후 지표 -> 남은 한계로 정리
+- [ ] 로컬 다중 프로세스: 프록시/LB 앞단 + API2개·Worker2개에서 API 제외/Worker 재배정·공유 예산·정합성 검증(S8 이후)
+- [ ] 필요 시 부하 발생기와 앱을 별도 머신으로 분리해 네트워크·호스트 장애를 검증(동일 PC 실험과 구분)
 - [ ] AWS 배포는 별도 승인/예산 설정 후. MSK·NAT·RDS를 자동 생성하지 않는다.
 - [ ] 실제 FCM 연동은 본인 테스트 디바이스에 한정, 대량 부하는 HTTP Mock 사용
 

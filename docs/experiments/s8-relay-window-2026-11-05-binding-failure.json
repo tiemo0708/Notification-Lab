@@ -1,0 +1,76 @@
+{
+  "date": "2026-11-05",
+  "phase": "first focused run before explicit constructor binding",
+  "baseCommit": "b3525714f94b6e984fdd0e4d17020a31cca52907",
+  "buildSeconds": 27,
+  "exitCode": 1,
+  "tests": 11,
+  "failures": 9,
+  "cause": "RelayProperties gained an overloaded compatibility constructor, so implicit record constructor binding was not selected. Application startup failed before the new Relay scenarios. Explicit canonical @ConstructorBinding required.",
+  "businessWindowScenariosExecuted": false,
+  "sourceSha256": {
+    "src/main/java/dev/jinhyeon/notificationlab/config/RelayProperties.java": "dc92adb80c93d68cdb7491fd10071e752e30f0de2d4f668b1190bb4b57cc64a0",
+    "src/main/java/dev/jinhyeon/notificationlab/outbox/OutboxRelay.java": "d5ddae080c0719bae0bd1ac47150033b4af2f0e7efc72dcb9076638c536fbcb2",
+    "src/test/java/dev/jinhyeon/notificationlab/config/AsyncPropertiesTest.java": "865ff50ac1651096abbfa2bb0f69e684a385d756dc474ef51ded38967fa2adfc",
+    "src/test/java/dev/jinhyeon/notificationlab/outbox/AsyncNotificationTest.java": "36acc09f7929327da54ddcbf6c32061fc56d67e5d42500f0476de3808053b10d"
+  },
+  "consoleSha256": "50a2cf09c752dd9a40412d72c56f913a55b7bf34f9169392ec0452bf810941be",
+  "suites": [
+    {
+      "file": "TEST-dev.jinhyeon.notificationlab.config.AsyncPropertiesTest.xml",
+      "sha256": "c07f10fe7e5da5c11939eef5b4194ddf2258cc70ae9fd7372dddeab26bdba44d",
+      "tests": 3,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "failedCases": [
+        {
+          "name": "submissionWindowDefaultsToSerialAndBindsIndependentlyOfCompletionBatch()",
+          "type": "java.lang.AssertionError"
+        }
+      ]
+    },
+    {
+      "file": "TEST-dev.jinhyeon.notificationlab.outbox.AsyncNotificationTest.xml",
+      "sha256": "a67b54343cbff4b702786f008b00deb3ff64e449715a54e50207d8e3c98ee6b5",
+      "tests": 8,
+      "failures": 8,
+      "errors": 0,
+      "skipped": 0,
+      "failedCases": [
+        {
+          "name": "submissionWindowRecoversRealBrokerDuplicatesAfterPublishedCommitFailure()",
+          "type": "org.springframework.beans.factory.UnsatisfiedDependencyException"
+        },
+        {
+          "name": "submissionWindowDrainsOutOfOrderAcksAfterPartialFailureWithoutRefilling()",
+          "type": "org.springframework.beans.factory.UnsatisfiedDependencyException"
+        },
+        {
+          "name": "submissionWindowFencesBothAckAndFailureAfterLeaseReclaim()",
+          "type": "org.springframework.beans.factory.UnsatisfiedDependencyException"
+        },
+        {
+          "name": "submissionWindowDrainsEarlierSendsWhenSendThrowsSynchronously()",
+          "type": "org.springframework.beans.factory.UnsatisfiedDependencyException"
+        },
+        {
+          "name": "submissionWindowBoundsOutstandingSendsAndRejectsOverlappingRuns()",
+          "type": "org.springframework.beans.factory.UnsatisfiedDependencyException"
+        },
+        {
+          "name": "submissionWindowUsesOneDeadlineAndLateAcksCannotPublishTimedOutLeases()",
+          "type": "org.springframework.beans.factory.UnsatisfiedDependencyException"
+        },
+        {
+          "name": "interruptedSubmissionWindowPreservesLeasesAndInterruptFlag()",
+          "type": "org.springframework.beans.factory.UnsatisfiedDependencyException"
+        },
+        {
+          "name": "stoppingSubmissionWindowDrainsSubmittedAcksAndLeavesUnclaimedRows()",
+          "type": "org.springframework.beans.factory.UnsatisfiedDependencyException"
+        }
+      ]
+    }
+  ]
+}

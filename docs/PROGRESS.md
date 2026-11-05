@@ -2913,3 +2913,38 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   bootJar는 UP-TO-DATE이며 opt-in 비교는 기본 build에서 제외됐다. 원본4개와 새 JUnit XML의 SHA,
   소스165개 불변·운영 소스 diff0·JSON 민감 필드/비유한값/링크를 대조하고 [최종 검증](experiments/s8-compression-delivery-2026-11-05-group-1-validation.json)을 남겼다.
   기존 사용자 MySQL은 healthy로 유지됐다. 새 변경은 로컬 커밋이며 추가 푸시/새 원격 CI 통과를 주장하지 않는다.
+
+## 2026-11-05: S8 Relay 유한 제출 창의 ACK·실패·복구 경계
+
+- 시작 main=b352571/작업 트리 clean이었다. S8의 다음 미완료 항목인 유한 제출 창 오류 경계를 진행했다.
+  선택 설정 `app.async.relay.submission-window-size`를 추가했다. 기본1/허용1~10이고 완료 DB 저장 묶음과 분리한다.
+  기본 순차 ACK·producer linger0/none/max.in.flight1, 토픽·Worker·quota·기존 사용자 인프라는 유지한다.
+- 선택 창은 최대N개 future를 제출한 뒤 공통12초 예산으로 drain한다. 추가 executor/무한 queue/DB 콜백 쓰기는 없다.
+  ACK 확인 전 PUBLISHED 금지, 부분 실패 뒤 같은 호출의 새 창 금지, 한 호출 최대50건과 token fencing을 유지한다.
+  timeout/interrupt는 전송 취소로 간주하지 않고 lease를 보존한다. DB/send의 이미 진행 중인 동기 호출까지12초로 강제 종료하는 것은 아니다.
+- 설정 생성자 호환성 변경 후 첫 집중11개 실행은27초에9개가 기동 단계에서 실패했다. 암묵적 record constructor binding이 선택되지 않은 문제였다.
+  canonical `@ConstructorBinding`을 명시하고 실제 기본1/1·완료1/제출10·잘못된0/11 기동 거절을 검증했다.
+  [첫 실패 목록·당시 소스/로그/XML SHA](experiments/s8-relay-window-2026-11-05-binding-failure.json)를 보존했다.
+- 11개32초 및 상한/claim 실패를 추가한13개31초 통과 뒤 전체 회귀를 시작했다. 코드 검토에서 timeout 뒤 주기가 바뀌어도
+  이전 미완료 전송을 보존해야 함을 확인해208개PASS/실패0을 관측한 시점에 그 회귀를 의도적으로 중단했다.
+  [중단 경위](experiments/s8-relay-window-2026-11-05-interrupted-build.json)와 [보강 전 집중 소스](experiments/s8-relay-window-2026-11-05-focused-before-unresolved-guard.json)를 보존한다.
+  중단한 전체 실행을 성공으로 기록하지 않는다.
+- 최종 구현은 미완료 future를 최대 한 창만 다음 주기에도 보관하고 해소 전 새 선점/제출을 차단한다.
+  늦은 완료 관찰은 참조 해제만 하며 DB를 갱신하지 않는다. 겹친 수동/예약 실행도 대기열 없이 반환한다.
+  timeout·interrupt 후 재진입 차단과 늦은 완료 뒤 미선점 작업의 재개를 보강했고 **집중13개가31초/종료코드0/실패·오류·스킵0**이었다.
+- 실제 MySQL의 합성 future 오류9건에서 ACK 전 상태·역순/부분 실패·동기 send/claim 예외·공통 deadline·종료·interrupt·lease fencing·50건 상한을 확인했다.
+  실제 Kafka1건은 ACK 후 DB 완료 저장 오류를 주입했다. lease 만료 제어/새 Relay 뒤 기록3→6개, DB 완료3개/attempt2,
+  Worker Mock 공급자 수락3개·시도3개·committed offset 합6을 대조했다. 합성 ACK와 실제 Kafka 수락을 구분한다.
+- [계약·실제 결과·한계·공식 참고](S8_RELAY_WINDOW.md), [최종 집중 결과·소스165개 SHA](experiments/s8-relay-window-2026-11-05-focused.json)를 남겼다.
+  실제 HTTP 성능 비교·제출 중 강제 프로세스 종료·대형 부하·클라우드/LB 배포는 실행하지 않았다.
+  S9에는 S8 이후 로컬 프록시/API2·Worker2 검증과 필요 시 별도 머신 대조 순서를 구체화했다. 유료 자원을 만들지 않았다.
+  집중 검증 뒤 전체 build를 별도로 시작했다. 중단·보강 후의 최종 결과는 아래에 구분한다.
+- 이후331개PASS/실패0을 관측한 회귀에서 설정 바인딩 helper의 `@Configuration`이 다른 앱 탐색에 섞일 수 있는 점을 분리했다.
+  회귀를 중단하고 helper의 stereotype을 제거했다. runner의 명시적 import는 유지하고 앱 통합 테스트에서 helper 부재를 확인한다.
+  [중단 경위](experiments/s8-relay-window-2026-11-05-fixture-isolation-interrupted-build.json)와 [분리 전 집중 소스](experiments/s8-relay-window-2026-11-05-focused-before-fixture-isolation.json)를 보존한다.
+  운영 소스는 같고 설정/앱 테스트만 보강했다. 분리 후 최종 집중13개도 **32초/종료코드0/실패·오류·스킵0**에 통과했으며 최종 전체 build를 새로 실행했다.
+- 최종 전체 build는 **16분30초/종료코드0**, 기본 test 새 실행 **47개 클래스/379개 통과, 실패·오류·스킵0**이었다.
+  기존368개+설정1개/Relay10개이며 WorkerConcurrencyTest11개도 다시 통과했다. 최종 집중의 소스165개 SHA가 같음을 대조했다.
+  알림/HTTP Mock0.3.0 실행 JAR task는 UP-TO-DATE이며 SHA를 남겼다. 기존0.2.0 산출물은 보존하고 검증 대상에서 구분했다.
+  [최종 검증·JUnit/소스/JAR SHA](experiments/s8-relay-window-2026-11-05-validation.json)를 보존한다.
+  다음은 실제 HTTP 경로의 제출창1/10 비교다. 기본1은 유지하며 성능 개선·새 원격 CI·푸시·서버 배포를 주장하지 않는다.
