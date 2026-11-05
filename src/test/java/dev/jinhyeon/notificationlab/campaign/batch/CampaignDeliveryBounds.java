@@ -43,6 +43,13 @@ record CampaignDeliveryBounds(int targets, int maxRealtimeProbes, int drainLimit
         return forRun(load, targets);
     }
 
+    static CampaignDeliveryBounds forWindowRun(boolean load, int targets, int window, int completionBatch, boolean conflictingMode) {
+        if (load || targets != 10_000 || (window != 1 && window != 10) || completionBatch != 1 || conflictingMode) {
+            throw new IllegalArgumentException("Window comparison requires isolated 10k pilot, window 1 or 10 and completion batch one");
+        }
+        return forRun(false, targets);
+    }
+
     long campaignAuditBytes() { return ((targets + 64L) / 64) * Long.BYTES; }
 
     long latencyArrayBytes() { return (long) Math.max(targets, maxRealtimeProbes) * Double.BYTES; }

@@ -273,7 +273,7 @@ RECORD89.676~98.933/s, COUNT_TIME115.079~123.383/s를 관측했다. 마지막 of
 - [x] Kafka 단독 producer 단건 ACK/제출창10/none·LZ4 사전 비교와 전수 정합성 검증(각2회)
 - [x] 순차 ACK/linger0의 실제 HTTP Mock 경로 none/LZ4 압축 반복 비교(1만 건, 각2회)
 - [x] 유한 제출 창의 ACK/부분 실패/timeout/중단/lease fencing·복구 경계 검증(선택1~10/기본1, 주기 사이 미완료 future 상한 포함)
-- [ ] 오류 경계 검증 후 앱 발송 경로의 유한 제출/batching 비교
+- [x] 오류 경계 검증 후 실제 HTTP 경로의 제출 창1/10 비교와 batching 계측(각2회·linger0/none·완료 저장1 고정)
 - [ ] 병목이 외부 I/O일 때만 스레드 풀 vs 가상 스레드 비교
 - [ ] 병렬 완료 순서가 달라도 미완료 offset을 건너뛰지 않는지 검증
 - [ ] Testcontainers 회귀 테스트 + Grafana 대시보드
@@ -309,7 +309,12 @@ latest 제어군은 6건을 건너뛰어도 최종 lag가 0이었다. 앱은 ear
 [유한 제출 창 오류 경계](docs/S8_RELAY_WINDOW.md)는 기본1/선택2~10의 제출·공통 ACK deadline·미완료 future 보존을 구현했다.
 부분 실패·claim/send 예외·timeout·중단·lease fencing·50건 상한과 실제 Kafka 재발행 뒤 Worker 중복 차단을 검증했다.
 최종 집중13개/전체379개가 통과했다. 프로세스 강제 종료와 실제 HTTP 성능 비교는 이번 검증 범위 밖이다.
-다음은 producer/Consumer/pool/quota·완료 저장 묶음을 고정한 실제 HTTP 경로의 제출창1/10 비교다.
+후속 실제 HTTP 경로 비교는 아래와 같이 완료했다.
+
+[실제 HTTP 제출 창 비교](docs/S8_RELAY_WINDOW_DELIVERY.md)는1→10→10→1에서 캠페인 알림40000+실시간2217건을 전수 대조했다.
+조건별20000건/발송 시간 합의 처리량은86.279→90.969건/초(+5.44% 관측)였으나 실행별 범위와 실시간 지연이 겹쳤다.
+큰 producer 묶음 증가도 관측하지 못해 기본 제출1/완료 저장1/linger0/none을 유지한다. 최종 집중26개/전체384개가 통과했다.
+외부 I/O 주병목의 근거가 부족해 가상 스레드 비교는 조건부 보류한다. 다음은 미완료 offset 보존 추가 검증과 Grafana·환경별 반복 측정이다.
 
 ### S9. 결과 정리와 선택적 배포
 - [ ] 3개 주제: 외부 API 보호 / 유실·중복 대응 / 병렬 처리·배포

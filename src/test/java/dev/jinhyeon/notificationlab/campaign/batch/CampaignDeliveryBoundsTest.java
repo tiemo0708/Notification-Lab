@@ -13,6 +13,28 @@ class CampaignDeliveryBoundsTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
+    void windowComparisonKeepsFixedTenThousandTargetRuns() {
+        for (int window : new int[]{1, 10}) {
+            var bounds = CampaignDeliveryBounds.forWindowRun(false, 10_000, window, 1, false);
+            assertThat(bounds.maxRealtimeProbes()).isEqualTo(5000);
+            assertThat(bounds.maxResourceSamples()).isEqualTo(452);
+        }
+    }
+
+    @Test
+    void windowComparisonRejectsLargeRunsMixedFactorsAndChangedCompletionBatch() {
+        for (int window : new int[]{0, 2, 3, 9, 11, Integer.MAX_VALUE}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forWindowRun(false, 10_000, window, 1, false)).isInstanceOf(IllegalArgumentException.class);
+        }
+        for (int targets : new int[]{1000, 100_000, 1_000_000}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forWindowRun(false, targets, 10, 1, false)).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forWindowRun(true, 10_000, 10, 1, false)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forWindowRun(false, 10_000, 10, 10, false)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forWindowRun(false, 10_000, 10, 1, true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void compressionComparisonKeepsBoundedTenThousandTargetRuns() {
         for (String codec : new String[]{"none", "lz4"}) {
             var bounds = CampaignDeliveryBounds.forCompressionRun(false, 10_000, codec, false);

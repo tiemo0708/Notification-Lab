@@ -1,0 +1,862 @@
+{
+  "date": "2026-11-06",
+  "baseCommit": "a61a1eef71119c9a86916486caa5f0885412ca85",
+  "protocolSource": {
+    "file": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-source.json",
+    "sha256": "da65e5e7e4a85bd64df4b709d2ce4eea9cec8a4be3cadba26d2f8145498a0562"
+  },
+  "methods": {
+    "primaryPooledRate": "sum(unique campaign HTTP acceptances) / sum(campaign drain seconds), independently recomputed with Decimal",
+    "secondaryMean": "arithmetic mean of the two per-run rates; not pooled throughput",
+    "percentiles": "per-run p95/p99 and per-condition observed range only; no pooled percentile from summaries",
+    "cpu": "delta cumulative CPU / delta sampled wall time; 100% is one core",
+    "offsets": "nine unique partition rows per lane; all observed committed=end; absent commits on empty partitions are represented as zero by the harness",
+    "exclusions": "none; fixed order 1/10/10/1, two observations per condition",
+    "limits": [
+      "shared development host and one JVM for both roles and Mock",
+      "two runs per condition, no statistical or causal lift claim",
+      "sequential closed-loop realtime probes, not fixed arrival rate",
+      "producer averages are rolling windows, totals include protocol traffic",
+      "relay.ack timing meanings differ between serial and window paths",
+      "sampled maxima are not instantaneous maxima"
+    ]
+  },
+  "runs": [
+    {
+      "index": 1,
+      "window": 1,
+      "original": "build/reports/relay-window-delivery/window-1-15164586723640983457/result.json",
+      "raw": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-1-window-1.json",
+      "rawSha256": "69aaabe365464bc8c50d09f63b4a02d75d848f1d93458152211b9d60d7902cab",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain relayWindowDeliveryPilot -PcampaignWindow=1",
+      "exitCode": 0,
+      "gradleSeconds": 180,
+      "consoleSha256": "22140575941cd9f1b7634de8c38046b99771715b5aa3e71c40a1b9ed9411d000",
+      "startedAtUtc": "2026-11-05T19:24:50.277595Z",
+      "finishedAtUtc": "2026-11-05T19:27:46.297061Z",
+      "campaignTargets": 10000,
+      "realtimeAccepted": 594,
+      "preloadSeconds": 19.888474667,
+      "drainSeconds": 123.827770459,
+      "campaignPerSecondRecomputed": 80.75732901377765,
+      "apiBaseline": {
+        "p50": 13.608208,
+        "count": 50,
+        "p95": 29.876707999999997,
+        "max": 92.524417,
+        "p99": 92.524417
+      },
+      "apiMixed": {
+        "p50": 7.14875,
+        "count": 544,
+        "p95": 20.578584,
+        "max": 906.716042,
+        "p99": 284.229666
+      },
+      "dbBaseline": {
+        "p50": 165.237,
+        "count": 50,
+        "p95": 525.634,
+        "max": 594.493,
+        "p99": 594.493
+      },
+      "dbMixed": {
+        "p50": 166.206,
+        "count": 544,
+        "p95": 496.083,
+        "max": 1307.813,
+        "p99": 617.799
+      },
+      "campaignCreatedToCompletedMs": {
+        "p50": 81458.022,
+        "count": 10000,
+        "p95": 131485.535,
+        "max": 136486.122,
+        "p99": 135118.154
+      },
+      "producer": {
+        "campaign": {
+          "outgoing-byte-total": 3800290.0,
+          "record-size-avg": 301.0,
+          "record-retry-total": 0.0,
+          "record-send-total": 10000.0,
+          "request-latency-avg": 0.6764948453608247,
+          "record-queue-time-avg": 0.02907216494845361,
+          "records-per-request-avg": 1.0,
+          "request-total": 10004.0,
+          "batch-size-avg": 285.0,
+          "record-error-total": 0.0,
+          "compression-rate-avg": 1.0
+        },
+        "realtime": {
+          "outgoing-byte-total": 220713.0,
+          "record-size-avg": 301.0,
+          "record-retry-total": 0.0,
+          "record-send-total": 594.0,
+          "request-latency-avg": 0.8128834355828221,
+          "record-queue-time-avg": 0.03067484662576687,
+          "records-per-request-avg": 1.0,
+          "request-total": 599.0,
+          "batch-size-avg": 285.0,
+          "record-error-total": 0.0,
+          "compression-rate-avg": 1.0
+        }
+      },
+      "relayCompletion": {
+        "campaign": {
+          "unconfirmedAcks": 0.0,
+          "publishFailures": 0.0,
+          "ackObservations": 10000.0,
+          "published": 10000.0
+        },
+        "realtime": {
+          "unconfirmedAcks": 0.0,
+          "publishFailures": 0.0,
+          "ackObservations": 594.0,
+          "published": 594.0
+        }
+      },
+      "completionToRelayAuditSeconds": 0.6414973329999896,
+      "quotaDiagnostics": {
+        "campaign": {
+          "poolClosed": false,
+          "unavailableByReason": {
+            "TIMEOUT": 0.0,
+            "UNKNOWN": 0.0,
+            "SLOT_BUSY": 0.0,
+            "CONNECTION": 0.0,
+            "POOL_CLOSED": 0.0,
+            "STATE_ERROR": 0.0
+          },
+          "poolIdle": 3,
+          "maxConnections": 3,
+          "firstUnavailablePresent": false,
+          "configuredTimeoutMillis": 250,
+          "poolActive": 0
+        },
+        "realtime": {
+          "poolClosed": false,
+          "unavailableByReason": {
+            "TIMEOUT": 0.0,
+            "UNKNOWN": 0.0,
+            "SLOT_BUSY": 0.0,
+            "CONNECTION": 0.0,
+            "POOL_CLOSED": 0.0,
+            "STATE_ERROR": 0.0
+          },
+          "poolIdle": 2,
+          "maxConnections": 3,
+          "firstUnavailablePresent": false,
+          "configuredTimeoutMillis": 250,
+          "poolActive": 0
+        }
+      },
+      "campaignStageTimings": {
+        "relay.claim": {
+          "meanMillis": 5.7631729591979255,
+          "count": 10024,
+          "totalMillis": 57770.045743
+        },
+        "relay.ack": {
+          "meanMillis": 0.9338698329,
+          "count": 10000,
+          "totalMillis": 9338.698329
+        },
+        "relay.mark.published": {
+          "meanMillis": 3.3924894184,
+          "count": 10000,
+          "totalMillis": 33924.894184
+        },
+        "relay.run": {
+          "meanMillis": 451.5044551696429,
+          "count": 224,
+          "totalMillis": 101136.997958
+        },
+        "worker.handler": {
+          "meanMillis": 21.262464715,
+          "count": 10000,
+          "totalMillis": 212624.64715
+        },
+        "worker.claim.initial": {
+          "meanMillis": 3.8695220359999998,
+          "count": 10000,
+          "totalMillis": 38695.22036
+        },
+        "worker.claim.admitted": {
+          "meanMillis": 8.8016062469,
+          "count": 10000,
+          "totalMillis": 88016.062469
+        },
+        "worker.provider": {
+          "meanMillis": 1.8174328817,
+          "count": 10000,
+          "totalMillis": 18174.328817
+        },
+        "worker.complete": {
+          "meanMillis": 6.1134902925,
+          "count": 10000,
+          "totalMillis": 61134.902925
+        }
+      },
+      "resources": {
+        "sampleIntervalSeconds": 123.29286599999999,
+        "jvmCpuPercentOneCore": 41.69127352429297,
+        "mysqlCpuPercentOneCore": 52.64554722898567,
+        "heapMaxMiB": 105.28609466552734,
+        "gcDeltaMillis": 567,
+        "threadsMax": 98,
+        "mysqlMemoryMaxMiB": 478.90234375,
+        "campaignLagObservedMax": 109.0,
+        "realtimeLagObservedMax": 2.0,
+        "lagGaugeAgeMaxSeconds": 5.0125065,
+        "campaignDbActiveObservedMax": 4,
+        "campaignDbWaitingObservedMax": 1
+      }
+    },
+    {
+      "index": 2,
+      "window": 10,
+      "original": "build/reports/relay-window-delivery/window-10-12190214322539194292/result.json",
+      "raw": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-2-window-10.json",
+      "rawSha256": "88aeaa7a0b41bafe833c14e6ce113c0dbbeeb6fe1ba428abe9d15df118193b75",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain relayWindowDeliveryPilot -PcampaignWindow=10",
+      "exitCode": 0,
+      "gradleSeconds": 159,
+      "consoleSha256": "afc47973e95447789beadd4e145a0f352eb22c4a83249cecb07d7b65f5e66673",
+      "startedAtUtc": "2026-11-05T19:28:30.993164Z",
+      "finishedAtUtc": "2026-11-05T19:31:06.879818Z",
+      "campaignTargets": 10000,
+      "realtimeAccepted": 532,
+      "preloadSeconds": 19.801082958,
+      "drainSeconds": 105.597010416,
+      "campaignPerSecondRecomputed": 94.69965068712594,
+      "apiBaseline": {
+        "count": 50,
+        "p95": 24.38,
+        "max": 110.071709,
+        "p99": 110.071709,
+        "p50": 12.295499999999999
+      },
+      "apiMixed": {
+        "count": 482,
+        "p95": 16.188834,
+        "max": 128.565875,
+        "p99": 35.0135,
+        "p50": 6.982417
+      },
+      "dbBaseline": {
+        "count": 50,
+        "p95": 503.178,
+        "max": 579.506,
+        "p99": 579.506,
+        "p50": 168.824
+      },
+      "dbMixed": {
+        "count": 482,
+        "p95": 478.678,
+        "max": 756.233,
+        "p99": 568.246,
+        "p50": 169.857
+      },
+      "campaignCreatedToCompletedMs": {
+        "count": 10000,
+        "p95": 113286.156,
+        "max": 118320.188,
+        "p99": 117351.855,
+        "p50": 77426.547
+      },
+      "producer": {
+        "campaign": {
+          "outgoing-byte-total": 3797782.0,
+          "record-size-avg": 301.0,
+          "record-retry-total": 0.0,
+          "record-send-total": 10000.0,
+          "request-latency-avg": 0.7718111540585312,
+          "record-queue-time-avg": 0.046088036428867114,
+          "records-per-request-avg": 1.0008282716731087,
+          "request-total": 9984.0,
+          "batch-size-avg": 285.0927280253898,
+          "record-error-total": 0.0,
+          "compression-rate-avg": 1.0
+        },
+        "realtime": {
+          "outgoing-byte-total": 197711.0,
+          "record-size-avg": 301.0,
+          "record-retry-total": 0.0,
+          "record-send-total": 532.0,
+          "request-latency-avg": 1.035264483627204,
+          "record-queue-time-avg": 0.042821158690176324,
+          "records-per-request-avg": 1.0,
+          "request-total": 537.0,
+          "batch-size-avg": 285.0,
+          "record-error-total": 0.0,
+          "compression-rate-avg": 1.0
+        }
+      },
+      "relayCompletion": {
+        "campaign": {
+          "unconfirmedAcks": 0.0,
+          "publishFailures": 0.0,
+          "ackObservations": 10000.0,
+          "published": 10000.0
+        },
+        "realtime": {
+          "unconfirmedAcks": 0.0,
+          "publishFailures": 0.0,
+          "ackObservations": 532.0,
+          "published": 532.0
+        }
+      },
+      "completionToRelayAuditSeconds": 0.6537149170000021,
+      "quotaDiagnostics": {
+        "campaign": {
+          "unavailableByReason": {
+            "UNKNOWN": 0.0,
+            "SLOT_BUSY": 0.0,
+            "CONNECTION": 0.0,
+            "POOL_CLOSED": 0.0,
+            "STATE_ERROR": 0.0,
+            "TIMEOUT": 0.0
+          },
+          "poolIdle": 3,
+          "maxConnections": 3,
+          "firstUnavailablePresent": false,
+          "configuredTimeoutMillis": 250,
+          "poolActive": 0,
+          "poolClosed": false
+        },
+        "realtime": {
+          "unavailableByReason": {
+            "UNKNOWN": 0.0,
+            "SLOT_BUSY": 0.0,
+            "CONNECTION": 0.0,
+            "POOL_CLOSED": 0.0,
+            "STATE_ERROR": 0.0,
+            "TIMEOUT": 0.0
+          },
+          "poolIdle": 1,
+          "maxConnections": 3,
+          "firstUnavailablePresent": false,
+          "configuredTimeoutMillis": 250,
+          "poolActive": 0,
+          "poolClosed": false
+        }
+      },
+      "campaignStageTimings": {
+        "relay.claim": {
+          "count": 10021,
+          "totalMillis": 54596.02623,
+          "meanMillis": 5.448161483883844
+        },
+        "relay.ack": {
+          "count": 10000,
+          "totalMillis": 405403.914548,
+          "meanMillis": 40.540391454799995
+        },
+        "relay.mark.published": {
+          "count": 10000,
+          "totalMillis": 28545.992699,
+          "meanMillis": 2.8545992699
+        },
+        "relay.run": {
+          "count": 221,
+          "totalMillis": 83723.808005,
+          "meanMillis": 378.8407602036199
+        },
+        "worker.handler": {
+          "count": 10000,
+          "totalMillis": 192939.279102,
+          "meanMillis": 19.2939279102
+        },
+        "worker.claim.initial": {
+          "count": 10000,
+          "totalMillis": 39516.567845,
+          "meanMillis": 3.9516567845
+        },
+        "worker.claim.admitted": {
+          "count": 10000,
+          "totalMillis": 75036.780019,
+          "meanMillis": 7.5036780019
+        },
+        "worker.provider": {
+          "count": 10000,
+          "totalMillis": 17140.156543,
+          "meanMillis": 1.7140156543
+        },
+        "worker.complete": {
+          "count": 10000,
+          "totalMillis": 54472.730422,
+          "meanMillis": 5.4472730422
+        }
+      },
+      "resources": {
+        "sampleIntervalSeconds": 105.069714417,
+        "jvmCpuPercentOneCore": 47.064518328983894,
+        "mysqlCpuPercentOneCore": 63.28827614024712,
+        "heapMaxMiB": 104.29576110839844,
+        "gcDeltaMillis": 472,
+        "threadsMax": 98,
+        "mysqlMemoryMaxMiB": 511.98046875,
+        "campaignLagObservedMax": 150.0,
+        "realtimeLagObservedMax": 2.0,
+        "lagGaugeAgeMaxSeconds": 4.958750083,
+        "campaignDbActiveObservedMax": 4,
+        "campaignDbWaitingObservedMax": 0
+      }
+    },
+    {
+      "index": 3,
+      "window": 10,
+      "original": "build/reports/relay-window-delivery/window-10-17855274763554902654/result.json",
+      "raw": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-3-window-10.json",
+      "rawSha256": "40435087d646d082c6520a06f31848ba581f8a08bfacc7fb6dcb7734972f05b0",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain relayWindowDeliveryPilot -PcampaignWindow=10",
+      "exitCode": 0,
+      "gradleSeconds": 170,
+      "consoleSha256": "c8ee1b2cf0f72b6e26500dae101111d3c3de26e7da611b4b094a1de35bd29b9f",
+      "startedAtUtc": "2026-11-05T19:31:41.484458Z",
+      "finishedAtUtc": "2026-11-05T19:34:24.907084Z",
+      "campaignTargets": 10000,
+      "realtimeAccepted": 552,
+      "preloadSeconds": 18.084678917,
+      "drainSeconds": 114.257371917,
+      "campaignPerSecondRecomputed": 87.52170500879629,
+      "apiBaseline": {
+        "p50": 13.800334,
+        "p99": 96.17349999999999,
+        "max": 96.17349999999999,
+        "p95": 21.903875,
+        "count": 50
+      },
+      "apiMixed": {
+        "p50": 7.365209,
+        "p99": 313.17908300000005,
+        "max": 493.523875,
+        "p95": 19.331500000000002,
+        "count": 502
+      },
+      "dbBaseline": {
+        "p50": 144.129,
+        "p99": 669.58,
+        "max": 669.58,
+        "p95": 543.812,
+        "count": 50
+      },
+      "dbMixed": {
+        "p50": 177.579,
+        "p99": 629.727,
+        "max": 1553.2,
+        "p95": 520.654,
+        "count": 502
+      },
+      "campaignCreatedToCompletedMs": {
+        "p50": 79489.41,
+        "p99": 125742.839,
+        "max": 126707.742,
+        "p95": 122675.45,
+        "count": 10000
+      },
+      "producer": {
+        "realtime": {
+          "outgoing-byte-total": 205131.0,
+          "record-size-avg": 301.0,
+          "record-retry-total": 0.0,
+          "record-send-total": 552.0,
+          "request-latency-avg": 0.8105263157894737,
+          "record-queue-time-avg": 0.03508771929824561,
+          "records-per-request-avg": 1.0,
+          "request-total": 557.0,
+          "batch-size-avg": 285.0,
+          "record-error-total": 0.0,
+          "compression-rate-avg": 1.0
+        },
+        "campaign": {
+          "outgoing-byte-total": 3797938.0,
+          "record-size-avg": 301.0,
+          "record-retry-total": 0.0,
+          "record-send-total": 10000.0,
+          "request-latency-avg": 0.8717563507238459,
+          "record-queue-time-avg": 0.059650559650559654,
+          "records-per-request-avg": 1.001092597650915,
+          "request-total": 9985.0,
+          "batch-size-avg": 285.1223041223041,
+          "record-error-total": 0.0,
+          "compression-rate-avg": 1.0
+        }
+      },
+      "relayCompletion": {
+        "realtime": {
+          "published": 552.0,
+          "ackObservations": 552.0,
+          "publishFailures": 0.0,
+          "unconfirmedAcks": 0.0
+        },
+        "campaign": {
+          "published": 10000.0,
+          "ackObservations": 10000.0,
+          "publishFailures": 0.0,
+          "unconfirmedAcks": 0.0
+        }
+      },
+      "completionToRelayAuditSeconds": 0.6442123329999987,
+      "quotaDiagnostics": {
+        "realtime": {
+          "poolClosed": false,
+          "poolActive": 0,
+          "configuredTimeoutMillis": 250,
+          "firstUnavailablePresent": false,
+          "maxConnections": 3,
+          "poolIdle": 2,
+          "unavailableByReason": {
+            "TIMEOUT": 0.0,
+            "STATE_ERROR": 0.0,
+            "POOL_CLOSED": 0.0,
+            "CONNECTION": 0.0,
+            "SLOT_BUSY": 0.0,
+            "UNKNOWN": 0.0
+          }
+        },
+        "campaign": {
+          "poolClosed": false,
+          "poolActive": 0,
+          "configuredTimeoutMillis": 250,
+          "firstUnavailablePresent": false,
+          "maxConnections": 3,
+          "poolIdle": 3,
+          "unavailableByReason": {
+            "TIMEOUT": 0.0,
+            "STATE_ERROR": 0.0,
+            "POOL_CLOSED": 0.0,
+            "CONNECTION": 0.0,
+            "SLOT_BUSY": 0.0,
+            "UNKNOWN": 0.0
+          }
+        }
+      },
+      "campaignStageTimings": {
+        "relay.claim": {
+          "totalMillis": 60391.493497,
+          "count": 10024,
+          "meanMillis": 6.024690093475659
+        },
+        "relay.ack": {
+          "totalMillis": 430005.093183,
+          "count": 10000,
+          "meanMillis": 43.0005093183
+        },
+        "relay.mark.published": {
+          "totalMillis": 30407.265462,
+          "count": 10000,
+          "meanMillis": 3.0407265462
+        },
+        "relay.run": {
+          "totalMillis": 91389.628751,
+          "count": 224,
+          "meanMillis": 407.9894140669643
+        },
+        "worker.handler": {
+          "totalMillis": 214301.710273,
+          "count": 10000,
+          "meanMillis": 21.430171027300002
+        },
+        "worker.claim.initial": {
+          "totalMillis": 40130.308476,
+          "count": 10000,
+          "meanMillis": 4.0130308476
+        },
+        "worker.claim.admitted": {
+          "totalMillis": 85969.592737,
+          "count": 10000,
+          "meanMillis": 8.5969592737
+        },
+        "worker.provider": {
+          "totalMillis": 18639.07367,
+          "count": 10000,
+          "meanMillis": 1.8639073670000001
+        },
+        "worker.complete": {
+          "totalMillis": 62356.644795,
+          "count": 10000,
+          "meanMillis": 6.2356644795
+        }
+      },
+      "resources": {
+        "sampleIntervalSeconds": 113.682405,
+        "jvmCpuPercentOneCore": 45.29332837390271,
+        "mysqlCpuPercentOneCore": 60.96514583765183,
+        "heapMaxMiB": 104.1084976196289,
+        "gcDeltaMillis": 570,
+        "threadsMax": 98,
+        "mysqlMemoryMaxMiB": 514.25,
+        "campaignLagObservedMax": 144.0,
+        "realtimeLagObservedMax": 3.0,
+        "lagGaugeAgeMaxSeconds": 4.974728041,
+        "campaignDbActiveObservedMax": 4,
+        "campaignDbWaitingObservedMax": 0
+      }
+    },
+    {
+      "index": 4,
+      "window": 1,
+      "original": "build/reports/relay-window-delivery/window-1-6019057323882331479/result.json",
+      "raw": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-4-window-1.json",
+      "rawSha256": "4fd2c52c985725558d17cc4a1e59b5f256852bfb85cbfe92287acae49d3dd7b9",
+      "command": "caffeinate -i ./gradlew --no-daemon --console=plain relayWindowDeliveryPilot -PcampaignWindow=1",
+      "exitCode": 0,
+      "gradleSeconds": 161,
+      "consoleSha256": "abb4d6021f091c0a073ec93497ff89c4e37409b0e950dfcdfad39eabbc9bdc3d",
+      "startedAtUtc": "2026-11-05T19:34:36.000744Z",
+      "finishedAtUtc": "2026-11-05T19:37:12.454510Z",
+      "campaignTargets": 10000,
+      "realtimeAccepted": 539,
+      "preloadSeconds": 18.836774083,
+      "drainSeconds": 107.979560584,
+      "campaignPerSecondRecomputed": 92.61011941441222,
+      "apiBaseline": {
+        "p99": 96.677167,
+        "max": 96.677167,
+        "p95": 22.260292,
+        "count": 50,
+        "p50": 15.706292
+      },
+      "apiMixed": {
+        "p99": 27.513083,
+        "max": 73.177416,
+        "p95": 14.222459,
+        "count": 489,
+        "p50": 6.61
+      },
+      "dbBaseline": {
+        "p99": 578.77,
+        "max": 578.77,
+        "p95": 517.666,
+        "count": 50,
+        "p50": 255.729
+      },
+      "dbMixed": {
+        "p99": 561.998,
+        "max": 679.543,
+        "p95": 498.91,
+        "count": 489,
+        "p50": 157.097
+      },
+      "campaignCreatedToCompletedMs": {
+        "p99": 119868.286,
+        "max": 120780.808,
+        "p95": 116844.001,
+        "count": 10000,
+        "p50": 80613.824
+      },
+      "producer": {
+        "realtime": {
+          "outgoing-byte-total": 200308.0,
+          "record-size-avg": 301.0,
+          "record-retry-total": 0.0,
+          "record-send-total": 539.0,
+          "request-latency-avg": 0.8921933085501859,
+          "record-queue-time-avg": 0.01858736059479554,
+          "records-per-request-avg": 1.0,
+          "request-total": 544.0,
+          "batch-size-avg": 285.0,
+          "record-error-total": 0.0,
+          "compression-rate-avg": 1.0
+        },
+        "campaign": {
+          "outgoing-byte-total": 3800290.0,
+          "record-size-avg": 301.0,
+          "record-retry-total": 0.0,
+          "record-send-total": 10000.0,
+          "request-latency-avg": 0.6894779550987287,
+          "record-queue-time-avg": 0.02772518258047065,
+          "records-per-request-avg": 1.0,
+          "request-total": 10004.0,
+          "batch-size-avg": 285.0,
+          "record-error-total": 0.0,
+          "compression-rate-avg": 1.0
+        }
+      },
+      "relayCompletion": {
+        "realtime": {
+          "published": 539.0,
+          "ackObservations": 539.0,
+          "publishFailures": 0.0,
+          "unconfirmedAcks": 0.0
+        },
+        "campaign": {
+          "published": 10000.0,
+          "ackObservations": 10000.0,
+          "publishFailures": 0.0,
+          "unconfirmedAcks": 0.0
+        }
+      },
+      "completionToRelayAuditSeconds": 0.6245924159999987,
+      "quotaDiagnostics": {
+        "realtime": {
+          "poolActive": 0,
+          "configuredTimeoutMillis": 250,
+          "firstUnavailablePresent": false,
+          "maxConnections": 3,
+          "poolIdle": 2,
+          "unavailableByReason": {
+            "STATE_ERROR": 0.0,
+            "POOL_CLOSED": 0.0,
+            "CONNECTION": 0.0,
+            "SLOT_BUSY": 0.0,
+            "UNKNOWN": 0.0,
+            "TIMEOUT": 0.0
+          },
+          "poolClosed": false
+        },
+        "campaign": {
+          "poolActive": 0,
+          "configuredTimeoutMillis": 250,
+          "firstUnavailablePresent": false,
+          "maxConnections": 3,
+          "poolIdle": 3,
+          "unavailableByReason": {
+            "STATE_ERROR": 0.0,
+            "POOL_CLOSED": 0.0,
+            "CONNECTION": 0.0,
+            "SLOT_BUSY": 0.0,
+            "UNKNOWN": 0.0,
+            "TIMEOUT": 0.0
+          },
+          "poolClosed": false
+        }
+      },
+      "campaignStageTimings": {
+        "relay.claim": {
+          "totalMillis": 48877.419984,
+          "count": 10023,
+          "meanMillis": 4.87652598862616
+        },
+        "relay.ack": {
+          "totalMillis": 8987.064463,
+          "count": 10000,
+          "meanMillis": 0.8987064463000001
+        },
+        "relay.mark.published": {
+          "totalMillis": 27232.548956,
+          "count": 10000,
+          "meanMillis": 2.7232548956
+        },
+        "relay.run": {
+          "totalMillis": 85193.021908,
+          "count": 223,
+          "meanMillis": 382.0314883766816
+        },
+        "worker.handler": {
+          "totalMillis": 184356.77267,
+          "count": 10000,
+          "meanMillis": 18.435677267
+        },
+        "worker.claim.initial": {
+          "totalMillis": 37370.864725,
+          "count": 10000,
+          "meanMillis": 3.7370864725
+        },
+        "worker.claim.admitted": {
+          "totalMillis": 70773.765357,
+          "count": 10000,
+          "meanMillis": 7.0773765357
+        },
+        "worker.provider": {
+          "totalMillis": 18827.027508,
+          "count": 10000,
+          "meanMillis": 1.8827027507999998
+        },
+        "worker.complete": {
+          "totalMillis": 50765.245297,
+          "count": 10000,
+          "meanMillis": 5.0765245297
+        }
+      },
+      "resources": {
+        "sampleIntervalSeconds": 107.44904720800001,
+        "jvmCpuPercentOneCore": 47.65230156102101,
+        "mysqlCpuPercentOneCore": 56.78267475177516,
+        "heapMaxMiB": 103.86808013916016,
+        "gcDeltaMillis": 530,
+        "threadsMax": 98,
+        "mysqlMemoryMaxMiB": 477.17578125,
+        "campaignLagObservedMax": 135.0,
+        "realtimeLagObservedMax": 2.0,
+        "lagGaugeAgeMaxSeconds": 4.932365458,
+        "campaignDbActiveObservedMax": 4,
+        "campaignDbWaitingObservedMax": 0
+      }
+    }
+  ],
+  "byWindow": {
+    "1": {
+      "runs": 2,
+      "campaignTargets": 20000,
+      "summedDrainSeconds": 231.807331043,
+      "pooledCampaignPerSecond": 86.27854826683641,
+      "perRunRateArithmeticMean": 86.68372421409494,
+      "perRunRateRange": [
+        80.75732901377765,
+        92.61011941441222
+      ],
+      "apiP95RangeMs": [
+        14.222459,
+        20.578584
+      ],
+      "apiP99RangeMs": [
+        27.513083,
+        284.229666
+      ],
+      "dbP95RangeMs": [
+        496.083,
+        498.91
+      ],
+      "campaignProducerOutgoingBytesMean": 3800290.0
+    },
+    "10": {
+      "runs": 2,
+      "campaignTargets": 20000,
+      "summedDrainSeconds": 219.854382333,
+      "pooledCampaignPerSecond": 90.96930335328601,
+      "perRunRateArithmeticMean": 91.11067784796111,
+      "perRunRateRange": [
+        87.52170500879629,
+        94.69965068712594
+      ],
+      "apiP95RangeMs": [
+        16.188834,
+        19.331500000000002
+      ],
+      "apiP99RangeMs": [
+        35.0135,
+        313.17908300000005
+      ],
+      "dbP95RangeMs": [
+        478.678,
+        520.654
+      ],
+      "campaignProducerOutgoingBytesMean": 3797860.0
+    }
+  },
+  "comparison": {
+    "pooledRateAbsoluteDifferencePerSecond": 4.690755086449599,
+    "pooledRateObservedChangePercent": 5.43675708583129,
+    "perRunRateArithmeticMeanObservedChangePercent": 5.107018271310437
+  },
+  "totals": {
+    "campaign": 40000,
+    "realtime": 2217,
+    "httpAccepted": 42217
+  },
+  "validation": {
+    "fixedSources": 167,
+    "sourcesUnchanged": true,
+    "allFourRunsPass": true,
+    "allHttpAuditCountsReconciled": true,
+    "allTargetMappingsValidated": true,
+    "allOffsetsCompared": true,
+    "allRelayAcksAndPublishedCountsReconciled": true,
+    "defaultsChanged": false,
+    "remoteCiRun": false,
+    "pushed": false
+  }
+}

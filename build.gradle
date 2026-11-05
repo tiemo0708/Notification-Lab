@@ -215,6 +215,29 @@ tasks.register('compressionDeliveryPilot', Test) {
     testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
 }
 
+// S8: change only the campaign Relay submission window; DB completion batch remains one.
+tasks.register('relayWindowDeliveryPilot', Test) {
+    description = 'Compare one or ten outstanding campaign records through the bounded 10k HTTP delivery path'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'campaign-delivery-pilot' }
+    maxHeapSize = '512m'
+    maxParallelForks = 1
+    timeout = Duration.ofMinutes(10)
+    systemProperty 'junit.jupiter.execution.timeout.test.method.default', '8m'
+    def window = providers.gradleProperty('campaignWindow').getOrElse('1')
+    if (!(window in ['1', '10'])) throw new GradleException('campaignWindow must be 1 or 10')
+    systemProperty 'campaign.delivery.windowComparison', 'true'
+    systemProperty 'campaign.delivery.campaignWindow', window
+    systemProperty 'campaign.delivery.targets', '10000'
+    systemProperty 'campaign.delivery.load', 'false'
+    systemProperty 'campaign.delivery.publishBatchSize', '1'
+    systemProperty 'campaign.delivery.transientQuotaRecovery', 'true'
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'skipped', 'failed'; showStandardStreams = true }
+}
+
 // Broker-only producer experiment; no application DB or provider traffic.
 tasks.register('producerBatchingPilot', Test) {
     description = 'Compare serial ACKs, bounded ten-record submission and LZ4 on isolated Kafka topics'

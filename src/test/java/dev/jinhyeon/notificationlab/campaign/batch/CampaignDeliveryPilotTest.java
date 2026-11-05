@@ -76,6 +76,8 @@ class CampaignDeliveryPilotTest {
     private static final String PARTITION_DLQ = "partition-pilot.dlq";
     private boolean partitionComparison;
     private boolean compressionComparison;
+    private boolean windowComparison;
+    private int campaignWindow = 1;
     private String campaignCompression = "none";
     private int campaignPartitions = 3;
     private static final int BASELINE_PROBES = 50;
@@ -106,6 +108,9 @@ class CampaignDeliveryPilotTest {
         boolean consumerComparison = Boolean.getBoolean("campaign.delivery.consumerComparison");
         partitionComparison = Boolean.getBoolean("campaign.delivery.partitionComparison");
         compressionComparison = Boolean.getBoolean("campaign.delivery.compressionComparison");
+        windowComparison = Boolean.getBoolean("campaign.delivery.windowComparison");
+        campaignWindow = Integer.parseInt(System.getProperty("campaign.delivery.campaignWindow", "1"));
+        if (!windowComparison && campaignWindow != 1) throw new IllegalArgumentException("Window override requires the window comparison task");
         campaignCompression = System.getProperty("campaign.delivery.campaignCompression", "none");
         if (!compressionComparison && !campaignCompression.equals("none")) throw new IllegalArgumentException("Compression override requires the compression comparison task");
         campaignPartitions = Integer.getInteger("campaign.delivery.campaignPartitions", 3);
@@ -127,9 +132,12 @@ class CampaignDeliveryPilotTest {
         campaignConsumers = Integer.getInteger("campaign.delivery.campaignConsumers", 3);
         if (!consumerComparison && campaignConsumers != 3) throw new IllegalArgumentException("Campaign consumer override requires the consumer comparison task");
         var bounds = consumerComparison ? CampaignDeliveryBounds.forConsumerRun(load, targets, campaignConsumers,
-                scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow || partitionComparison || compressionComparison)
+                scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow || partitionComparison || compressionComparison || windowComparison)
                 : partitionComparison ? CampaignDeliveryBounds.forPartitionRun(load, targets, campaignPartitions,
-                        consumerComparison || scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow || compressionComparison)
+                        consumerComparison || scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow || compressionComparison || windowComparison)
+                : windowComparison ? CampaignDeliveryBounds.forWindowRun(load, targets, campaignWindow,
+                        Integer.getInteger("campaign.delivery.publishBatchSize", 1),
+                        consumerComparison || partitionComparison || compressionComparison || scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow)
                 : compressionComparison ? CampaignDeliveryBounds.forCompressionRun(load, targets, campaignCompression,
                         consumerComparison || partitionComparison || scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow)
                 : offsetComparison ? CampaignDeliveryBounds.forOffsetRun(load, targets) : CampaignDeliveryBounds.forRun(load, targets);
@@ -137,6 +145,8 @@ class CampaignDeliveryPilotTest {
                 Files.createDirectories(Path.of("build/reports/consumer-scaling")), "consumers-" + campaignConsumers + "-")
                 : partitionComparison ? Files.createTempDirectory(Files.createDirectories(Path.of("build/reports/partition-scaling")),
                         "partitions-" + campaignPartitions + "-")
+                : windowComparison ? Files.createTempDirectory(Files.createDirectories(Path.of("build/reports/relay-window-delivery")),
+                        "window-" + campaignWindow + "-")
                 : compressionComparison ? Files.createTempDirectory(Files.createDirectories(Path.of("build/reports/compression-delivery")),
                         "codec-" + campaignCompression + "-") : null;
         if (offsetComparison && relayInstances != 2) throw new IllegalArgumentException("Offset comparison requires exactly two campaign relays");
@@ -156,8 +166,11 @@ class CampaignDeliveryPilotTest {
             report.put("compressionComparison", Map.of("campaignCodec", campaignCompression, "realtimeCodec", "none",
                     "lingerMillis", 0, "batchSizeBytes", 16384, "partitionsPerTopic", 3, "recoveryCapacityPerLane", 12,
                     "consumersPerLane", 3, "workerMaxActivePerLane", 3));
-            report.put("kafkaClientVersion", AppInfoParser.getVersion());
         }
+        if (windowComparison) report.put("windowComparison", Map.of("campaignWindow", campaignWindow, "realtimeWindow", 1,
+                "publishBatchSize", 1, "lingerMillis", 0, "batchSizeBytes", 16384, "codec", "none",
+                "partitionsPerTopic", 3, "recoveryCapacityPerLane", 12, "consumersPerLane", 3, "workerMaxActivePerLane", 3));
+        if (compressionComparison || windowComparison) report.put("kafkaClientVersion", AppInfoParser.getVersion());
         if (observation != null) {
             report.put("failureWindowMode", observation.mode().name());
             report.put("failureObservationProfile", observation.profile().name());
@@ -175,7 +188,7 @@ class CampaignDeliveryPilotTest {
             settings.remove("workersPerLane");
             settings.put("campaignWorkerMaxActive", campaignConsumers); settings.put("realtimeWorkerMaxActive", 3);
         }
-        if (partitionComparison || compressionComparison) settings.put("recoveryCapacityPerLane", 12);
+        if (partitionComparison || compressionComparison || windowComparison) settings.put("recoveryCapacityPerLane", 12);
         report.put("settings", settings);
         report.put("publishBatchSize", Integer.getInteger("campaign.delivery.publishBatchSize", 1));
         report.put("campaignRelayInstances", relayInstances == 0 ? 1 : relayInstances);
@@ -244,12 +257,13 @@ class CampaignDeliveryPilotTest {
                      var admin = Admin.create(Map.of("bootstrap.servers", kafka.getBootstrapServers()))) {
                     try {
                         ready(realtime);
-                        if (consumerComparison || partitionComparison || compressionComparison) report.put("realtimeConsumerConfiguration", consumerConfiguration(realtime, 3));
-                        if (partitionComparison || compressionComparison) report.put("realtimePartitionConfiguration", partitionConfiguration(admin, realtime, 3));
-                        if (compressionComparison) {
+                        if (consumerComparison || partitionComparison || compressionComparison || windowComparison) report.put("realtimeConsumerConfiguration", consumerConfiguration(realtime, 3));
+                        if (partitionComparison || compressionComparison || windowComparison) report.put("realtimePartitionConfiguration", partitionConfiguration(admin, realtime, 3));
+                        if (compressionComparison || windowComparison) {
                             report.put("realtimeProducerConfiguration", producerConfiguration(realtime, "none"));
                             report.put("realtimeTopicCompression", topicCompression(admin, realtime));
                         }
+                        if (windowComparison) report.put("realtimeRelayConfiguration", relayConfiguration(realtime, 1));
                         var jdbc = realtime.getBean(JdbcTemplate.class);
                         long baselineStart = System.nanoTime();
                         for (int i = 0; i < BASELINE_PROBES; i++) {
@@ -268,13 +282,14 @@ class CampaignDeliveryPilotTest {
                              var relays = scaling ? CampaignRelayGroup.start(campaign, relayInstances) : null) {
                             try {
                                 ready(campaign);
-                                if (consumerComparison || partitionComparison || compressionComparison) report.put("campaignConsumerConfiguration", consumerConfiguration(campaign,
+                                if (consumerComparison || partitionComparison || compressionComparison || windowComparison) report.put("campaignConsumerConfiguration", consumerConfiguration(campaign,
                                         campaignConsumers, partitionComparison ? campaignPartitions * 2 : 6));
-                                if (partitionComparison || compressionComparison) report.put("campaignPartitionConfiguration", partitionConfiguration(admin, campaign, campaignPartitions));
-                                if (compressionComparison) {
+                                if (partitionComparison || compressionComparison || windowComparison) report.put("campaignPartitionConfiguration", partitionConfiguration(admin, campaign, campaignPartitions));
+                                if (compressionComparison || windowComparison) {
                                     report.put("campaignProducerConfiguration", producerConfiguration(campaign, campaignCompression));
                                     report.put("campaignTopicCompression", topicCompression(admin, campaign));
                                 }
+                                if (windowComparison) report.put("campaignRelayConfiguration", relayConfiguration(campaign, campaignWindow));
                                 long nextSample = 0;
                                 while (completed(campaign) < targets) {
                                     if (seconds(drainStart) > drainLimitSeconds) {
@@ -310,6 +325,13 @@ class CampaignDeliveryPilotTest {
                                     report.put("campaignCompletionToOffsetsSeconds", seconds(drainStart) - drainSeconds);
                                 }
                                 awaitOffsets(admin, realtime, probes.size());
+                                if (windowComparison) {
+                                    // Worker completion/offsets can precede the Relay's final ACK-to-DB drain.
+                                    // Audit only after both lanes finish that boundary; this wait is outside drain throughput.
+                                    report.put("relayCompletion", Map.of("campaign", relayCompletion(campaign, targets),
+                                            "realtime", relayCompletion(realtime, probes.size())));
+                                    report.put("campaignCompletionToRelayAuditSeconds", seconds(drainStart) - drainSeconds);
+                                }
                                 if (relays != null) {
                                     relays.checkHealthy();
                                     relays.close(); // Complete partial ACK flushes before the final audit and app teardown.
@@ -329,14 +351,16 @@ class CampaignDeliveryPilotTest {
                                 report.put("mockStats", mock.getBean(MockPushEndpoint.class).stats());
                                 report.put("campaignAllowed", counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed"));
                                 report.put("realtimeAllowed", counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed"));
-                                report.put("stageTimingVersion", "caller-side-transaction-and-ack-v1");
+                                report.put("stageTimingVersion", windowComparison ? "window-aware-relay-ack-observation-v2" : "caller-side-transaction-and-ack-v1");
+                                if (windowComparison) report.put("relayAckTimingSemantics", Map.of("realtime", "serial-send-to-ack",
+                                        "campaign", campaignWindow == 1 ? "serial-send-to-ack" : "submission-to-drain-including-other-claims-and-ack-waits"));
                                 report.put("campaignStageTimings", stageTimings(campaign));
                                 report.put("realtimeStageTimings", stageTimings(realtime));
                                 assertThat(counter(campaign, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(targets);
                                 assertThat(counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(probes.size());
                                 report.put("quotaDiagnostics", Map.of("campaign", CampaignDeliveryDiagnostics.application(campaign).get("redisQuota"),
                                         "realtime", CampaignDeliveryDiagnostics.application(realtime).get("redisQuota")));
-                                if (compressionComparison) report.put("producerLifetimeMetrics", Map.of("campaign", producerMetrics(campaign, targets),
+                                if (compressionComparison || windowComparison) report.put("producerLifetimeMetrics", Map.of("campaign", producerMetrics(campaign, targets),
                                         "realtime", producerMetrics(realtime, probes.size())));
                                 report.put("result", "PASS");
                             } catch (Exception | AssertionError failure) {
@@ -487,9 +511,10 @@ class CampaignDeliveryPilotTest {
         if (partitionComparison) arguments.addAll(List.of("--app.rate-limit.transient-recovery-max-records=12",
                 "--app.async.topic=" + PARTITION_TOPIC, "--app.async.retry-topic=" + PARTITION_RETRY,
                 "--app.async.dead-letter-topic=" + PARTITION_DLQ, "--app.async.group=partition-pilot-worker"));
-        if (compressionComparison) arguments.addAll(List.of("--app.rate-limit.transient-recovery-max-records=12",
+        if (compressionComparison || windowComparison) arguments.addAll(List.of("--app.rate-limit.transient-recovery-max-records=12",
                 "--spring.kafka.producer.compression-type=" + (lane.equals("CAMPAIGN") ? campaignCompression : "none"),
                 "--spring.kafka.producer.properties.linger.ms=0", "--spring.kafka.producer.batch-size=16384"));
+        if (windowComparison) arguments.add("--app.async.relay.submission-window-size=" + (lane.equals("CAMPAIGN") ? campaignWindow : 1));
         return builder.run(arguments.toArray(String[]::new));
     }
 
@@ -700,6 +725,22 @@ class CampaignDeliveryPilotTest {
     private Map<String, String> producerConfiguration(ConfigurableApplicationContext app, String codec) {
         KafkaTemplate<?, ?> template = app.getBean(KafkaTemplate.class);
         return DeliveryProducerObservation.configuration(template.getProducerFactory().getConfigurationProperties(), codec);
+    }
+
+    private Map<String, Integer> relayConfiguration(ConfigurableApplicationContext app, int expected) {
+        assertThat(app.getEnvironment().getProperty("app.rate-limit.transient-recovery-enabled", Boolean.class, false)).isTrue();
+        assertThat(app.getEnvironment().getProperty("app.async.relay-enabled", Boolean.class, false)).isTrue();
+        return DeliveryRelayObservation.configuration(app.getBean(dev.jinhyeon.notificationlab.config.RelayProperties.class), expected);
+    }
+
+    private Map<String, Double> relayCompletion(ConfigurableApplicationContext app, int expected) {
+        var registry = app.getBean(MeterRegistry.class);
+        await().atMost(Duration.ofSeconds(5)).until(() -> {
+            var published = registry.find("outbox.published").counter();
+            return published != null && published.count() == expected
+                    && registry.get("notification.pipeline.stage").tag("stage", "relay.ack").timer().count() == expected;
+        });
+        return DeliveryRelayObservation.completion(registry, expected);
     }
 
     private Map<String, Double> producerMetrics(ConfigurableApplicationContext app, int minimumRecords) {

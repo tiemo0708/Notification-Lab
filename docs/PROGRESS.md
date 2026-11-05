@@ -2948,3 +2948,36 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   알림/HTTP Mock0.3.0 실행 JAR task는 UP-TO-DATE이며 SHA를 남겼다. 기존0.2.0 산출물은 보존하고 검증 대상에서 구분했다.
   [최종 검증·JUnit/소스/JAR SHA](experiments/s8-relay-window-2026-11-05-validation.json)를 보존한다.
   다음은 실제 HTTP 경로의 제출창1/10 비교다. 기본1은 유지하며 성능 개선·새 원격 CI·푸시·서버 배포를 주장하지 않는다.
+
+## 2026-11-06: S8 실제 HTTP Mock 경로의 제출 창1/10 반복 비교
+
+- 시작 main=a61a1ee/작업 트리 clean이었다. `relayWindowDeliveryPilot -PcampaignWindow=1|10`을 추가했다.
+  캠페인 제출 창만 바꾸고 실시간1·완료 저장1·linger0/none·acks/idempotence/max.in.flight1·Consumer/활성3/3·queue0을 고정했다.
+  DB4/Redis3·250ms/HTTP3, 복구ON·용량12, quota1000/s·캠페인200/s, 요청/Retry/DLQ각3과 새 인프라도 동일하다.
+  운영 Java/resources는 변경하지 않는다.
+- 1만 건/창1·10만 허용하며 다른 비교 모드와 혼용을 거절한다. heap512MiB/task10분/JUnit8분,
+  probe5000/자원 표본452/검증 페이지1000행 상한을 유지한다. 실제 RelayProperties·ProducerFactory11개 설정·Topic/Consumer를 읽어 대조한다.
+  Worker/offset 완료와 Relay의 마지막 ACK→PUBLISHED가 다를 수 있어 양쪽 성공 counter와 ACK 관측까지 맞춘 뒤 최종 전수 대조를 시작한다.
+  publish failure·unconfirmed ACK가 있으면 정상 비교로 통과시키지 않는다. ACK timer의 의미 차이도 역할별 v2로 기록한다.
+- 초기 두 compileTestJava는 기존 API 사용 오류로 실패했다. SimpleMeterRegistry의 명시적 finally close와 전용 counter 조회로 보완했다.
+  실행 테스트0개/HTTP 실험0회이며 [컴파일 실패·당시 소스·로그 SHA](experiments/s8-relay-window-delivery-2026-11-06-compile-failure.json)를 보존했다.
+  보완 후 경계·진단·Producer/Relay 관측 집중 **26개가6초/종료코드0/실패·오류·스킵0**이었다. 창11 dry-run은 실행 전 거절됐다.
+- [고정 소스167개·프로토콜·실행 순서](experiments/s8-relay-window-delivery-2026-11-06-group-1-source.json)로1→10→10→1을 실행했다.
+  4회 모두PASS였고 캠페인 알림40000+실시간2217=HTTP42217건의 수락/DB·시도/매핑/전체 offset과 ACK·PUBLISHED를 대조했다.
+  관측 중복·잘못된 참조0, Retry/DLQ0, 양쪽 producer retry/error와 Relay failure/unconfirmed ACK·Redis quota 오류6종도0이었다.
+- 실행 순서 처리량은 **80.757 / 94.700 / 87.522 / 92.610건/초**, 혼합 APIp95는 **20.579 / 16.189 / 19.332 / 14.222ms**였다.
+  주 비교는 각 조건20000건/두 발송 시간 합으로 **86.279→90.969건/초(+5.44% 관측)**다. 개별 처리량 산술평균86.684/91.111과 구분한다.
+  동일 제출1의 첫/마지막 차이14.68%와 조건별 범위 겹침을 남기며, 인과적 성능 효과·지연 개선·운영 최적값을 확정하지 않는다.
+- 제출10의 producer records/request 시간 창 평균은1.000828/1.001093이었다. 평균 outgoing counter는3800290→3797860바이트(-0.064%)로,
+  큰 묶음 전송이나 시스템 전체 네트워크 절감을 주장하지 않는다. 타이머는 호출/관찰 경계가 달라 ACK 평균의 직접 개선율을 계산하지 않는다.
+  개별 API·생성→DB 완료 percentile과 CPU/lag/pool·단계 시간을 함께 기록했다. p95/p99를 합치거나 평균해 전체값으로 쓰지 않는다.
+- [실제 결과·선택 판단·측정 한계](S8_RELAY_WINDOW_DELIVERY.md), [원본4개 SHA·합산/산술평균·검산 요약](experiments/s8-relay-window-delivery-2026-11-06-group-1-summary.json),
+  실행 순서별 정적 그래프를 보존했다. 원본 distinct 캠페인 수/발송 초를 Decimal로 재계산하고 config·HTTP/매핑·9개 offset 행과 source SHA를 대조했다.
+  그래프는 Markdown용 PNG로 생성해 표시 값·0 시작 축·한글 라벨을 실제 이미지에서 확인했다.
+  기본 제출1/완료 저장1/linger0/none을 유지한다. 외부 I/O 주병목 근거가 부족해 가상 스레드는 조건부 후보로 남긴다.
+  측정 그룹 종료 후 고정 소스의 전체 build를 별도로 실행했다. 새 푸시/원격 CI·클라우드/LB 배포는 미실행이다.
+- 최종 전체 build는 **16분23초/종료코드0**, 기본 test 새 실행 **48개 클래스/384개 통과, 실패·오류·스킵0**이었다.
+  기존379개+경계2개/Relay 관측3개이며 WorkerConcurrencyTest11개도 다시 통과했다. 별도4회 측정은 기본384개에 포함되지 않는다.
+  소스167개와 빌드 설정이 고정 스냅샷과 같고 운영 Java/resources diff0임을 대조했다. 알림/HTTP Mock JAR task는 UP-TO-DATE다.
+  [최종 로컬 검증·JUnit/원본/소스/JAR/그림 SHA](experiments/s8-relay-window-delivery-2026-11-06-group-1-validation.json)를 보존한다.
+  다음은 미완료 offset 보존 추가 검증과 Grafana/환경별 반복 측정이다. 가상 스레드 비교는 외부 I/O 주병목 근거가 확보될 때 진행한다.

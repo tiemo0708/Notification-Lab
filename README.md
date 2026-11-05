@@ -420,7 +420,13 @@ timeout/interrupt의 미확인 전송은 취소됐다고 가정하지 않고 lea
 집중13개에서 실제 DB와 합성 future 오류, 실제 Kafka 6개 기록/Worker 호출3회 복구를 확인했다.
 실제 HTTP 경로의 처리량·실시간 지연 비교와 제출 중 강제 프로세스 종료는 이번 검증 범위 밖이다.
 기본1/linger0/none과 Worker/quota/토픽은 유지한다.
-최종 전체 build는16분30초/47개 클래스·379개 통과(실패·오류·스킵0)였다. [검증 원본](docs/experiments/s8-relay-window-2026-11-05-validation.json)을 참고한다.
+오류 경계 구현 당시 전체 build는16분30초/47개 클래스·379개 통과(실패·오류·스킵0)였다. [검증 원본](docs/experiments/s8-relay-window-2026-11-05-validation.json)을 참고한다.
+
+[S8 실제 HTTP 경로 제출 창1/10 비교](docs/S8_RELAY_WINDOW_DELIVERY.md)는 1→10→10→1 순서로4회/HTTP42217건을 전수 대조했다.
+합산 처리량은86.279→90.969건/초(+5.44% 관측)였지만 실행별 범위와 실시간 지연이 겹쳐 인과적 개선 효과를 확정하지 않는다.
+제출10의 records/request 시간 창 평균도 약1.001로 큰 묶음 증가는 관측되지 않았다. 기본 제출1을 유지한다.
+별도 `./gradlew relayWindowDeliveryPilot -PcampaignWindow=1`을 사용한다. `campaignWindow`는 `1`·`10`만 허용하며 완료 저장1/linger0/none·자원/quota를 고정한다.
+비교 도구의 전체 build는16분23초/48개 클래스·384개 통과(실패·오류·스킵0)였다. [최종 로컬 검증](docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-validation.json)을 보존했다.
 
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
