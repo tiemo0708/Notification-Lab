@@ -40,6 +40,8 @@ import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.utils.AppInfoParser;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.BatchStatus;
@@ -54,6 +56,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.testcontainers.containers.GenericContainer;
@@ -72,6 +75,8 @@ class CampaignDeliveryPilotTest {
     private static final String PARTITION_RETRY = "partition-pilot.retry";
     private static final String PARTITION_DLQ = "partition-pilot.dlq";
     private boolean partitionComparison;
+    private boolean compressionComparison;
+    private String campaignCompression = "none";
     private int campaignPartitions = 3;
     private static final int BASELINE_PROBES = 50;
     private static final int QUERY_PAGE = 1000;
@@ -100,6 +105,9 @@ class CampaignDeliveryPilotTest {
         boolean failureWindow = Boolean.getBoolean("campaign.delivery.failureWindow");
         boolean consumerComparison = Boolean.getBoolean("campaign.delivery.consumerComparison");
         partitionComparison = Boolean.getBoolean("campaign.delivery.partitionComparison");
+        compressionComparison = Boolean.getBoolean("campaign.delivery.compressionComparison");
+        campaignCompression = System.getProperty("campaign.delivery.campaignCompression", "none");
+        if (!compressionComparison && !campaignCompression.equals("none")) throw new IllegalArgumentException("Compression override requires the compression comparison task");
         campaignPartitions = Integer.getInteger("campaign.delivery.campaignPartitions", 3);
         if (!partitionComparison && campaignPartitions != 3) throw new IllegalArgumentException("Partition override requires the partition comparison task");
         if (connectionPilot && (!apiTiming || dbObservation || load)) throw new IllegalArgumentException("Connection pilot requires only bounded API timing");
@@ -119,14 +127,18 @@ class CampaignDeliveryPilotTest {
         campaignConsumers = Integer.getInteger("campaign.delivery.campaignConsumers", 3);
         if (!consumerComparison && campaignConsumers != 3) throw new IllegalArgumentException("Campaign consumer override requires the consumer comparison task");
         var bounds = consumerComparison ? CampaignDeliveryBounds.forConsumerRun(load, targets, campaignConsumers,
-                scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow || partitionComparison)
+                scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow || partitionComparison || compressionComparison)
                 : partitionComparison ? CampaignDeliveryBounds.forPartitionRun(load, targets, campaignPartitions,
-                        consumerComparison || scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow)
+                        consumerComparison || scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow || compressionComparison)
+                : compressionComparison ? CampaignDeliveryBounds.forCompressionRun(load, targets, campaignCompression,
+                        consumerComparison || partitionComparison || scaling || fineTiming || offsetComparison || apiTiming || dbObservation || connectionPilot || failureWindow)
                 : offsetComparison ? CampaignDeliveryBounds.forOffsetRun(load, targets) : CampaignDeliveryBounds.forRun(load, targets);
         Path comparisonOutput = consumerComparison ? Files.createTempDirectory(
                 Files.createDirectories(Path.of("build/reports/consumer-scaling")), "consumers-" + campaignConsumers + "-")
                 : partitionComparison ? Files.createTempDirectory(Files.createDirectories(Path.of("build/reports/partition-scaling")),
-                        "partitions-" + campaignPartitions + "-") : null;
+                        "partitions-" + campaignPartitions + "-")
+                : compressionComparison ? Files.createTempDirectory(Files.createDirectories(Path.of("build/reports/compression-delivery")),
+                        "codec-" + campaignCompression + "-") : null;
         if (offsetComparison && relayInstances != 2) throw new IllegalArgumentException("Offset comparison requires exactly two campaign relays");
         maxProbes = bounds.maxRealtimeProbes();
         int drainLimitSeconds = bounds.drainLimitSeconds();
@@ -140,6 +152,12 @@ class CampaignDeliveryPilotTest {
         if (partitionComparison) report.put("partitionComparison", Map.of("campaignRequestAndRetryPartitions", campaignPartitions,
                 "realtimePartitionsPerTopic", 3, "deadLetterPartitionsPerLane", 3, "recoveryCapacityPerLane", 12,
                 "campaignConsumers", 3, "realtimeConsumers", 3, "campaignWorkerMaxActive", 3, "realtimeWorkerMaxActive", 3));
+        if (compressionComparison) {
+            report.put("compressionComparison", Map.of("campaignCodec", campaignCompression, "realtimeCodec", "none",
+                    "lingerMillis", 0, "batchSizeBytes", 16384, "partitionsPerTopic", 3, "recoveryCapacityPerLane", 12,
+                    "consumersPerLane", 3, "workerMaxActivePerLane", 3));
+            report.put("kafkaClientVersion", AppInfoParser.getVersion());
+        }
         if (observation != null) {
             report.put("failureWindowMode", observation.mode().name());
             report.put("failureObservationProfile", observation.profile().name());
@@ -157,7 +175,7 @@ class CampaignDeliveryPilotTest {
             settings.remove("workersPerLane");
             settings.put("campaignWorkerMaxActive", campaignConsumers); settings.put("realtimeWorkerMaxActive", 3);
         }
-        if (partitionComparison) settings.put("recoveryCapacityPerLane", 12);
+        if (partitionComparison || compressionComparison) settings.put("recoveryCapacityPerLane", 12);
         report.put("settings", settings);
         report.put("publishBatchSize", Integer.getInteger("campaign.delivery.publishBatchSize", 1));
         report.put("campaignRelayInstances", relayInstances == 0 ? 1 : relayInstances);
@@ -226,8 +244,12 @@ class CampaignDeliveryPilotTest {
                      var admin = Admin.create(Map.of("bootstrap.servers", kafka.getBootstrapServers()))) {
                     try {
                         ready(realtime);
-                        if (consumerComparison || partitionComparison) report.put("realtimeConsumerConfiguration", consumerConfiguration(realtime, 3));
-                        if (partitionComparison) report.put("realtimePartitionConfiguration", partitionConfiguration(admin, realtime, 3));
+                        if (consumerComparison || partitionComparison || compressionComparison) report.put("realtimeConsumerConfiguration", consumerConfiguration(realtime, 3));
+                        if (partitionComparison || compressionComparison) report.put("realtimePartitionConfiguration", partitionConfiguration(admin, realtime, 3));
+                        if (compressionComparison) {
+                            report.put("realtimeProducerConfiguration", producerConfiguration(realtime, "none"));
+                            report.put("realtimeTopicCompression", topicCompression(admin, realtime));
+                        }
                         var jdbc = realtime.getBean(JdbcTemplate.class);
                         long baselineStart = System.nanoTime();
                         for (int i = 0; i < BASELINE_PROBES; i++) {
@@ -246,9 +268,13 @@ class CampaignDeliveryPilotTest {
                              var relays = scaling ? CampaignRelayGroup.start(campaign, relayInstances) : null) {
                             try {
                                 ready(campaign);
-                                if (consumerComparison || partitionComparison) report.put("campaignConsumerConfiguration", consumerConfiguration(campaign,
+                                if (consumerComparison || partitionComparison || compressionComparison) report.put("campaignConsumerConfiguration", consumerConfiguration(campaign,
                                         campaignConsumers, partitionComparison ? campaignPartitions * 2 : 6));
-                                if (partitionComparison) report.put("campaignPartitionConfiguration", partitionConfiguration(admin, campaign, campaignPartitions));
+                                if (partitionComparison || compressionComparison) report.put("campaignPartitionConfiguration", partitionConfiguration(admin, campaign, campaignPartitions));
+                                if (compressionComparison) {
+                                    report.put("campaignProducerConfiguration", producerConfiguration(campaign, campaignCompression));
+                                    report.put("campaignTopicCompression", topicCompression(admin, campaign));
+                                }
                                 long nextSample = 0;
                                 while (completed(campaign) < targets) {
                                     if (seconds(drainStart) > drainLimitSeconds) {
@@ -310,6 +336,8 @@ class CampaignDeliveryPilotTest {
                                 assertThat(counter(realtime, "notification.rate.limit.decisions", "outcome", "allowed")).isEqualTo(probes.size());
                                 report.put("quotaDiagnostics", Map.of("campaign", CampaignDeliveryDiagnostics.application(campaign).get("redisQuota"),
                                         "realtime", CampaignDeliveryDiagnostics.application(realtime).get("redisQuota")));
+                                if (compressionComparison) report.put("producerLifetimeMetrics", Map.of("campaign", producerMetrics(campaign, targets),
+                                        "realtime", producerMetrics(realtime, probes.size())));
                                 report.put("result", "PASS");
                             } catch (Exception | AssertionError failure) {
                                 captureFailure(failure, ApiFailureWindow.Stop.INFRA_FAILURE, realtime);
@@ -459,6 +487,9 @@ class CampaignDeliveryPilotTest {
         if (partitionComparison) arguments.addAll(List.of("--app.rate-limit.transient-recovery-max-records=12",
                 "--app.async.topic=" + PARTITION_TOPIC, "--app.async.retry-topic=" + PARTITION_RETRY,
                 "--app.async.dead-letter-topic=" + PARTITION_DLQ, "--app.async.group=partition-pilot-worker"));
+        if (compressionComparison) arguments.addAll(List.of("--app.rate-limit.transient-recovery-max-records=12",
+                "--spring.kafka.producer.compression-type=" + (lane.equals("CAMPAIGN") ? campaignCompression : "none"),
+                "--spring.kafka.producer.properties.linger.ms=0", "--spring.kafka.producer.batch-size=16384"));
         return builder.run(arguments.toArray(String[]::new));
     }
 
@@ -666,6 +697,32 @@ class CampaignDeliveryPilotTest {
     private boolean running(ConfigurableApplicationContext app) {
         return app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker").isRunning();
     }
+    private Map<String, String> producerConfiguration(ConfigurableApplicationContext app, String codec) {
+        KafkaTemplate<?, ?> template = app.getBean(KafkaTemplate.class);
+        return DeliveryProducerObservation.configuration(template.getProducerFactory().getConfigurationProperties(), codec);
+    }
+
+    private Map<String, Double> producerMetrics(ConfigurableApplicationContext app, int minimumRecords) {
+        KafkaTemplate<?, ?> template = app.getBean(KafkaTemplate.class);
+        var values = DeliveryProducerObservation.metrics(template.metrics());
+        assertThat(values.get("record-send-total")).isGreaterThanOrEqualTo(minimumRecords);
+        assertThat(values.get("record-error-total")).isZero();
+        return values;
+    }
+
+    private Map<String, String> topicCompression(Admin admin, ConfigurableApplicationContext app) throws Exception {
+        var routing = app.getBean(TrafficRouting.class);
+        var names = Map.of("requested", routing.topic(), "retry", routing.retryTopic(), "deadLetter", routing.deadLetterTopic());
+        var resources = names.values().stream().map(name -> new ConfigResource(ConfigResource.Type.TOPIC, name)).toList();
+        var configs = admin.describeConfigs(resources).all().get(5, TimeUnit.SECONDS);
+        var selected = new LinkedHashMap<String, String>();
+        names.forEach((role, name) -> {
+            String policy = configs.get(new ConfigResource(ConfigResource.Type.TOPIC, name)).get("compression.type").value();
+            assertThat(policy).isEqualTo("producer"); selected.put(role, policy);
+        });
+        return selected;
+    }
+
     private Map<String, Object> consumerConfiguration(ConfigurableApplicationContext app, int expected) {
         return consumerConfiguration(app, expected, 6);
     }

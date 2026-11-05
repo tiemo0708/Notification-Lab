@@ -31,6 +31,13 @@ record CampaignDeliveryBounds(int targets, int maxRealtimeProbes, int drainLimit
 
     int maxResourceSamples() { return drainLimitSeconds / 2 + 2; }
 
+    static CampaignDeliveryBounds forCompressionRun(boolean load, int targets, String codec, boolean conflictingMode) {
+        if (load || targets != 10_000 || !("none".equals(codec) || "lz4".equals(codec)) || conflictingMode) {
+            throw new IllegalArgumentException("Compression comparison requires isolated 10k pilot and none or lz4");
+        }
+        return forRun(false, targets);
+    }
+
     static CampaignDeliveryBounds forOffsetRun(boolean load, int targets) {
         if (load && targets != 100_000) throw new IllegalArgumentException("Offset load is limited to exactly 100000 targets");
         return forRun(load, targets);

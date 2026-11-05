@@ -13,6 +13,27 @@ class CampaignDeliveryBoundsTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
+    void compressionComparisonKeepsBoundedTenThousandTargetRuns() {
+        for (String codec : new String[]{"none", "lz4"}) {
+            var bounds = CampaignDeliveryBounds.forCompressionRun(false, 10_000, codec, false);
+            assertThat(bounds.maxRealtimeProbes()).isEqualTo(5000);
+            assertThat(bounds.maxResourceSamples()).isEqualTo(452);
+        }
+    }
+
+    @Test
+    void compressionComparisonRejectsLargeRunsUnsupportedCodecsAndMixedFactors() {
+        for (String codec : new String[]{null, "", "gzip", "zstd", "LZ4", "lz4 "}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forCompressionRun(false, 10_000, codec, false)).isInstanceOf(IllegalArgumentException.class);
+        }
+        for (int targets : new int[]{1000, 100_000, 1_000_000}) {
+            assertThatThrownBy(() -> CampaignDeliveryBounds.forCompressionRun(false, targets, "none", false)).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forCompressionRun(true, 10_000, "none", false)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CampaignDeliveryBounds.forCompressionRun(false, 10_000, "none", true)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void partitionComparisonKeepsBoundedTenThousandTargetRuns() {
         for (int partitions : new int[]{3, 6}) {
             var bounds = CampaignDeliveryBounds.forPartitionRun(false, 10_000, partitions, false);

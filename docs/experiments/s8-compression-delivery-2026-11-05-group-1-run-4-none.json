@@ -1,0 +1,5428 @@
+{
+  "startedAtUtc" : "2026-11-05T07:06:34.134369Z",
+  "scope" : "preloaded campaign HTTP delivery pilot; same JVM independent app contexts",
+  "targets" : 10000,
+  "compressionComparison" : {
+    "batchSizeBytes" : 16384,
+    "workerMaxActivePerLane" : 3,
+    "consumersPerLane" : 3,
+    "partitionsPerTopic" : 3,
+    "realtimeCodec" : "none",
+    "recoveryCapacityPerLane" : 12,
+    "lingerMillis" : 0,
+    "campaignCodec" : "none"
+  },
+  "kafkaClientVersion" : "3.9.2",
+  "bounds" : {
+    "maxResourceSamples" : 452,
+    "maxRealtimeProbes" : 5000,
+    "campaignAuditBytes" : 1256,
+    "drainLimitSeconds" : 900,
+    "latencyArrayBytes" : 80000,
+    "queryPageRows" : 1000
+  },
+  "verificationVersion" : "paged-latency-and-target-mapping-v2",
+  "diagnosticsVersion" : "live-pools-and-cgroup-counters-v1",
+  "redisConnectionsPerLane" : 3,
+  "settings" : {
+    "mockDelayMillis" : 1,
+    "campaignBurst" : 20,
+    "probeDelayMillis" : 200,
+    "baselineProbes" : 50,
+    "totalBurst" : 100,
+    "workersPerLane" : 3,
+    "campaignRate" : 200,
+    "totalRate" : 1000,
+    "httpConnectionsPerLane" : 3,
+    "recoveryCapacityPerLane" : 12
+  },
+  "publishBatchSize" : 1,
+  "campaignRelayInstances" : 1,
+  "relayScheduling" : "application-scheduled-bean",
+  "fineTimingEnabled" : false,
+  "transientQuotaRecoveryEnabled" : true,
+  "offsetComparison" : false,
+  "campaignOffsetMode" : "RECORD",
+  "java" : "Amazon.com Inc. 21.0.6",
+  "os" : "Mac OS X 15.7.7 aarch64",
+  "jvmMaxHeapBytes" : 536870912,
+  "availableProcessors" : 10,
+  "infra" : {
+    "mysqlBufferPoolMiB" : 512,
+    "mysqlMemoryMiB" : 2048,
+    "redis" : "7.4.11",
+    "kafka" : "4.0.2",
+    "mysql" : "8.4.8",
+    "redisMemoryMiB" : 256,
+    "kafkaCpu" : 1,
+    "kafkaMemoryMiB" : 1024,
+    "mysqlCpu" : 2
+  },
+  "preloadSeconds" : 15.25626275,
+  "realtimeConsumerConfiguration" : {
+    "configuredConsumers" : 3,
+    "childContainers" : 3,
+    "syncCommits" : true,
+    "ackMode" : "RECORD",
+    "workerMaxActive" : 3,
+    "assignedPartitions" : 6
+  },
+  "realtimePartitionConfiguration" : {
+    "assignedPerConsumer" : [ 2, 2, 2 ],
+    "requestedPartitions" : 3,
+    "retryPartitions" : 3,
+    "deadLetterPartitions" : 3,
+    "recoveryCapacity" : 12
+  },
+  "realtimeProducerConfiguration" : {
+    "enable.idempotence" : "true",
+    "buffer.memory" : "1048576",
+    "batch.size" : "16384",
+    "retries" : "3",
+    "max.in.flight.requests.per.connection" : "1",
+    "acks" : "all",
+    "linger.ms" : "0",
+    "compression.type" : "none",
+    "delivery.timeout.ms" : "10000",
+    "request.timeout.ms" : "3000",
+    "max.block.ms" : "3000"
+  },
+  "realtimeTopicCompression" : {
+    "requested" : "producer",
+    "deadLetter" : "producer",
+    "retry" : "producer"
+  },
+  "baselineSeconds" : 11.523716708,
+  "baselineLatencyMs" : {
+    "p95" : 582.92,
+    "max" : 608.789,
+    "p99" : 608.789,
+    "p50" : 203.492,
+    "count" : 50
+  },
+  "samples" : [ {
+    "seconds" : 0.467684375,
+    "campaignCompleted" : 3.0,
+    "heapUsedBytes" : 84489856,
+    "processCpuNanos" : 20166272000,
+    "gcMillis" : 191,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 28.1486,
+      "outbox.sample.age.seconds" : 0.111700584,
+      "notification.consumer.sample.age.seconds" : 0.09886225,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 28.1486,
+      "outbox.sample.age.seconds" : 0.112308834,
+      "notification.consumer.sample.age.seconds" : 0.099457916,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 3.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 1,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.132811,
+      "notification.consumer.sample.age.seconds" : 2.122477042,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.133117,
+      "notification.consumer.sample.age.seconds" : 2.122782667,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 50.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 440078336,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 11816922,
+      "user_usec" : 8411855,
+      "system_usec" : 3405066,
+      "nr_periods" : 409,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 2.636462042,
+    "campaignCompleted" : 173.0,
+    "heapUsedBytes" : 71549424,
+    "processCpuNanos" : 22337469000,
+    "gcMillis" : 201,
+    "threads" : 98,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 28.1486,
+      "outbox.sample.age.seconds" : 2.279487209,
+      "notification.consumer.sample.age.seconds" : 2.266636666,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 28.1486,
+      "outbox.sample.age.seconds" : 2.279845417,
+      "notification.consumer.sample.age.seconds" : 2.266994416,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 173.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.300286125,
+      "notification.consumer.sample.age.seconds" : 4.289950958,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.300534542,
+      "notification.consumer.sample.age.seconds" : 4.290199417,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 59.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 442232832,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 12842310,
+      "user_usec" : 9186080,
+      "system_usec" : 3656230,
+      "nr_periods" : 430,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 4.773657667,
+    "campaignCompleted" : 369.0,
+    "heapUsedBytes" : 82638400,
+    "processCpuNanos" : 23689233000,
+    "gcMillis" : 208,
+    "threads" : 98,
+    "campaign" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 28.1486,
+      "outbox.sample.age.seconds" : 4.416589542,
+      "notification.consumer.sample.age.seconds" : 4.403724208,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 10000.0,
+      "outbox.oldest.age.seconds" : 28.1486,
+      "outbox.sample.age.seconds" : 4.416792834,
+      "notification.consumer.sample.age.seconds" : 4.4039265,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 369.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.425026917,
+      "notification.consumer.sample.age.seconds" : 1.421118833,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.425155833,
+      "notification.consumer.sample.age.seconds" : 1.421243708,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 69.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 442728448,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 13866444,
+      "user_usec" : 10002100,
+      "system_usec" : 3864343,
+      "nr_periods" : 452,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 6.907020334,
+    "campaignCompleted" : 572.0,
+    "heapUsedBytes" : 97851056,
+    "processCpuNanos" : 24846600000,
+    "gcMillis" : 212,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 85.0,
+      "outbox.unpublished" : 9500.0,
+      "outbox.oldest.age.seconds" : 32.2349,
+      "outbox.sample.age.seconds" : 1.526915166,
+      "notification.consumer.sample.age.seconds" : 1.523147709,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 85.0,
+      "outbox.unpublished" : 9500.0,
+      "outbox.oldest.age.seconds" : 32.2349,
+      "outbox.sample.age.seconds" : 1.527074416,
+      "notification.consumer.sample.age.seconds" : 1.523306375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 572.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.558328625,
+      "notification.consumer.sample.age.seconds" : 3.554416875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.558440667,
+      "notification.consumer.sample.age.seconds" : 3.554529166,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 80.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 443781120,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 14784775,
+      "user_usec" : 10702385,
+      "system_usec" : 4082389,
+      "nr_periods" : 473,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 9.050753167,
+    "campaignCompleted" : 772.0,
+    "heapUsedBytes" : 76261928,
+    "processCpuNanos" : 26118544000,
+    "gcMillis" : 221,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 85.0,
+      "outbox.unpublished" : 9500.0,
+      "outbox.oldest.age.seconds" : 32.2349,
+      "outbox.sample.age.seconds" : 3.671203875,
+      "notification.consumer.sample.age.seconds" : 3.667434084,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 85.0,
+      "outbox.unpublished" : 9500.0,
+      "outbox.oldest.age.seconds" : 32.2349,
+      "outbox.sample.age.seconds" : 3.671939541,
+      "notification.consumer.sample.age.seconds" : 3.668169417,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 772.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.698523541,
+      "notification.consumer.sample.age.seconds" : 0.69259525,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.698621458,
+      "notification.consumer.sample.age.seconds" : 0.692693042,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 90.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 445128704,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 15903299,
+      "user_usec" : 11572730,
+      "system_usec" : 4330569,
+      "nr_periods" : 494,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 11.226269834,
+    "campaignCompleted" : 1015.0,
+    "heapUsedBytes" : 103500976,
+    "processCpuNanos" : 27589367000,
+    "gcMillis" : 230,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 78.0,
+      "outbox.unpublished" : 8994.0,
+      "outbox.oldest.age.seconds" : 36.4103,
+      "outbox.sample.age.seconds" : 0.834054917,
+      "notification.consumer.sample.age.seconds" : 0.828304959,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 78.0,
+      "outbox.unpublished" : 8994.0,
+      "outbox.oldest.age.seconds" : 36.4103,
+      "outbox.sample.age.seconds" : 0.834226417,
+      "notification.consumer.sample.age.seconds" : 0.828476209,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 1015.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.872885875,
+      "notification.consumer.sample.age.seconds" : 2.866962917,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.872975375,
+      "notification.consumer.sample.age.seconds" : 2.867046834,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 99.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 447836160,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 17059107,
+      "user_usec" : 12486842,
+      "system_usec" : 4572264,
+      "nr_periods" : 516,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 13.3824525,
+    "campaignCompleted" : 1254.0,
+    "heapUsedBytes" : 93684792,
+    "processCpuNanos" : 28858987000,
+    "gcMillis" : 239,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 78.0,
+      "outbox.unpublished" : 8994.0,
+      "outbox.oldest.age.seconds" : 36.4103,
+      "outbox.sample.age.seconds" : 2.9901865,
+      "notification.consumer.sample.age.seconds" : 2.984436542,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 78.0,
+      "outbox.unpublished" : 8994.0,
+      "outbox.oldest.age.seconds" : 36.4103,
+      "outbox.sample.age.seconds" : 2.990340208,
+      "notification.consumer.sample.age.seconds" : 2.984589667,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 1254.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.022269875,
+      "notification.consumer.sample.age.seconds" : 0.016813458,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.022349375,
+      "notification.consumer.sample.age.seconds" : 0.016892708,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 110.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 448999424,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 18104319,
+      "user_usec" : 13297737,
+      "system_usec" : 4806581,
+      "nr_periods" : 538,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 15.524723834,
+    "campaignCompleted" : 1455.0,
+    "heapUsedBytes" : 105254840,
+    "processCpuNanos" : 29803221000,
+    "gcMillis" : 247,
+    "threads" : 97,
+    "campaign" : {
+      "notification.consumer.lag" : 104.0,
+      "outbox.unpublished" : 8442.0,
+      "outbox.oldest.age.seconds" : 40.6379,
+      "outbox.sample.age.seconds" : 0.115470291,
+      "notification.consumer.sample.age.seconds" : 0.110727167,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 104.0,
+      "outbox.unpublished" : 8442.0,
+      "outbox.oldest.age.seconds" : 40.6379,
+      "outbox.sample.age.seconds" : 0.115778833,
+      "notification.consumer.sample.age.seconds" : 0.111035375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 1455.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.16505125,
+      "notification.consumer.sample.age.seconds" : 2.159604416,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.165265,
+      "notification.consumer.sample.age.seconds" : 2.159817916,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 119.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 452415488,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 19073482,
+      "user_usec" : 14042801,
+      "system_usec" : 5030681,
+      "nr_periods" : 559,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 17.692418834,
+    "campaignCompleted" : 1691.0,
+    "heapUsedBytes" : 84278752,
+    "processCpuNanos" : 31099204000,
+    "gcMillis" : 253,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 104.0,
+      "outbox.unpublished" : 8442.0,
+      "outbox.oldest.age.seconds" : 40.6379,
+      "outbox.sample.age.seconds" : 2.282996583,
+      "notification.consumer.sample.age.seconds" : 2.278245042,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 104.0,
+      "outbox.unpublished" : 8442.0,
+      "outbox.oldest.age.seconds" : 40.6379,
+      "outbox.sample.age.seconds" : 2.28325,
+      "notification.consumer.sample.age.seconds" : 2.278497417,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 1691.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.332393417,
+      "notification.consumer.sample.age.seconds" : 4.326936916,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.332492,
+      "notification.consumer.sample.age.seconds" : 4.327036041,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 130.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 453353472,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 20123461,
+      "user_usec" : 14866366,
+      "system_usec" : 5257095,
+      "nr_periods" : 581,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 19.896904709,
+    "campaignCompleted" : 1957.0,
+    "heapUsedBytes" : 71259696,
+    "processCpuNanos" : 32296110000,
+    "gcMillis" : 267,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 104.0,
+      "outbox.unpublished" : 8442.0,
+      "outbox.oldest.age.seconds" : 40.6379,
+      "outbox.sample.age.seconds" : 4.48748575,
+      "notification.consumer.sample.age.seconds" : 4.482734917,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 2,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 1,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 104.0,
+      "outbox.unpublished" : 8442.0,
+      "outbox.oldest.age.seconds" : 40.6379,
+      "outbox.sample.age.seconds" : 4.487678,
+      "notification.consumer.sample.age.seconds" : 4.482925458,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 1957.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.527680792,
+      "notification.consumer.sample.age.seconds" : 1.519215083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.52775675,
+      "notification.consumer.sample.age.seconds" : 1.519290833,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 139.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 454950912,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 21218742,
+      "user_usec" : 15720637,
+      "system_usec" : 5498104,
+      "nr_periods" : 603,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 22.028017584,
+    "campaignCompleted" : 2192.0,
+    "heapUsedBytes" : 90796200,
+    "processCpuNanos" : 33286006000,
+    "gcMillis" : 269,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 124.0,
+      "outbox.unpublished" : 7864.0,
+      "outbox.oldest.age.seconds" : 44.8399,
+      "outbox.sample.age.seconds" : 1.610887833,
+      "notification.consumer.sample.age.seconds" : 1.606746708,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 124.0,
+      "outbox.unpublished" : 7864.0,
+      "outbox.oldest.age.seconds" : 44.8399,
+      "outbox.sample.age.seconds" : 1.611225041,
+      "notification.consumer.sample.age.seconds" : 1.607065375,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 2192.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 4,
+        "waiting" : 0,
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.6592755,
+      "notification.consumer.sample.age.seconds" : 3.650819792,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.659480417,
+      "notification.consumer.sample.age.seconds" : 3.651024792,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 150.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 456204288,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 22314986,
+      "user_usec" : 16562678,
+      "system_usec" : 5752307,
+      "nr_periods" : 624,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 24.182240417,
+    "campaignCompleted" : 2438.0,
+    "heapUsedBytes" : 70519688,
+    "processCpuNanos" : 34325138000,
+    "gcMillis" : 276,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 124.0,
+      "outbox.unpublished" : 7864.0,
+      "outbox.oldest.age.seconds" : 44.8399,
+      "outbox.sample.age.seconds" : 3.764951958,
+      "notification.consumer.sample.age.seconds" : 3.760794416,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 124.0,
+      "outbox.unpublished" : 7864.0,
+      "outbox.oldest.age.seconds" : 44.8399,
+      "outbox.sample.age.seconds" : 3.765268083,
+      "notification.consumer.sample.age.seconds" : 3.761109125,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 2438.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0551,
+      "outbox.sample.age.seconds" : 0.802689917,
+      "notification.consumer.sample.age.seconds" : 0.797455334,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0551,
+      "outbox.sample.age.seconds" : 0.802827667,
+      "notification.consumer.sample.age.seconds" : 0.797584209,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 160.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 456806400,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 23378386,
+      "user_usec" : 17364163,
+      "system_usec" : 6014222,
+      "nr_periods" : 646,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 26.306459459,
+    "campaignCompleted" : 2678.0,
+    "heapUsedBytes" : 90598496,
+    "processCpuNanos" : 35368982000,
+    "gcMillis" : 281,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 126.0,
+      "outbox.unpublished" : 7300.0,
+      "outbox.oldest.age.seconds" : 49.0615,
+      "outbox.sample.age.seconds" : 0.878060083,
+      "notification.consumer.sample.age.seconds" : 0.874462,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 126.0,
+      "outbox.unpublished" : 7300.0,
+      "outbox.oldest.age.seconds" : 49.0615,
+      "outbox.sample.age.seconds" : 0.878380041,
+      "notification.consumer.sample.age.seconds" : 0.874774542,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 2678.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0551,
+      "outbox.sample.age.seconds" : 2.926921125,
+      "notification.consumer.sample.age.seconds" : 2.921678,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0551,
+      "outbox.sample.age.seconds" : 2.927027709,
+      "notification.consumer.sample.age.seconds" : 2.921784375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 168.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 458289152,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 24402978,
+      "user_usec" : 18156433,
+      "system_usec" : 6246545,
+      "nr_periods" : 667,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 28.478623875,
+    "campaignCompleted" : 2922.0,
+    "heapUsedBytes" : 66858128,
+    "processCpuNanos" : 36485417000,
+    "gcMillis" : 292,
+    "threads" : 96,
+    "campaign" : {
+      "notification.consumer.lag" : 126.0,
+      "outbox.unpublished" : 7300.0,
+      "outbox.oldest.age.seconds" : 49.0615,
+      "outbox.sample.age.seconds" : 3.050072208,
+      "notification.consumer.sample.age.seconds" : 3.046466459,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 126.0,
+      "outbox.unpublished" : 7300.0,
+      "outbox.oldest.age.seconds" : 49.0615,
+      "outbox.sample.age.seconds" : 3.05025,
+      "notification.consumer.sample.age.seconds" : 3.046643584,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 2922.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 3,
+        "waiting" : 0,
+        "idle" : 1,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.090512792,
+      "notification.consumer.sample.age.seconds" : 0.083606875,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.0905895,
+      "notification.consumer.sample.age.seconds" : 0.08368325,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 179.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 460582912,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 25464260,
+      "user_usec" : 18971833,
+      "system_usec" : 6492427,
+      "nr_periods" : 689,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 30.648515209,
+    "campaignCompleted" : 3149.0,
+    "heapUsedBytes" : 81210952,
+    "processCpuNanos" : 37523633000,
+    "gcMillis" : 302,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 120.0,
+      "outbox.unpublished" : 6750.0,
+      "outbox.oldest.age.seconds" : 53.2425,
+      "outbox.sample.age.seconds" : 0.212952291,
+      "notification.consumer.sample.age.seconds" : 0.207449583,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 120.0,
+      "outbox.unpublished" : 6750.0,
+      "outbox.oldest.age.seconds" : 53.2425,
+      "outbox.sample.age.seconds" : 0.213114416,
+      "notification.consumer.sample.age.seconds" : 0.207610458,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 3149.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.260430417,
+      "notification.consumer.sample.age.seconds" : 2.253528875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.260515042,
+      "notification.consumer.sample.age.seconds" : 2.253616041,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 190.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 461668352,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 26472016,
+      "user_usec" : 19749214,
+      "system_usec" : 6722802,
+      "nr_periods" : 710,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 32.826053167,
+    "campaignCompleted" : 3383.0,
+    "heapUsedBytes" : 98960544,
+    "processCpuNanos" : 38369276000,
+    "gcMillis" : 306,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 120.0,
+      "outbox.unpublished" : 6750.0,
+      "outbox.oldest.age.seconds" : 53.2425,
+      "outbox.sample.age.seconds" : 2.391309416,
+      "notification.consumer.sample.age.seconds" : 2.385806625,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 120.0,
+      "outbox.unpublished" : 6750.0,
+      "outbox.oldest.age.seconds" : 53.2425,
+      "outbox.sample.age.seconds" : 2.392872375,
+      "notification.consumer.sample.age.seconds" : 2.387369542,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 3385.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.440779292,
+      "notification.consumer.sample.age.seconds" : 4.433873583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 2.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.440897417,
+      "notification.consumer.sample.age.seconds" : 4.433992625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 199.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 463482880,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 27529586,
+      "user_usec" : 20578098,
+      "system_usec" : 6951487,
+      "nr_periods" : 733,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 35.031130875,
+    "campaignCompleted" : 3629.0,
+    "heapUsedBytes" : 73638944,
+    "processCpuNanos" : 39379687000,
+    "gcMillis" : 324,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 120.0,
+      "outbox.unpublished" : 6750.0,
+      "outbox.oldest.age.seconds" : 53.2425,
+      "outbox.sample.age.seconds" : 4.595784916,
+      "notification.consumer.sample.age.seconds" : 4.590289,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 120.0,
+      "outbox.unpublished" : 6750.0,
+      "outbox.oldest.age.seconds" : 53.2425,
+      "outbox.sample.age.seconds" : 4.596079166,
+      "notification.consumer.sample.age.seconds" : 4.59058275,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 3629.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 3,
+        "waiting" : 0,
+        "idle" : 1,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0757,
+      "outbox.sample.age.seconds" : 1.632759916,
+      "notification.consumer.sample.age.seconds" : 1.627048291,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0757,
+      "outbox.sample.age.seconds" : 1.6329645,
+      "notification.consumer.sample.age.seconds" : 1.627250708,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 209.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 464228352,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 28530042,
+      "user_usec" : 21364363,
+      "system_usec" : 7165679,
+      "nr_periods" : 754,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 37.170625125,
+    "campaignCompleted" : 3859.0,
+    "heapUsedBytes" : 92748392,
+    "processCpuNanos" : 40386901000,
+    "gcMillis" : 328,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 137.0,
+      "outbox.unpublished" : 6193.0,
+      "outbox.oldest.age.seconds" : 57.4482,
+      "outbox.sample.age.seconds" : 1.720828166,
+      "notification.consumer.sample.age.seconds" : 1.717636333,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 137.0,
+      "outbox.unpublished" : 6193.0,
+      "outbox.oldest.age.seconds" : 57.4482,
+      "outbox.sample.age.seconds" : 1.721006083,
+      "notification.consumer.sample.age.seconds" : 1.7178135,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 3859.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 4,
+        "waiting" : 0,
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0757,
+      "outbox.sample.age.seconds" : 3.771688166,
+      "notification.consumer.sample.age.seconds" : 3.765967291,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0757,
+      "outbox.sample.age.seconds" : 3.771764791,
+      "notification.consumer.sample.age.seconds" : 3.766043875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 219.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 465530880,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 29461293,
+      "user_usec" : 22092610,
+      "system_usec" : 7368682,
+      "nr_periods" : 776,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 39.328089084,
+    "campaignCompleted" : 4119.0,
+    "heapUsedBytes" : 71676576,
+    "processCpuNanos" : 41330399000,
+    "gcMillis" : 336,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 137.0,
+      "outbox.unpublished" : 6193.0,
+      "outbox.oldest.age.seconds" : 57.4482,
+      "outbox.sample.age.seconds" : 3.878474166,
+      "notification.consumer.sample.age.seconds" : 3.8752895,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 137.0,
+      "outbox.unpublished" : 6193.0,
+      "outbox.oldest.age.seconds" : 57.4482,
+      "outbox.sample.age.seconds" : 3.878778791,
+      "notification.consumer.sample.age.seconds" : 3.875600083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 4119.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.91254475,
+      "notification.consumer.sample.age.seconds" : 0.906634625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.91278175,
+      "notification.consumer.sample.age.seconds" : 0.906866125,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 230.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 469409792,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 30502792,
+      "user_usec" : 22911621,
+      "system_usec" : 7591170,
+      "nr_periods" : 797,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 41.465168,
+    "campaignCompleted" : 4356.0,
+    "heapUsedBytes" : 90452696,
+    "processCpuNanos" : 42216925000,
+    "gcMillis" : 344,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 158.0,
+      "outbox.unpublished" : 5592.0,
+      "outbox.oldest.age.seconds" : 61.4656,
+      "outbox.sample.age.seconds" : 1.005105834,
+      "notification.consumer.sample.age.seconds" : 0.998298334,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 158.0,
+      "outbox.unpublished" : 5592.0,
+      "outbox.oldest.age.seconds" : 61.4656,
+      "outbox.sample.age.seconds" : 1.005412375,
+      "notification.consumer.sample.age.seconds" : 0.998602125,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 4356.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.04966025,
+      "notification.consumer.sample.age.seconds" : 3.04374425,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.049848167,
+      "notification.consumer.sample.age.seconds" : 3.043931917,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 240.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 469962752,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 31460698,
+      "user_usec" : 23660970,
+      "system_usec" : 7799728,
+      "nr_periods" : 819,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 43.618058834,
+    "campaignCompleted" : 4622.0,
+    "heapUsedBytes" : 69481696,
+    "processCpuNanos" : 43257170000,
+    "gcMillis" : 352,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 158.0,
+      "outbox.unpublished" : 5592.0,
+      "outbox.oldest.age.seconds" : 61.4656,
+      "outbox.sample.age.seconds" : 3.157699709,
+      "notification.consumer.sample.age.seconds" : 3.150882542,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 158.0,
+      "outbox.unpublished" : 5592.0,
+      "outbox.oldest.age.seconds" : 61.4656,
+      "outbox.sample.age.seconds" : 3.157853,
+      "notification.consumer.sample.age.seconds" : 3.151035334,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 4622.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 4,
+        "waiting" : 0,
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0227,
+      "outbox.sample.age.seconds" : 0.191346291,
+      "notification.consumer.sample.age.seconds" : 0.186346667,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0227,
+      "outbox.sample.age.seconds" : 0.191418291,
+      "notification.consumer.sample.age.seconds" : 0.186418625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 250.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 471154688,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 32512220,
+      "user_usec" : 24498644,
+      "system_usec" : 8013575,
+      "nr_periods" : 840,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 45.750196125,
+    "campaignCompleted" : 4874.0,
+    "heapUsedBytes" : 91323200,
+    "processCpuNanos" : 44279794000,
+    "gcMillis" : 354,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 157.0,
+      "outbox.unpublished" : 5003.0,
+      "outbox.oldest.age.seconds" : 65.5682,
+      "outbox.sample.age.seconds" : 0.278479834,
+      "notification.consumer.sample.age.seconds" : 0.272593041,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 157.0,
+      "outbox.unpublished" : 5003.0,
+      "outbox.oldest.age.seconds" : 65.5682,
+      "outbox.sample.age.seconds" : 0.278612792,
+      "notification.consumer.sample.age.seconds" : 0.272725208,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 4874.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 4,
+        "waiting" : 0,
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0227,
+      "outbox.sample.age.seconds" : 2.323427291,
+      "notification.consumer.sample.age.seconds" : 2.318427583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0227,
+      "outbox.sample.age.seconds" : 2.32350325,
+      "notification.consumer.sample.age.seconds" : 2.318503458,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 260.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 472379392,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 33568002,
+      "user_usec" : 25305260,
+      "system_usec" : 8262742,
+      "nr_periods" : 861,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 47.891894167,
+    "campaignCompleted" : 5141.0,
+    "heapUsedBytes" : 68251256,
+    "processCpuNanos" : 45795197000,
+    "gcMillis" : 360,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 157.0,
+      "outbox.unpublished" : 5003.0,
+      "outbox.oldest.age.seconds" : 65.5682,
+      "outbox.sample.age.seconds" : 2.4202005,
+      "notification.consumer.sample.age.seconds" : 2.414313791,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 157.0,
+      "outbox.unpublished" : 5003.0,
+      "outbox.oldest.age.seconds" : 65.5682,
+      "outbox.sample.age.seconds" : 2.420364709,
+      "notification.consumer.sample.age.seconds" : 2.414479041,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 5141.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0227,
+      "outbox.sample.age.seconds" : 4.465183583,
+      "notification.consumer.sample.age.seconds" : 4.460183792,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0227,
+      "outbox.sample.age.seconds" : 4.465255125,
+      "notification.consumer.sample.age.seconds" : 4.460255042,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 269.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 473841664,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 34723684,
+      "user_usec" : 26204680,
+      "system_usec" : 8519004,
+      "nr_periods" : 883,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 50.028005959,
+    "campaignCompleted" : 5378.0,
+    "heapUsedBytes" : 88485272,
+    "processCpuNanos" : 47582699000,
+    "gcMillis" : 365,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 157.0,
+      "outbox.unpublished" : 5003.0,
+      "outbox.oldest.age.seconds" : 65.5682,
+      "outbox.sample.age.seconds" : 4.556322667,
+      "notification.consumer.sample.age.seconds" : 4.550436125,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 157.0,
+      "outbox.unpublished" : 5003.0,
+      "outbox.oldest.age.seconds" : 65.5682,
+      "outbox.sample.age.seconds" : 4.556474334,
+      "notification.consumer.sample.age.seconds" : 4.550586833,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 5378.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0805,
+      "outbox.sample.age.seconds" : 1.594349125,
+      "notification.consumer.sample.age.seconds" : 1.590964708,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0805,
+      "outbox.sample.age.seconds" : 1.594442791,
+      "notification.consumer.sample.age.seconds" : 1.591058292,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 279.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 474738688,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 35711985,
+      "user_usec" : 26969125,
+      "system_usec" : 8742859,
+      "nr_periods" : 904,
+      "nr_throttled" : 0,
+      "throttled_usec" : 0,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 52.294410292,
+    "campaignCompleted" : 5474.0,
+    "heapUsedBytes" : 90503960,
+    "processCpuNanos" : 48554897000,
+    "gcMillis" : 377,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 134.0,
+      "outbox.unpublished" : 4468.0,
+      "outbox.oldest.age.seconds" : 69.8385,
+      "outbox.sample.age.seconds" : 1.793850375,
+      "notification.consumer.sample.age.seconds" : 1.760277292,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 134.0,
+      "outbox.unpublished" : 4468.0,
+      "outbox.oldest.age.seconds" : 69.8385,
+      "outbox.sample.age.seconds" : 1.794379584,
+      "notification.consumer.sample.age.seconds" : 1.760803292,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 5476.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0805,
+      "outbox.sample.age.seconds" : 3.861951,
+      "notification.consumer.sample.age.seconds" : 3.8585695,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0805,
+      "outbox.sample.age.seconds" : 3.862073458,
+      "notification.consumer.sample.age.seconds" : 3.8586885,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 287.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 475803648,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 38307061,
+      "user_usec" : 28971946,
+      "system_usec" : 9335115,
+      "nr_periods" : 928,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 54.558892375,
+    "campaignCompleted" : 5715.0,
+    "heapUsedBytes" : 106273128,
+    "processCpuNanos" : 49447529000,
+    "gcMillis" : 396,
+    "threads" : 95,
+    "campaign" : {
+      "notification.consumer.lag" : 134.0,
+      "outbox.unpublished" : 4468.0,
+      "outbox.oldest.age.seconds" : 69.8385,
+      "outbox.sample.age.seconds" : 4.058102209,
+      "notification.consumer.sample.age.seconds" : 4.024554209,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 134.0,
+      "outbox.unpublished" : 4468.0,
+      "outbox.oldest.age.seconds" : 69.8385,
+      "outbox.sample.age.seconds" : 4.058745959,
+      "notification.consumer.sample.age.seconds" : 4.025177584,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 5715.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 4,
+        "waiting" : 0,
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.116462708,
+      "notification.consumer.sample.age.seconds" : 1.108279416,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.116803375,
+      "notification.consumer.sample.age.seconds" : 1.108623583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 298.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 476114944,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 39474069,
+      "user_usec" : 29877771,
+      "system_usec" : 9596297,
+      "nr_periods" : 950,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 56.705300709,
+    "campaignCompleted" : 5952.0,
+    "heapUsedBytes" : 76928120,
+    "processCpuNanos" : 50376861000,
+    "gcMillis" : 407,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 109.0,
+      "outbox.unpublished" : 4067.0,
+      "outbox.oldest.age.seconds" : 74.3285,
+      "outbox.sample.age.seconds" : 1.159319042,
+      "notification.consumer.sample.age.seconds" : 1.155252958,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 109.0,
+      "outbox.unpublished" : 4067.0,
+      "outbox.oldest.age.seconds" : 74.3285,
+      "outbox.sample.age.seconds" : 1.159470792,
+      "notification.consumer.sample.age.seconds" : 1.155404542,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 5952.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 4,
+        "waiting" : 0,
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.261616666,
+      "notification.consumer.sample.age.seconds" : 3.253424666,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.261704791,
+      "notification.consumer.sample.age.seconds" : 3.253513041,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 308.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 477388800,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 40420720,
+      "user_usec" : 30601243,
+      "system_usec" : 9819477,
+      "nr_periods" : 971,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 58.846520375,
+    "campaignCompleted" : 6196.0,
+    "heapUsedBytes" : 95729384,
+    "processCpuNanos" : 51422934000,
+    "gcMillis" : 414,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 109.0,
+      "outbox.unpublished" : 4067.0,
+      "outbox.oldest.age.seconds" : 74.3285,
+      "outbox.sample.age.seconds" : 3.300529042,
+      "notification.consumer.sample.age.seconds" : 3.296463292,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 109.0,
+      "outbox.unpublished" : 4067.0,
+      "outbox.oldest.age.seconds" : 74.3285,
+      "outbox.sample.age.seconds" : 3.300691292,
+      "notification.consumer.sample.age.seconds" : 3.2966245,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 6196.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 4,
+        "waiting" : 0,
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0288,
+      "outbox.sample.age.seconds" : 0.39188725,
+      "notification.consumer.sample.age.seconds" : 0.386394792,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0288,
+      "outbox.sample.age.seconds" : 0.391977042,
+      "notification.consumer.sample.age.seconds" : 0.3864845,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 317.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 478482432,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 41410538,
+      "user_usec" : 31371582,
+      "system_usec" : 10038956,
+      "nr_periods" : 992,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 61.006039334,
+    "campaignCompleted" : 6453.0,
+    "heapUsedBytes" : 75934880,
+    "processCpuNanos" : 52501605000,
+    "gcMillis" : 425,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 118.0,
+      "outbox.unpublished" : 3477.0,
+      "outbox.oldest.age.seconds" : 78.5063,
+      "outbox.sample.age.seconds" : 0.446781666,
+      "notification.consumer.sample.age.seconds" : 0.43058975,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 118.0,
+      "outbox.unpublished" : 3477.0,
+      "outbox.oldest.age.seconds" : 78.5063,
+      "outbox.sample.age.seconds" : 0.447002333,
+      "notification.consumer.sample.age.seconds" : 0.430810834,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 6453.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 4,
+        "waiting" : 0,
+        "idle" : 0,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0288,
+      "outbox.sample.age.seconds" : 2.551587542,
+      "notification.consumer.sample.age.seconds" : 2.546096875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0288,
+      "outbox.sample.age.seconds" : 2.551704209,
+      "notification.consumer.sample.age.seconds" : 2.546212,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 328.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 482066432,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 42485834,
+      "user_usec" : 32196979,
+      "system_usec" : 10288855,
+      "nr_periods" : 1014,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 63.148103834,
+    "campaignCompleted" : 6712.0,
+    "heapUsedBytes" : 100103472,
+    "processCpuNanos" : 53360887000,
+    "gcMillis" : 432,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 118.0,
+      "outbox.unpublished" : 3477.0,
+      "outbox.oldest.age.seconds" : 78.5063,
+      "outbox.sample.age.seconds" : 2.589026416,
+      "notification.consumer.sample.age.seconds" : 2.572842459,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 118.0,
+      "outbox.unpublished" : 3477.0,
+      "outbox.oldest.age.seconds" : 78.5063,
+      "outbox.sample.age.seconds" : 2.589409708,
+      "notification.consumer.sample.age.seconds" : 2.573251459,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 6712.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0288,
+      "outbox.sample.age.seconds" : 4.694428625,
+      "notification.consumer.sample.age.seconds" : 4.688944917,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0288,
+      "outbox.sample.age.seconds" : 4.694638209,
+      "notification.consumer.sample.age.seconds" : 4.689158375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 337.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 483545088,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 43413488,
+      "user_usec" : 32903828,
+      "system_usec" : 10509659,
+      "nr_periods" : 1035,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 65.295979042,
+    "campaignCompleted" : 6969.0,
+    "heapUsedBytes" : 78203592,
+    "processCpuNanos" : 54238464000,
+    "gcMillis" : 440,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 118.0,
+      "outbox.unpublished" : 3477.0,
+      "outbox.oldest.age.seconds" : 78.5063,
+      "outbox.sample.age.seconds" : 4.73687875,
+      "notification.consumer.sample.age.seconds" : 4.720695292,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 118.0,
+      "outbox.unpublished" : 3477.0,
+      "outbox.oldest.age.seconds" : 78.5063,
+      "outbox.sample.age.seconds" : 4.737181291,
+      "notification.consumer.sample.age.seconds" : 4.720996625,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 6969.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0549,
+      "outbox.sample.age.seconds" : 1.835636833,
+      "notification.consumer.sample.age.seconds" : 1.830169541,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0549,
+      "outbox.sample.age.seconds" : 1.835830416,
+      "notification.consumer.sample.age.seconds" : 1.830363125,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 347.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 484360192,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 44352736,
+      "user_usec" : 33646558,
+      "system_usec" : 10706178,
+      "nr_periods" : 1057,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 67.446506959,
+    "campaignCompleted" : 7224.0,
+    "heapUsedBytes" : 101180632,
+    "processCpuNanos" : 55131355000,
+    "gcMillis" : 452,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 149.0,
+      "outbox.unpublished" : 2868.0,
+      "outbox.oldest.age.seconds" : 82.6802,
+      "outbox.sample.age.seconds" : 1.866013458,
+      "notification.consumer.sample.age.seconds" : 1.858323417,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 149.0,
+      "outbox.unpublished" : 2868.0,
+      "outbox.oldest.age.seconds" : 82.6802,
+      "outbox.sample.age.seconds" : 1.866339917,
+      "notification.consumer.sample.age.seconds" : 1.85864525,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 7224.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0549,
+      "outbox.sample.age.seconds" : 3.986265125,
+      "notification.consumer.sample.age.seconds" : 3.980797791,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0549,
+      "outbox.sample.age.seconds" : 3.986492666,
+      "notification.consumer.sample.age.seconds" : 3.981027333,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 358.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 485920768,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 45350689,
+      "user_usec" : 34427669,
+      "system_usec" : 10923020,
+      "nr_periods" : 1078,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 69.601966,
+    "campaignCompleted" : 7464.0,
+    "heapUsedBytes" : 71865144,
+    "processCpuNanos" : 55952071000,
+    "gcMillis" : 460,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 149.0,
+      "outbox.unpublished" : 2868.0,
+      "outbox.oldest.age.seconds" : 82.6802,
+      "outbox.sample.age.seconds" : 4.02143175,
+      "notification.consumer.sample.age.seconds" : 4.01373875,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 149.0,
+      "outbox.unpublished" : 2868.0,
+      "outbox.oldest.age.seconds" : 82.6802,
+      "outbox.sample.age.seconds" : 4.021822,
+      "notification.consumer.sample.age.seconds" : 4.014133042,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 7464.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.1312055,
+      "notification.consumer.sample.age.seconds" : 1.125238292,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.131808541,
+      "notification.consumer.sample.age.seconds" : 1.125820458,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 367.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 486621184,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 46389757,
+      "user_usec" : 35254710,
+      "system_usec" : 11135046,
+      "nr_periods" : 1100,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 71.739325125,
+    "campaignCompleted" : 7720.0,
+    "heapUsedBytes" : 93913088,
+    "processCpuNanos" : 56764515000,
+    "gcMillis" : 468,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 132.0,
+      "outbox.unpublished" : 2282.0,
+      "outbox.oldest.age.seconds" : 86.7917,
+      "outbox.sample.age.seconds" : 1.144768041,
+      "notification.consumer.sample.age.seconds" : 1.140971125,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 132.0,
+      "outbox.unpublished" : 2282.0,
+      "outbox.oldest.age.seconds" : 86.7917,
+      "outbox.sample.age.seconds" : 1.145115375,
+      "notification.consumer.sample.age.seconds" : 1.141317792,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 7720.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.268098666,
+      "notification.consumer.sample.age.seconds" : 3.2621095,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.268395625,
+      "notification.consumer.sample.age.seconds" : 3.2624355,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 378.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 488116224,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 47366605,
+      "user_usec" : 36006250,
+      "system_usec" : 11360354,
+      "nr_periods" : 1121,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 73.873586334,
+    "campaignCompleted" : 7978.0,
+    "heapUsedBytes" : 71821960,
+    "processCpuNanos" : 57656078000,
+    "gcMillis" : 479,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 132.0,
+      "outbox.unpublished" : 2282.0,
+      "outbox.oldest.age.seconds" : 86.7917,
+      "outbox.sample.age.seconds" : 3.278999375,
+      "notification.consumer.sample.age.seconds" : 3.275201625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 132.0,
+      "outbox.unpublished" : 2282.0,
+      "outbox.oldest.age.seconds" : 86.7917,
+      "outbox.sample.age.seconds" : 3.279325583,
+      "notification.consumer.sample.age.seconds" : 3.275527042,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 7978.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0334,
+      "outbox.sample.age.seconds" : 0.385992875,
+      "notification.consumer.sample.age.seconds" : 0.380290625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0334,
+      "outbox.sample.age.seconds" : 0.386517125,
+      "notification.consumer.sample.age.seconds" : 0.380809041,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 388.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 489283584,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 48302068,
+      "user_usec" : 36714945,
+      "system_usec" : 11587122,
+      "nr_periods" : 1143,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 76.026475834,
+    "campaignCompleted" : 8222.0,
+    "heapUsedBytes" : 93854440,
+    "processCpuNanos" : 58494583000,
+    "gcMillis" : 487,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 159.0,
+      "outbox.unpublished" : 1674.0,
+      "outbox.oldest.age.seconds" : 90.8106,
+      "outbox.sample.age.seconds" : 0.418358833,
+      "notification.consumer.sample.age.seconds" : 0.412437542,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 159.0,
+      "outbox.unpublished" : 1674.0,
+      "outbox.oldest.age.seconds" : 90.8106,
+      "outbox.sample.age.seconds" : 0.418720166,
+      "notification.consumer.sample.age.seconds" : 0.412794083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 8222.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0334,
+      "outbox.sample.age.seconds" : 2.538946041,
+      "notification.consumer.sample.age.seconds" : 2.53321925,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0334,
+      "outbox.sample.age.seconds" : 2.5391715,
+      "notification.consumer.sample.age.seconds" : 2.533444625,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 398.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 490815488,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 49264067,
+      "user_usec" : 37466232,
+      "system_usec" : 11797834,
+      "nr_periods" : 1164,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 78.186355417,
+    "campaignCompleted" : 8487.0,
+    "heapUsedBytes" : 76976104,
+    "processCpuNanos" : 59384851000,
+    "gcMillis" : 498,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 159.0,
+      "outbox.unpublished" : 1674.0,
+      "outbox.oldest.age.seconds" : 90.8106,
+      "outbox.sample.age.seconds" : 2.578121291,
+      "notification.consumer.sample.age.seconds" : 2.572185042,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 159.0,
+      "outbox.unpublished" : 1674.0,
+      "outbox.oldest.age.seconds" : 90.8106,
+      "outbox.sample.age.seconds" : 2.578338,
+      "notification.consumer.sample.age.seconds" : 2.572401333,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 8487.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 3,
+        "waiting" : 0,
+        "idle" : 1,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0334,
+      "outbox.sample.age.seconds" : 4.698381916,
+      "notification.consumer.sample.age.seconds" : 4.692646541,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 1.0,
+      "outbox.oldest.age.seconds" : 0.0334,
+      "outbox.sample.age.seconds" : 4.698487166,
+      "notification.consumer.sample.age.seconds" : 4.692759958,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 407.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 492036096,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 50238998,
+      "user_usec" : 38203920,
+      "system_usec" : 12035077,
+      "nr_periods" : 1186,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 80.331134375,
+    "campaignCompleted" : 8757.0,
+    "heapUsedBytes" : 105363912,
+    "processCpuNanos" : 60189387000,
+    "gcMillis" : 505,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 159.0,
+      "outbox.unpublished" : 1674.0,
+      "outbox.oldest.age.seconds" : 90.8106,
+      "outbox.sample.age.seconds" : 4.722806875,
+      "notification.consumer.sample.age.seconds" : 4.716881083,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 159.0,
+      "outbox.unpublished" : 1674.0,
+      "outbox.oldest.age.seconds" : 90.8106,
+      "outbox.sample.age.seconds" : 4.72327175,
+      "notification.consumer.sample.age.seconds" : 4.717343958,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 8757.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.835975875,
+      "notification.consumer.sample.age.seconds" : 1.831131833,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.836187458,
+      "notification.consumer.sample.age.seconds" : 1.831343291,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 417.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 492945408,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 51264448,
+      "user_usec" : 38989312,
+      "system_usec" : 12275135,
+      "nr_periods" : 1207,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 82.497945834,
+    "campaignCompleted" : 9030.0,
+    "heapUsedBytes" : 92815016,
+    "processCpuNanos" : 61128661000,
+    "gcMillis" : 516,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 144.0,
+      "outbox.unpublished" : 1072.0,
+      "outbox.oldest.age.seconds" : 94.9293,
+      "outbox.sample.age.seconds" : 1.877658,
+      "notification.consumer.sample.age.seconds" : 1.8731325,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 144.0,
+      "outbox.unpublished" : 1072.0,
+      "outbox.oldest.age.seconds" : 94.9293,
+      "outbox.sample.age.seconds" : 1.877960208,
+      "notification.consumer.sample.age.seconds" : 1.87346375,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 9030.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.00278925,
+      "notification.consumer.sample.age.seconds" : 3.997969208,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 4.003278958,
+      "notification.consumer.sample.age.seconds" : 3.998461583,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 428.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 494280704,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 52237162,
+      "user_usec" : 39739913,
+      "system_usec" : 12497248,
+      "nr_periods" : 1229,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 84.659542334,
+    "campaignCompleted" : 9289.0,
+    "heapUsedBytes" : 75007688,
+    "processCpuNanos" : 62011308000,
+    "gcMillis" : 526,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 144.0,
+      "outbox.unpublished" : 1072.0,
+      "outbox.oldest.age.seconds" : 94.9293,
+      "outbox.sample.age.seconds" : 4.039350041,
+      "notification.consumer.sample.age.seconds" : 4.034825167,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 144.0,
+      "outbox.unpublished" : 1072.0,
+      "outbox.oldest.age.seconds" : 94.9293,
+      "outbox.sample.age.seconds" : 4.039662041,
+      "notification.consumer.sample.age.seconds" : 4.035135667,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 9290.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 1,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.155292667,
+      "notification.consumer.sample.age.seconds" : 1.149823875,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 1.155597084,
+      "notification.consumer.sample.age.seconds" : 1.150125958,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 438.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 497917952,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 53218925,
+      "user_usec" : 40490329,
+      "system_usec" : 12728595,
+      "nr_periods" : 1251,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 86.800829625,
+    "campaignCompleted" : 9537.0,
+    "heapUsedBytes" : 97095192,
+    "processCpuNanos" : 62770692000,
+    "gcMillis" : 533,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 131.0,
+      "outbox.unpublished" : 464.0,
+      "outbox.oldest.age.seconds" : 98.952,
+      "outbox.sample.age.seconds" : 1.166874375,
+      "notification.consumer.sample.age.seconds" : 1.151679875,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 131.0,
+      "outbox.unpublished" : 464.0,
+      "outbox.oldest.age.seconds" : 98.952,
+      "outbox.sample.age.seconds" : 1.167272083,
+      "notification.consumer.sample.age.seconds" : 1.152072959,
+      "notification.worker.active" : 1.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 9537.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 2,
+        "waiting" : 0,
+        "idle" : 2,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.2968415,
+      "notification.consumer.sample.age.seconds" : 3.291371416,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 1.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 3.297064834,
+      "notification.consumer.sample.age.seconds" : 3.2915945,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 448.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 498589696,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 54194036,
+      "user_usec" : 41238543,
+      "system_usec" : 12955493,
+      "nr_periods" : 1272,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 88.966270584,
+    "campaignCompleted" : 9796.0,
+    "heapUsedBytes" : 80339960,
+    "processCpuNanos" : 63657778000,
+    "gcMillis" : 545,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 131.0,
+      "outbox.unpublished" : 464.0,
+      "outbox.oldest.age.seconds" : 98.952,
+      "outbox.sample.age.seconds" : 3.332003625,
+      "notification.consumer.sample.age.seconds" : 3.316805792,
+      "notification.worker.active" : 2.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 131.0,
+      "outbox.unpublished" : 464.0,
+      "outbox.oldest.age.seconds" : 98.952,
+      "outbox.sample.age.seconds" : 3.332458542,
+      "notification.consumer.sample.age.seconds" : 3.3172515,
+      "notification.worker.active" : 3.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 9796.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 3,
+        "waiting" : 0,
+        "idle" : 1,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.446023917,
+      "notification.consumer.sample.age.seconds" : 0.44071775,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.446135,
+      "notification.consumer.sample.age.seconds" : 0.440828791,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 458.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 500637696,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 55205140,
+      "user_usec" : 42032678,
+      "system_usec" : 13172461,
+      "nr_periods" : 1294,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  }, {
+    "seconds" : 90.931237125,
+    "campaignCompleted" : 10000.0,
+    "heapUsedBytes" : 68773800,
+    "processCpuNanos" : 64357230000,
+    "gcMillis" : 554,
+    "threads" : 94,
+    "campaign" : {
+      "notification.consumer.lag" : 11.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.272467375,
+      "notification.consumer.sample.age.seconds" : 0.265209,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "campaignState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 3,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 11.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 0.272658458,
+      "notification.consumer.sample.age.seconds" : 0.265398417,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 10000.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 4,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 4
+      }
+    },
+    "realtime" : {
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.410466375,
+      "notification.consumer.sample.age.seconds" : 2.405162041,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0
+    },
+    "realtimeState" : {
+      "redisQuota" : {
+        "unavailableByReason" : {
+          "UNKNOWN" : 0.0,
+          "SLOT_BUSY" : 0.0,
+          "CONNECTION" : 0.0,
+          "POOL_CLOSED" : 0.0,
+          "STATE_ERROR" : 0.0,
+          "TIMEOUT" : 0.0
+        },
+        "poolIdle" : 1,
+        "maxConnections" : 3,
+        "firstUnavailablePresent" : false,
+        "configuredTimeoutMillis" : 250,
+        "poolActive" : 0,
+        "poolClosed" : false
+      },
+      "transientQuotaRecoveryEnabled" : true,
+      "transientQuotaExhausted" : 0.0,
+      "notification.consumer.lag" : 0.0,
+      "outbox.unpublished" : 0.0,
+      "outbox.oldest.age.seconds" : 0.0,
+      "outbox.sample.age.seconds" : 2.410571709,
+      "notification.consumer.sample.age.seconds" : 2.405266833,
+      "notification.worker.active" : 0.0,
+      "notification.worker.waiting" : 0.0,
+      "providerAcceptedCounter" : 467.0,
+      "listenerRunning" : true,
+      "hikari" : {
+        "active" : 0,
+        "waiting" : 0,
+        "idle" : 3,
+        "maximum" : 4,
+        "available" : true,
+        "total" : 3
+      }
+    },
+    "mysqlCgroupMemoryBytes" : 500494336,
+    "mysqlCgroupCounters" : {
+      "low" : 0,
+      "high" : 0,
+      "max" : 0,
+      "oom" : 0,
+      "oom_kill" : 0,
+      "oom_group_kill" : 0,
+      "usage_usec" : 55880275,
+      "user_usec" : 42547708,
+      "system_usec" : 13332567,
+      "nr_periods" : 1313,
+      "nr_throttled" : 3,
+      "throttled_usec" : 661927,
+      "nr_bursts" : 0,
+      "burst_usec" : 0
+    }
+  } ],
+  "campaignConsumerConfiguration" : {
+    "configuredConsumers" : 3,
+    "childContainers" : 3,
+    "syncCommits" : true,
+    "ackMode" : "RECORD",
+    "workerMaxActive" : 3,
+    "assignedPartitions" : 6
+  },
+  "campaignPartitionConfiguration" : {
+    "assignedPerConsumer" : [ 2, 2, 2 ],
+    "requestedPartitions" : 3,
+    "retryPartitions" : 3,
+    "deadLetterPartitions" : 3,
+    "recoveryCapacity" : 12
+  },
+  "campaignProducerConfiguration" : {
+    "enable.idempotence" : "true",
+    "buffer.memory" : "1048576",
+    "batch.size" : "16384",
+    "retries" : "3",
+    "max.in.flight.requests.per.connection" : "1",
+    "acks" : "all",
+    "linger.ms" : "0",
+    "compression.type" : "none",
+    "delivery.timeout.ms" : "10000",
+    "request.timeout.ms" : "3000",
+    "max.block.ms" : "3000"
+  },
+  "campaignTopicCompression" : {
+    "requested" : "producer",
+    "deadLetter" : "producer",
+    "retry" : "producer"
+  },
+  "campaignDrainSeconds" : 90.931203584,
+  "campaignPerSecond" : 109.97325016997324,
+  "mixedProbes" : 417,
+  "mixedLatencyMs" : {
+    "p95" : 499.273,
+    "max" : 564.468,
+    "p99" : 543.326,
+    "p50" : 167.559,
+    "count" : 417
+  },
+  "campaignCreatedToCompletedMs" : {
+    "p95" : 99760.051,
+    "max" : 103564.125,
+    "p99" : 102659.174,
+    "p50" : 66837.923,
+    "count" : 10000
+  },
+  "verifiedTargetMappings" : 10000,
+  "mappingJoinPlan" : "eq_ref/PRIMARY for n,t,o,a",
+  "httpAudit" : {
+    "uniqueCampaign" : 10000,
+    "duplicates" : 0,
+    "invalid" : 0,
+    "uniqueRealtime" : 467
+  },
+  "baselineApiLatencyMs" : {
+    "p95" : 27.453708,
+    "max" : 90.63095799999999,
+    "p99" : 90.63095799999999,
+    "p50" : 14.13675,
+    "count" : 50
+  },
+  "mixedApiLatencyMs" : {
+    "p95" : 11.144417,
+    "max" : 359.210417,
+    "p99" : 22.653708,
+    "p50" : 5.521624999999999,
+    "count" : 417
+  },
+  "verificationSeconds" : 0.379176417,
+  "campaignOffsets" : [ {
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 3281,
+    "end" : 3281,
+    "partition" : 2
+  }, {
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.retry.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2
+  }, {
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 3391,
+    "end" : 3391,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.campaign",
+    "committed" : 3328,
+    "end" : 3328,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.dlq.campaign",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2
+  } ],
+  "realtimeOffsets" : [ {
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.retry",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2
+  }, {
+    "topic" : "notification.requested.v1",
+    "committed" : 136,
+    "end" : 136,
+    "partition" : 2
+  }, {
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1",
+    "committed" : 180,
+    "end" : 180,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 1
+  }, {
+    "topic" : "notification.requested.v1",
+    "committed" : 151,
+    "end" : 151,
+    "partition" : 0
+  }, {
+    "topic" : "notification.requested.v1.dlq",
+    "committed" : 0,
+    "end" : 0,
+    "partition" : 2
+  } ],
+  "mockStats" : {
+    "requests" : 10467,
+    "accepted" : 10467,
+    "rateLimited" : 0,
+    "serverErrors" : 0,
+    "permanentFailures" : 0,
+    "busy" : 0,
+    "active" : 0,
+    "maxActive" : 4
+  },
+  "campaignAllowed" : 10000.0,
+  "realtimeAllowed" : 467.0,
+  "stageTimingVersion" : "caller-side-transaction-and-ack-v1",
+  "campaignStageTimings" : {
+    "relay.claim" : {
+      "count" : 10020,
+      "totalMillis" : 39745.212342,
+      "meanMillis" : 3.966588058083832
+    },
+    "relay.ack" : {
+      "count" : 10000,
+      "totalMillis" : 6941.118633,
+      "meanMillis" : 0.6941118633
+    },
+    "relay.mark.published" : {
+      "count" : 10000,
+      "totalMillis" : 21601.259865,
+      "meanMillis" : 2.1601259865
+    },
+    "relay.run" : {
+      "count" : 220,
+      "totalMillis" : 68378.673488,
+      "meanMillis" : 310.81215221818184
+    },
+    "worker.handler" : {
+      "count" : 10000,
+      "totalMillis" : 154441.955308,
+      "meanMillis" : 15.4441955308
+    },
+    "worker.claim.initial" : {
+      "count" : 10000,
+      "totalMillis" : 30238.916136,
+      "meanMillis" : 3.0238916136
+    },
+    "worker.claim.admitted" : {
+      "count" : 10000,
+      "totalMillis" : 59413.8564,
+      "meanMillis" : 5.94138564
+    },
+    "worker.provider" : {
+      "count" : 10000,
+      "totalMillis" : 18425.078525,
+      "meanMillis" : 1.8425078525
+    },
+    "worker.complete" : {
+      "count" : 10000,
+      "totalMillis" : 40292.546154,
+      "meanMillis" : 4.0292546154
+    }
+  },
+  "realtimeStageTimings" : {
+    "relay.claim" : {
+      "count" : 1374,
+      "totalMillis" : 6530.507209,
+      "meanMillis" : 4.7529164548762735
+    },
+    "relay.ack" : {
+      "count" : 467,
+      "totalMillis" : 707.2555,
+      "meanMillis" : 1.51446573875803
+    },
+    "relay.mark.published" : {
+      "count" : 467,
+      "totalMillis" : 1510.314342,
+      "meanMillis" : 3.2340778201284794
+    },
+    "relay.run" : {
+      "count" : 907,
+      "totalMillis" : 8759.678342,
+      "meanMillis" : 9.657859252480705
+    },
+    "worker.handler" : {
+      "count" : 467,
+      "totalMillis" : 9056.747037,
+      "meanMillis" : 19.393462605995715
+    },
+    "worker.claim.initial" : {
+      "count" : 467,
+      "totalMillis" : 1823.922455,
+      "meanMillis" : 3.9056155353319055
+    },
+    "worker.claim.admitted" : {
+      "count" : 467,
+      "totalMillis" : 3329.056757,
+      "meanMillis" : 7.1286011927194854
+    },
+    "worker.provider" : {
+      "count" : 467,
+      "totalMillis" : 1085.010361,
+      "meanMillis" : 2.3233626573875803
+    },
+    "worker.complete" : {
+      "count" : 467,
+      "totalMillis" : 2502.464665,
+      "meanMillis" : 5.358596713062099
+    }
+  },
+  "quotaDiagnostics" : {
+    "campaign" : {
+      "unavailableByReason" : {
+        "UNKNOWN" : 0.0,
+        "SLOT_BUSY" : 0.0,
+        "CONNECTION" : 0.0,
+        "POOL_CLOSED" : 0.0,
+        "STATE_ERROR" : 0.0,
+        "TIMEOUT" : 0.0
+      },
+      "poolIdle" : 3,
+      "maxConnections" : 3,
+      "firstUnavailablePresent" : false,
+      "configuredTimeoutMillis" : 250,
+      "poolActive" : 0,
+      "poolClosed" : false
+    },
+    "realtime" : {
+      "unavailableByReason" : {
+        "UNKNOWN" : 0.0,
+        "SLOT_BUSY" : 0.0,
+        "CONNECTION" : 0.0,
+        "POOL_CLOSED" : 0.0,
+        "STATE_ERROR" : 0.0,
+        "TIMEOUT" : 0.0
+      },
+      "poolIdle" : 1,
+      "maxConnections" : 3,
+      "firstUnavailablePresent" : false,
+      "configuredTimeoutMillis" : 250,
+      "poolActive" : 0,
+      "poolClosed" : false
+    }
+  },
+  "producerLifetimeMetrics" : {
+    "campaign" : {
+      "outgoing-byte-total" : 3800290.0,
+      "record-size-avg" : 301.0,
+      "record-retry-total" : 0.0,
+      "record-send-total" : 10000.0,
+      "request-latency-avg" : 0.5315555555555556,
+      "record-queue-time-avg" : 0.025925925925925925,
+      "records-per-request-avg" : 1.0,
+      "request-total" : 10004.0,
+      "batch-size-avg" : 285.0,
+      "record-error-total" : 0.0,
+      "compression-rate-avg" : 1.0
+    },
+    "realtime" : {
+      "outgoing-byte-total" : 173596.0,
+      "record-size-avg" : 301.0,
+      "record-retry-total" : 0.0,
+      "record-send-total" : 467.0,
+      "request-latency-avg" : 0.6807228915662651,
+      "record-queue-time-avg" : 0.045180722891566265,
+      "records-per-request-avg" : 1.0,
+      "request-total" : 472.0,
+      "batch-size-avg" : 285.0,
+      "record-error-total" : 0.0,
+      "compression-rate-avg" : 1.0
+    }
+  },
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-05T07:08:50.437542Z"
+}

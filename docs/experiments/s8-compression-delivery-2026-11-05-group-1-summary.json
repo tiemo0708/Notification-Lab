@@ -1,0 +1,338 @@
+{
+  "result": "PASS",
+  "validRuns": 4,
+  "sourceFilesUnchanged": true,
+  "frozenSourceCount": 165,
+  "sequence": [
+    "none",
+    "lz4",
+    "lz4",
+    "none"
+  ],
+  "totalCampaignAccepted": 40000,
+  "totalRealtimeAccepted": 2352,
+  "totalHttpAccepted": 42352,
+  "lz4VsNoneMeanThroughputPercent": -16.71719539290717,
+  "lz4VsNoneMeanCampaignOutgoingBytesPercent": -4.7855795035829924,
+  "rows": [
+    {
+      "runIndex": 1,
+      "campaignCodec": "none",
+      "result": "PASS",
+      "gradleElapsed": "3m 28s",
+      "preloadSeconds": 23.076425834,
+      "drainSeconds": 142.726841291,
+      "campaignPerSecond": 70.06390605682503,
+      "realtimeAccepted": 661,
+      "httpAccepted": 10661,
+      "baselineApiP95Millis": 22.813084,
+      "mixedApiP95Millis": 28.477290999999997,
+      "mixedApiP99Millis": 222.517042,
+      "mixedApiMaxMillis": 753.133916,
+      "campaignOutgoingBytesLifetime": 3800336.0,
+      "campaignOutgoingBytesPerAccepted": 380.0336,
+      "campaignSendAttemptsLifetime": 10000.0,
+      "campaignProducerRetriesLifetime": 0.0,
+      "campaignProducerErrorsLifetime": 0.0,
+      "campaignCompressionRateWindowAverage": 1.0,
+      "campaignRecordsPerRequestWindowAverage": 1.0,
+      "realtimeOutgoingBytesLifetime": 245570.0,
+      "realtimeProducerRetriesLifetime": 0.0,
+      "jvmCpuPercentOneCore": 38.685721208826386,
+      "mysqlCpuPercentOneCore": 55.10450357920277,
+      "cpuSampleWindowSeconds": 142.08727220900002,
+      "observedCampaignLagMax": 84.0,
+      "observedRealtimeLagMax": 2.0,
+      "observedLagAgeMaxSeconds": 4.964229292,
+      "observedCampaignPoolActiveMax": 4,
+      "observedRealtimePoolActiveMax": 2,
+      "observedCampaignPoolWaitingMax": 0,
+      "observedRealtimePoolWaitingMax": 0,
+      "observedHeapMaxMiB": 110.89171600341797,
+      "gcDeltaMillis": 610,
+      "campaignStageMeanMillis": {
+        "relay.claim": 6.768179568120571,
+        "relay.ack": 1.0494015953,
+        "relay.mark.published": 4.1935604901,
+        "relay.run": 549.5300568721461,
+        "worker.handler": 24.7831122981,
+        "worker.claim.initial": 4.3148747774,
+        "worker.claim.admitted": 10.481341715300001,
+        "worker.provider": 1.8977522835,
+        "worker.complete": 7.3669075685
+      },
+      "quotaUnavailableByReason": {
+        "campaign": {
+          "TIMEOUT": 0.0,
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0,
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0,
+          "STATE_ERROR": 0.0
+        },
+        "realtime": {
+          "TIMEOUT": 0.0,
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0,
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0,
+          "STATE_ERROR": 0.0
+        }
+      },
+      "rawFile": "s8-compression-delivery-2026-11-05-group-1-run-1-none.json",
+      "rawSha256": "32e8857eeda9f41ce9c456f55d1bfbd003ebbb209b01f1a36edbb1a058a79992"
+    },
+    {
+      "runIndex": 2,
+      "campaignCodec": "lz4",
+      "result": "PASS",
+      "gradleElapsed": "3m 26s",
+      "preloadSeconds": 19.246021,
+      "drainSeconds": 139.123713625,
+      "campaignPerSecond": 71.8784723282648,
+      "realtimeAccepted": 632,
+      "httpAccepted": 10632,
+      "baselineApiP95Millis": 31.133042,
+      "mixedApiP95Millis": 31.133125,
+      "mixedApiP99Millis": 642.890125,
+      "mixedApiMaxMillis": 1250.192125,
+      "campaignOutgoingBytesLifetime": 3618423.0,
+      "campaignOutgoingBytesPerAccepted": 361.8423,
+      "campaignSendAttemptsLifetime": 10000.0,
+      "campaignProducerRetriesLifetime": 0.0,
+      "campaignProducerErrorsLifetime": 0.0,
+      "campaignCompressionRateWindowAverage": 0.9188030944426699,
+      "campaignRecordsPerRequestWindowAverage": 1.0,
+      "realtimeOutgoingBytesLifetime": 234811.0,
+      "realtimeProducerRetriesLifetime": 0.0,
+      "jvmCpuPercentOneCore": 42.320259377363755,
+      "mysqlCpuPercentOneCore": 48.33545964879289,
+      "cpuSampleWindowSeconds": 138.564713125,
+      "observedCampaignLagMax": 96.0,
+      "observedRealtimeLagMax": 2.0,
+      "observedLagAgeMaxSeconds": 4.968521292,
+      "observedCampaignPoolActiveMax": 4,
+      "observedRealtimePoolActiveMax": 3,
+      "observedCampaignPoolWaitingMax": 0,
+      "observedRealtimePoolWaitingMax": 0,
+      "observedHeapMaxMiB": 103.19696044921875,
+      "gcDeltaMillis": 699,
+      "campaignStageMeanMillis": {
+        "relay.claim": 6.573255162939298,
+        "relay.ack": 1.0049448887,
+        "relay.mark.published": 4.1470577616,
+        "relay.run": 543.8131929259259,
+        "worker.handler": 25.0232006101,
+        "worker.claim.initial": 3.9445408274,
+        "worker.claim.admitted": 10.6055376266,
+        "worker.provider": 1.8422693064,
+        "worker.complete": 7.9575675907
+      },
+      "quotaUnavailableByReason": {
+        "campaign": {
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0,
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0,
+          "STATE_ERROR": 0.0,
+          "TIMEOUT": 0.0
+        },
+        "realtime": {
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0,
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0,
+          "STATE_ERROR": 0.0,
+          "TIMEOUT": 0.0
+        }
+      },
+      "rawFile": "s8-compression-delivery-2026-11-05-group-1-run-2-lz4.json",
+      "rawSha256": "03b484ea9d8886ce496384fbb61324586662fe97f2abff6c8a19e671c664c480"
+    },
+    {
+      "runIndex": 3,
+      "campaignCodec": "lz4",
+      "result": "PASS",
+      "gradleElapsed": "3m 1s",
+      "preloadSeconds": 17.915419333,
+      "drainSeconds": 128.104089041,
+      "campaignPerSecond": 78.06152071226607,
+      "realtimeAccepted": 592,
+      "httpAccepted": 10592,
+      "baselineApiP95Millis": 39.688709,
+      "mixedApiP95Millis": 55.88,
+      "mixedApiP99Millis": 560.199708,
+      "mixedApiMaxMillis": 1140.339292,
+      "campaignOutgoingBytesLifetime": 3618469.0,
+      "campaignOutgoingBytesPerAccepted": 361.8469,
+      "campaignSendAttemptsLifetime": 10000.0,
+      "campaignProducerRetriesLifetime": 0.0,
+      "campaignProducerErrorsLifetime": 0.0,
+      "campaignCompressionRateWindowAverage": 0.9188148871775993,
+      "campaignRecordsPerRequestWindowAverage": 1.0,
+      "realtimeOutgoingBytesLifetime": 219971.0,
+      "realtimeProducerRetriesLifetime": 0.0,
+      "jvmCpuPercentOneCore": 41.923569915884734,
+      "mysqlCpuPercentOneCore": 48.59464884818923,
+      "cpuSampleWindowSeconds": 127.60306220899999,
+      "observedCampaignLagMax": 112.0,
+      "observedRealtimeLagMax": 2.0,
+      "observedLagAgeMaxSeconds": 5.015623333,
+      "observedCampaignPoolActiveMax": 4,
+      "observedRealtimePoolActiveMax": 3,
+      "observedCampaignPoolWaitingMax": 0,
+      "observedRealtimePoolWaitingMax": 0,
+      "observedHeapMaxMiB": 102.67839050292969,
+      "gcDeltaMillis": 618,
+      "campaignStageMeanMillis": {
+        "relay.claim": 5.887647128407389,
+        "relay.ack": 0.9769109075,
+        "relay.mark.published": 3.7504854742000004,
+        "relay.run": 494.5771188372093,
+        "worker.handler": 22.5830841391,
+        "worker.claim.initial": 3.6247643534000002,
+        "worker.claim.admitted": 9.890061299100001,
+        "worker.provider": 1.8522858849000001,
+        "worker.complete": 6.5843760664
+      },
+      "quotaUnavailableByReason": {
+        "realtime": {
+          "TIMEOUT": 0.0,
+          "STATE_ERROR": 0.0,
+          "POOL_CLOSED": 0.0,
+          "CONNECTION": 0.0,
+          "SLOT_BUSY": 0.0,
+          "UNKNOWN": 0.0
+        },
+        "campaign": {
+          "TIMEOUT": 0.0,
+          "STATE_ERROR": 0.0,
+          "POOL_CLOSED": 0.0,
+          "CONNECTION": 0.0,
+          "SLOT_BUSY": 0.0,
+          "UNKNOWN": 0.0
+        }
+      },
+      "rawFile": "s8-compression-delivery-2026-11-05-group-1-run-3-lz4.json",
+      "rawSha256": "37efe9adc53a01d0530413bcd93e86a6ec4243f443a01b5fe19a21262b7311c7"
+    },
+    {
+      "runIndex": 4,
+      "campaignCodec": "none",
+      "result": "PASS",
+      "gradleElapsed": "2m 20s",
+      "preloadSeconds": 15.25626275,
+      "drainSeconds": 90.931203584,
+      "campaignPerSecond": 109.97325016997324,
+      "realtimeAccepted": 467,
+      "httpAccepted": 10467,
+      "baselineApiP95Millis": 27.453708,
+      "mixedApiP95Millis": 11.144417,
+      "mixedApiP99Millis": 22.653708,
+      "mixedApiMaxMillis": 359.210417,
+      "campaignOutgoingBytesLifetime": 3800290.0,
+      "campaignOutgoingBytesPerAccepted": 380.029,
+      "campaignSendAttemptsLifetime": 10000.0,
+      "campaignProducerRetriesLifetime": 0.0,
+      "campaignProducerErrorsLifetime": 0.0,
+      "campaignCompressionRateWindowAverage": 1.0,
+      "campaignRecordsPerRequestWindowAverage": 1.0,
+      "realtimeOutgoingBytesLifetime": 173596.0,
+      "realtimeProducerRetriesLifetime": 0.0,
+      "jvmCpuPercentOneCore": 48.849461088626114,
+      "mysqlCpuPercentOneCore": 48.708404280529436,
+      "cpuSampleWindowSeconds": 90.46355274999999,
+      "observedCampaignLagMax": 159.0,
+      "observedRealtimeLagMax": 2.0,
+      "observedLagAgeMaxSeconds": 4.720695292,
+      "observedCampaignPoolActiveMax": 4,
+      "observedRealtimePoolActiveMax": 1,
+      "observedCampaignPoolWaitingMax": 0,
+      "observedRealtimePoolWaitingMax": 0,
+      "observedHeapMaxMiB": 101.3499526977539,
+      "gcDeltaMillis": 363,
+      "campaignStageMeanMillis": {
+        "relay.claim": 3.966588058083832,
+        "relay.ack": 0.6941118633,
+        "relay.mark.published": 2.1601259865,
+        "relay.run": 310.81215221818184,
+        "worker.handler": 15.4441955308,
+        "worker.claim.initial": 3.0238916136,
+        "worker.claim.admitted": 5.94138564,
+        "worker.provider": 1.8425078525,
+        "worker.complete": 4.0292546154
+      },
+      "quotaUnavailableByReason": {
+        "campaign": {
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0,
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0,
+          "STATE_ERROR": 0.0,
+          "TIMEOUT": 0.0
+        },
+        "realtime": {
+          "UNKNOWN": 0.0,
+          "SLOT_BUSY": 0.0,
+          "CONNECTION": 0.0,
+          "POOL_CLOSED": 0.0,
+          "STATE_ERROR": 0.0,
+          "TIMEOUT": 0.0
+        }
+      },
+      "rawFile": "s8-compression-delivery-2026-11-05-group-1-run-4-none.json",
+      "rawSha256": "50d7b074a37ce81e36bc74d8f5b776f18788333f8d0ef2bf34766c94efe4360c"
+    }
+  ],
+  "summary": [
+    {
+      "campaignCodec": "none",
+      "runs": 2,
+      "throughputMean": 90.01857811339914,
+      "throughputRange": [
+        70.06390605682503,
+        109.97325016997324
+      ],
+      "mixedApiP95RangeMillis": [
+        11.144417,
+        28.477290999999997
+      ],
+      "mixedApiP99RangeMillis": [
+        22.653708,
+        222.517042
+      ],
+      "campaignOutgoingBytesMeanLifetime": 3800313.0,
+      "jvmCpuMeanPercentOneCore": 43.767591148726254,
+      "mysqlCpuMeanPercentOneCore": 51.9064539298661
+    },
+    {
+      "campaignCodec": "lz4",
+      "runs": 2,
+      "throughputMean": 74.96999652026544,
+      "throughputRange": [
+        71.8784723282648,
+        78.06152071226607
+      ],
+      "mixedApiP95RangeMillis": [
+        31.133125,
+        55.88
+      ],
+      "mixedApiP99RangeMillis": [
+        560.199708,
+        642.890125
+      ],
+      "campaignOutgoingBytesMeanLifetime": 3618446.0,
+      "jvmCpuMeanPercentOneCore": 42.12191464662425,
+      "mysqlCpuMeanPercentOneCore": 48.46505424849106
+    }
+  ],
+  "limitations": [
+    "Two repeats on shared host; no causal or statistically significant performance claim",
+    "Synthetic UUIDs and timestamps vary between runs; payload matches existing delivery fixture",
+    "Producer lifetime counters include protocol and potential retries; realtime includes baseline",
+    "Kafka averages are time-window observations, not whole-run means",
+    "Sequential realtime probes are not fixed open-loop offered load",
+    "CPU includes both apps and Mock; sampled maxima are not instantaneous peaks",
+    "No direct improvement comparison against earlier studies"
+  ]
+}

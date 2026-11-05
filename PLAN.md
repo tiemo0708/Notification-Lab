@@ -271,7 +271,9 @@ RECORD89.676~98.933/s, COUNT_TIME115.079~123.383/s를 관측했다. 마지막 of
 - [x] 앱의 파티션 3개 가정(일시 복구 budget 포함)을 점검하고 토픽별 6개 파티션 구성의 오류 경계 검증
 - [x] 고정 Consumer/pool/quota의 1만 건 HTTP Mock 경로에서 파티션 3/6 반복 비교와 정합성 검증
 - [x] Kafka 단독 producer 단건 ACK/제출창10/none·LZ4 사전 비교와 전수 정합성 검증(각2회)
-- [ ] 앱 발송 경로의 producer batching과 압축 비교
+- [x] 순차 ACK/linger0의 실제 HTTP Mock 경로 none/LZ4 압축 반복 비교(1만 건, 각2회)
+- [ ] 유한 제출 창의 ACK/부분 실패/timeout/중단/lease fencing·복구 경계 검증
+- [ ] 오류 경계 검증 후 앱 발송 경로의 유한 제출/batching 비교
 - [ ] 병목이 외부 I/O일 때만 스레드 풀 vs 가상 스레드 비교
 - [ ] 병렬 완료 순서가 달라도 미완료 offset을 건너뛰지 않는지 검증
 - [ ] Testcontainers 회귀 테스트 + Grafana 대시보드
@@ -297,8 +299,12 @@ latest 제어군은 6건을 건너뛰어도 최종 lag가 0이었다. 앱은 ear
 [Producer 사전 비교](docs/S8_PRODUCER_BATCHING.md)는 4조건을 역순까지8회/13200건 검증했다(준비1200+본 측정12000).
 단건 ACK의 linger5는 본 측정 대기만 늘었고, 제출창10이 원래 linger0 단건보다 일관되게 빠르지는 않았다.
 같은 제출창의 LZ4는 outgoing byte counter가67.90% 줄었지만 평균 처리량은 낮고 클라이언트 CPU 평균은 높았다.
-앱 DB/Worker/HTTP는 포함하지 않는다. 다음은 순차 ACK/linger0의 실제 HTTP 경로에서 none/LZ4 비교를 검토하며,
-앱의 동시 제출 도입은 ACK/부분 실패/중단/lease fencing의 오류 경계를 별도로 검증한 뒤 결정한다.
+앱 DB/Worker/HTTP는 포함하지 않는다. 앱의 동시 제출 도입은 ACK/부분 실패/중단/lease fencing의 오류 경계를 별도로 검증한 뒤 결정한다.
+
+[앱 경로 압축 비교](docs/S8_COMPRESSION_DELIVERY.md)는 순차ACK/linger0과 자원/quota를 고정한 none→lz4→lz4→none에서
+캠페인40000+실시간2352건을 전수 대조했다. producer outgoing byte counter 평균은4.79% 줄었지만,
+평균 처리량은 none90.019건/초, LZ4 74.970건/초였고 동일none의70.064~109.973 변동도 커서 인과적 성능 효과를 확정하지 않는다.
+운영 기본none을 유지한다. 다음은 유한 제출 창의 오류 경계 검증이며 앱 batching 비교와 구분한다.
 
 ### S9. 결과 정리와 선택적 배포
 - [ ] 3개 주제: 외부 API 보호 / 유실·중복 대응 / 병렬 처리·배포

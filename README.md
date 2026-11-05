@@ -406,6 +406,11 @@ Consumer/Worker 활성 상한 1/1·2/2·3/3의 평균 처리량은 각각 47.324
 단건 ACK에서는 linger만 늘려도 묶음이 충분히 생기지 않았다. 제출창10/LZ4의 바이트 감소도 앱 처리량 개선으로 간주하지 않는다.
 운영 Relay/producer 기본값은 유지한다. 별도 `./gradlew producerBatchingPilot`은 DB/Worker/HTTP를 실행하지 않는다.
 
+[S8 실제 HTTP 경로 압축 비교](docs/S8_COMPRESSION_DELIVERY.md)는 캠페인 none/LZ4만 바꿔 각2회/HTTP42352건을 전수 대조했다.
+producer outgoing byte counter 평균은4.79% 줄었지만 처리량/실시간 지연 개선은 확인하지 못했다.
+실행 변동과 측정 범위를 함께 남기고 운영 기본none·순차ACK·linger0을 유지한다.
+명시적 `./gradlew compressionDeliveryPilot -PcampaignCompression=none`은 none/lz4만 허용한다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

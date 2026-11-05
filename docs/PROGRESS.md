@@ -2885,3 +2885,31 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   WorkerConcurrencyTest11개도 통과했고 bootJar는 UP-TO-DATE다. opt-in 실험은 기본 build에서 제외됐다.
   소스163개 불변·운영 소스 diff0·JSON 민감 필드/비유한값·링크/원본·JUnit SHA를 대조하고 [최종 검증](experiments/s8-producer-batching-2026-11-04-validation.json)을 보존했다.
   기존 사용자 MySQL은 healthy로 유지됐다. 새 CI 저장소 보완과 이 실험은 로컬 커밋이며 추가 푸시/원격CI 성공을 주장하지 않는다.
+
+## 2026-11-05: S8 순차 ACK의 실제 HTTP Mock 경로 none/LZ4 비교
+
+- 시작 시 원격 main=d0685b6과 [해당 CI 성공](https://github.com/tiemo0708/Notification-Lab/actions/runs/41791853619)을 확인했다.
+  이전 요청으로 두 보완 커밋도 푸시된 상태이며 원격 기본363개/Worker 동시성11개 통과가 확인됐다. 이번 변경의 새 CI 결과와 구분한다.
+- 별도 `compressionDeliveryPilot -PcampaignCompression=none|lz4`를 추가했다. 캠페인 압축만 바꾸고 실시간none, 순차ACK/linger0,
+  batch.size16384/acks=all/idempotence/max.in.flight1, Relay1/완료저장1건, Consumer/활성3/3·queue0을 고정했다.
+  요청/Retry/DLQ각3·broker compression=producer와 실제 ProducerFactory11개 설정을 읽어 검증했다. 운영 Java/resources는 변경하지 않는다.
+- 대상1만/none·lz4만 허용하고 다른 비교 모드와 혼용을 거절한다. heap512MiB/task10분/JUnit8분,
+  probe5000/샘플452/검증 페이지1000행 상한을 유지한다. DB4/Redis3·250ms/HTTP3, 복구ON·용량12, quota1000/s·캠페인200/s는 양쪽 동일하다.
+- 경계/진단/관측 집중 **21개가6초/종료코드0/실패·오류·스킵0**이었다. gzip --dry-run은 실행 전 거절됐다.
+  타입이 다른 Boot 설정, 안전 설정 변경 거절, metric whitelist/비유한 counter/누락/시간 창 평균null을 검증했다.
+- [고정 소스165개](experiments/s8-compression-delivery-2026-11-05-group-1-source.json)로 none→lz4→lz4→none을 실행했고4회 모두PASS였다.
+  캠페인40000+실시간2352=HTTP42352건의 수락/DB 완료·시도/대상 매핑/전체committed=end를 전수 대조했다.
+  관측 중복·잘못된 참조0, Retry/DLQ0, 양쪽 producer 재시도/오류와 Redis quota 오류6종도0이었다.
+- 실행 순서의 처리량은70.064/71.878/78.062/109.973건/초, 혼합 APIp95는28.477/31.133/55.880/11.144ms였다.
+  평균 처리량은 none90.019건/초, LZ4 74.970건/초(-16.72%)지만 동일none과 발송 전 저장/여러 DB·ACK 단계의 변동도 컸다.
+  빠른/느린 실행을 제외하지 않았고 압축의 인과적 처리량 저하나 지연 효과로 확정하지 않는다.
+- 캠페인 producer outgoing counter 평균은3800313→3618446바이트(-4.79%)였다. 시간 창 records/request는모두1.0,
+  compression-rate는none1.0/lz4약0.9188이었다. 전체 시스템 네트워크/과금량이나 전체10000건의 평균으로 해석하지 않는다.
+  앞선67.90% 결과와는 묶음·payload·경로가 달라 직접 비교하지 않는다.
+- [프로토콜·실제 결과·단계별 관측·해석 한계](S8_COMPRESSION_DELIVERY.md)와 [원본4개 SHA·요약](experiments/s8-compression-delivery-2026-11-05-group-1-summary.json)을 보존했다.
+  개선 근거가 부족해 운영 기본none/순차ACK/linger0을 유지한다. 다음은 유한 제출 창의 오류 경계이며 실제 batching 비교는 그 뒤 별도 단계다.
+  측정이 모두 끝난 뒤 전체 build를 별도로 실행했다. **17분26초/종료코드0**, 새 기본 회귀
+  **47개 클래스/368개 통과, 실패·오류·스킵0**이었다. 기존363개+경계2개/관측3개이고 WorkerConcurrencyTest11개도 모두 통과했다.
+  bootJar는 UP-TO-DATE이며 opt-in 비교는 기본 build에서 제외됐다. 원본4개와 새 JUnit XML의 SHA,
+  소스165개 불변·운영 소스 diff0·JSON 민감 필드/비유한값/링크를 대조하고 [최종 검증](experiments/s8-compression-delivery-2026-11-05-group-1-validation.json)을 남겼다.
+  기존 사용자 MySQL은 healthy로 유지됐다. 새 변경은 로컬 커밋이며 추가 푸시/새 원격 CI 통과를 주장하지 않는다.
