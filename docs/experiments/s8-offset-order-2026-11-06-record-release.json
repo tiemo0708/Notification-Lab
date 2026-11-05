@@ -1,0 +1,139 @@
+{
+  "startedAtUtc" : "2026-11-05T20:20:43.746304Z",
+  "mode" : "RECORD",
+  "completionFailure" : false,
+  "scope" : "parallel consumer threads across partitions; synchronous within each partition",
+  "settings" : {
+    "maxPollRecords" : 1,
+    "consumers" : 3,
+    "ackTimeMillis" : 100,
+    "queueCapacity" : 0,
+    "maxActive" : 2,
+    "pollTimeoutMillis" : 500,
+    "ackCount" : 10,
+    "holdLimitSeconds" : 45
+  },
+  "phases" : [ {
+    "offsets" : [ {
+      "partition" : 0,
+      "end" : 2,
+      "committed" : null,
+      "commitPresent" : false
+    }, {
+      "partition" : 1,
+      "end" : 2,
+      "committed" : 2,
+      "commitPresent" : true
+    }, {
+      "partition" : 2,
+      "end" : 0,
+      "committed" : null,
+      "commitPresent" : false
+    } ],
+    "tasks" : {
+      "blocked" : {
+        "started" : 1,
+        "accepted" : 0,
+        "attempts" : 1,
+        "unknown" : 0,
+        "status" : "PROCESSING"
+      },
+      "samePartitionLater" : {
+        "started" : 0,
+        "accepted" : 0,
+        "attempts" : 0,
+        "unknown" : 0,
+        "status" : "QUEUED"
+      },
+      "independentFirst" : {
+        "started" : 0,
+        "accepted" : 1,
+        "attempts" : 1,
+        "unknown" : 0,
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "independentSecond" : {
+        "started" : 0,
+        "accepted" : 1,
+        "attempts" : 1,
+        "unknown" : 0,
+        "status" : "PROVIDER_ACCEPTED"
+      }
+    },
+    "admissionActive" : 1,
+    "phase" : "independentPartitionCommittedWhilePeerHeld",
+    "http" : {
+      "requests" : 2,
+      "accepted" : 2,
+      "rateLimited" : 0,
+      "serverErrors" : 0,
+      "permanentFailures" : 0,
+      "busy" : 0,
+      "active" : 0,
+      "maxActive" : 1
+    },
+    "admissionWaiting" : 0
+  }, {
+    "offsets" : [ {
+      "partition" : 0,
+      "end" : 2,
+      "committed" : 2,
+      "commitPresent" : true
+    }, {
+      "partition" : 1,
+      "end" : 2,
+      "committed" : 2,
+      "commitPresent" : true
+    }, {
+      "partition" : 2,
+      "end" : 0,
+      "committed" : null,
+      "commitPresent" : false
+    } ],
+    "tasks" : {
+      "blocked" : {
+        "started" : 0,
+        "accepted" : 1,
+        "attempts" : 1,
+        "unknown" : 0,
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "samePartitionLater" : {
+        "started" : 0,
+        "accepted" : 1,
+        "attempts" : 1,
+        "unknown" : 0,
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "independentFirst" : {
+        "started" : 0,
+        "accepted" : 1,
+        "attempts" : 1,
+        "unknown" : 0,
+        "status" : "PROVIDER_ACCEPTED"
+      },
+      "independentSecond" : {
+        "started" : 0,
+        "accepted" : 1,
+        "attempts" : 1,
+        "unknown" : 0,
+        "status" : "PROVIDER_ACCEPTED"
+      }
+    },
+    "admissionActive" : 0,
+    "phase" : "recoveredAllFourLogicalTasks",
+    "http" : {
+      "requests" : 4,
+      "accepted" : 4,
+      "rateLimited" : 0,
+      "serverErrors" : 0,
+      "permanentFailures" : 0,
+      "busy" : 0,
+      "active" : 0,
+      "maxActive" : 1
+    },
+    "admissionWaiting" : 0
+  } ],
+  "result" : "PASS",
+  "finishedAtUtc" : "2026-11-05T20:20:46.728425Z"
+}

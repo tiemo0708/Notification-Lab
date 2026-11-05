@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-06",
+  "baseCommit": "925f184a7335393c05713ea531b98266226fd9bf",
+  "sourceFile": "docs/experiments/s8-offset-order-2026-11-06-source.json",
+  "sourceFileSha256": "fb923027de1f1a0b5e1dc59c067038378a2a07ec5e4561d570c8b9ee08ccafd6",
+  "sourceHashesUnchanged": true,
+  "initialNewCases": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests 'dev.jinhyeon.notificationlab.worker.WorkerConcurrencyTest.parallelCompletion*'",
+    "exitCode": null,
+    "buildSeconds": 34,
+    "passedCasesFromConsole": 4,
+    "consoleSha256": "b899627c5bf7aec0287a843e7b5f6c3c0fb73d7cdad40b3eeceb9bcb51ff3e9e",
+    "completionEvidence": "Console reports BUILD SUCCESSFUL in 34s and four PASSED cases; original tool process exit status was not retained. Subsequent full-class run has observed exitCode=0."
+  },
+  "command": "caffeinate -i ./gradlew --no-daemon --console=plain test --tests 'dev.jinhyeon.notificationlab.worker.WorkerConcurrencyTest'",
+  "exitCode": 0,
+  "buildSeconds": 70,
+  "counts": {
+    "tests": 15,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "consoleSha256": "ce2e30cbf0ece242d93aa1b43b12c4c761bedb18ef826019142cac0a66d7cc1b",
+  "junit": {
+    "path": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerConcurrencyTest.xml",
+    "sha256": "ce21f4a08b0f26ca7f16884062226f331da270d320dc9bdeb4d4caac901da861"
+  },
+  "rawResults": [
+    {
+      "path": "docs/experiments/s8-offset-order-2026-11-06-record-release.json",
+      "sha256": "260361b107c17581c3ca8cfb01ada3753cce3cf7e2182978df1deb1a13273ebc",
+      "mode": "RECORD",
+      "completionFailure": false,
+      "originalPath": "build/reports/worker-offset-order/record-release-12452005341261634302/result.json"
+    },
+    {
+      "path": "docs/experiments/s8-offset-order-2026-11-06-record-recovery.json",
+      "sha256": "a4240c3cd14c3d478637872d9e8f751957089f16d4d8e09d157128519b396e27",
+      "mode": "RECORD",
+      "completionFailure": true,
+      "originalPath": "build/reports/worker-offset-order/record-recovery-15492216284872863642/result.json"
+    },
+    {
+      "path": "docs/experiments/s8-offset-order-2026-11-06-count_time-release.json",
+      "sha256": "f6a4b0340d2ffd9cf8508c972746127857a379e9e0ce6f00f8d8ee589e03708e",
+      "mode": "COUNT_TIME",
+      "completionFailure": false,
+      "originalPath": "build/reports/worker-offset-order/count_time-release-9310526775605513839/result.json"
+    },
+    {
+      "path": "docs/experiments/s8-offset-order-2026-11-06-count_time-recovery.json",
+      "sha256": "60d0bf4796491c6d9082678648e973483f04502246a120b87912fd50a12df981",
+      "mode": "COUNT_TIME",
+      "completionFailure": true,
+      "originalPath": "build/reports/worker-offset-order/count_time-recovery-1819630863599670961/result.json"
+    }
+  ]
+}

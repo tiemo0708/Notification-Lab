@@ -2981,3 +2981,31 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   소스167개와 빌드 설정이 고정 스냅샷과 같고 운영 Java/resources diff0임을 대조했다. 알림/HTTP Mock JAR task는 UP-TO-DATE다.
   [최종 로컬 검증·JUnit/원본/소스/JAR/그림 SHA](experiments/s8-relay-window-delivery-2026-11-06-group-1-validation.json)를 보존한다.
   다음은 미완료 offset 보존 추가 검증과 Grafana/환경별 반복 측정이다. 가상 스레드 비교는 외부 I/O 주병목 근거가 확보될 때 진행한다.
+
+## 2026-11-06: S8 파티션 간 완료 순서와 미완료 offset 보존
+
+- 시작 main=925f184/작업 트리 clean이었다. 현재 Worker는 Consumer 스레드에서 동기 처리하며 파티션 내부 비동기 ACK를 도입하지 않았다.
+  S8의 다음 미완료 항목을 파티션 간 완료 순서 역전으로 구체화하고 WorkerConcurrencyTest에 두 시나리오×두 offset 모드=4개를 추가했다.
+- 실제 MySQL8.4.8/Kafka4.0.2/HTTP Mock, Consumer3/활성2/queue0/max.poll.records1을 고정했다.
+  테스트 전용 RECORD/COUNT_TIME10건·100ms, poll500ms/sync commit/auto commit OFF/async ACK OFF를 실제 factory에서 대조한다.
+  Relay는 끄고 API가 만든 네 합성 작업을 요청 파티션[0,0,1,1]로 직접 발행했다. Outbox PUBLISHED나 Relay 성능 검증은 아니다.
+- 첫 파티션0 작업을 HTTP 호출 전 latch로 유지한 동안 파티션1의 두 작업은 DB 완료/committed2였다.
+  1200ms 연속으로 파티션0 PROCESSING·시도1, 다음 작업 QUEUED·시도0/HTTP2회를 대조했다.
+  실제 저장 offset은 파티션0/2에 없었으며 원본은 null/commitPresent=false로 보존한다. 논리적0을 실제 커밋0으로 오인하지 않는다.
+- 정상 해제는 네 작업/HTTP4회/최종offset[2,2,없음]이었다. 완료 실패는 첫 작업의 성공 UPDATE만 MySQL trigger로 거절한다.
+  HTTP3회 수락 뒤 DB 완료가 롤백되고 Consumer 중단·그룹 멤버0/활성0/대기0, 파티션0 미커밋과 파티션1 committed2를 확인했다.
+  trigger 제거/기존 앱 종료 뒤 DB SQL로 worker lease를 과거로 옮기고 같은 토픽/그룹의 새 앱에서 복구했다.
+  실제 만료 시간 대기나 SIGKILL 실험은 아니며, 복구 후 네 작업 수락/HTTP5회/실패 작업 시도2·UNKNOWN1/나머지 시도1/offset 대조를 통과했다.
+  외부 호출이 이미 수락된 뒤 DB 실패가 발생하면 재호출될 수 있음을 보여 준다. 단말 도착·외부 exactly-once를 주장하지 않는다.
+- gate는 선택한 작업만 최대45초 유지하고 finally에서 해제한다. 시나리오 JUnit 상한120초/추가 무제한 큐·스레드0이며 DB 트랜잭션 밖인지도 확인한다.
+  단계별 집계 JSON은 고유 폴더에 저장한다. 실패·정리·보고서 쓰기 오류를 원래 오류와 함께 전파하고 ID/본문/수신자를 내보내지 않는다.
+- 새4개 집중은 **34초/실패0**, 공용 gate의 기존 사례를 포함한 클래스15개는 **1분10초/종료코드0/실패·오류·스킵0**이었다.
+  [설계·실제 결과·적용 한계](S8_OFFSET_ORDER.md), [고정 소스167개·프로토콜](experiments/s8-offset-order-2026-11-06-source.json),
+  [집중 검증·원본4개 SHA](experiments/s8-offset-order-2026-11-06-focused.json)를 남겼다. 운영 Java/resources와 기본 정책은 변경하지 않았다.
+  이후 같은 소스로 전체 build를 실행했으며 최종 결과는 아래에 별도로 기록한다. 새 푸시/원격 CI·클라우드/LB 배포는 미실행이다.
+- 최종 전체 build는 **16분30초/종료코드0**, 기본 test 새 실행 **48개 클래스/388개 통과, 실패·오류·스킵0**이었다.
+  기존384개+새4개이며 WorkerConcurrencyTest15개도 다시 통과했다. 소스167개와 빌드 설정이 집중 시점과 같은 SHA이고 운영 소스 diff0임을 대조했다.
+  전체 회귀의 새4개 단계 원본도 offset/수락/이력 요약으로 대조하고 JUnit·집중 원본4개·소스·JAR SHA를 보존했다.
+  알림/HTTP Mock0.3.0 실행 JAR task는 UP-TO-DATE이며 기존0.2.0 산출물은 검증 대상과 구분해 보존했다.
+  [최종 로컬 검증](experiments/s8-offset-order-2026-11-06-validation.json)을 남겼다. 다음 작은 단계는 Grafana 대시보드와 기존 메트릭 연결·회귀 점검이다.
+  가상 스레드는 외부 I/O 주병목 근거가 있을 때의 조건부 후보이며 환경별 반복/S9 로컬 LB 검증은 별도 항목으로 남긴다.

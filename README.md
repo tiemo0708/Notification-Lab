@@ -428,6 +428,11 @@ timeout/interrupt의 미확인 전송은 취소됐다고 가정하지 않고 lea
 별도 `./gradlew relayWindowDeliveryPilot -PcampaignWindow=1`을 사용한다. `campaignWindow`는 `1`·`10`만 허용하며 완료 저장1/linger0/none·자원/quota를 고정한다.
 비교 도구의 전체 build는16분23초/48개 클래스·384개 통과(실패·오류·스킵0)였다. [최종 로컬 검증](docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-validation.json)을 보존했다.
 
+[S8 파티션 간 완료 순서 검증](docs/S8_OFFSET_ORDER.md)은 한 파티션의 첫 작업을 유지하는 동안 다른 파티션의 두 작업을 먼저 완료시킨다.
+RECORD/테스트용 COUNT_TIME에서 미완료 offset 보존과 DB 완료 실패 후 새 앱 복구를 확인했다. 클래스 집중15개가 통과했다.
+실패 복구에서는 알림4개에 HTTP 수락5회가 발생했다. 같은 파티션 내부는 동기 처리이며 외부 exactly-once를 보장하지 않는다.
+전체 build는16분30초/48개 클래스·388개 통과(실패·오류·스킵0)였다. [로컬 검증 원본](docs/experiments/s8-offset-order-2026-11-06-validation.json)을 보존했다.
+
 10만 건 발송은 별도 `campaignDeliveryLoad` task로 실행한다. [상한·전수 검증·측정 경계](docs/S7_DELIVERY_LOAD.md)를 참고한다.
 각 테스트 결과는 `build/reports/tests/test/`, `build/reports/tests/reconciliationTest/`, `build/reports/tests/campaignLoadTest/`, `build/reports/tests/campaignDeliveryPilot/`, `build/reports/tests/campaignDeliveryLoad/`에 저장된다.
 100만 건 task를 실제 실행할 경우 `build/reports/tests/campaignDeliveryMillion/`에 별도 결과를 만든다.

@@ -37,7 +37,14 @@ import org.apache.kafka.common.TopicPartition;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.sql.DriverManager;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -283,6 +290,160 @@ class WorkerConcurrencyTest {
         System.out.println("OFFSET_TIME_TAIL completed=3 committed=3 countThreshold=10");
     }
 
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
+    @Timeout(120)
+    void parallelCompletionCommitsOnlyTheFinishedPartitionWhileItsPeerIsHeld(OffsetCommitPolicy.Mode mode) throws Exception {
+        observeParallelOffsets(mode, false);
+    }
+
+    @ParameterizedTest
+    @EnumSource(OffsetCommitPolicy.Mode.class)
+    @Timeout(120)
+    void parallelCompletionPreservesFailedPartitionAndRecoversInANewContext(OffsetCommitPolicy.Mode mode) throws Exception {
+        observeParallelOffsets(mode, true);
+    }
+
+    private void observeParallelOffsets(OffsetCommitPolicy.Mode mode, boolean failCompletion) throws Exception {
+        offsetMode = mode;
+        holdProvider = true;
+        var directory = Files.createTempDirectory(Files.createDirectories(Path.of("build/reports/worker-offset-order")),
+                mode.name().toLowerCase(java.util.Locale.ROOT) + (failCompletion ? "-recovery-" : "-release-"));
+        var evidence = new LinkedHashMap<String, Object>();
+        var phases = new ArrayList<Map<String, Object>>();
+        evidence.put("startedAtUtc", Instant.now().toString());
+        evidence.put("mode", mode.name()); evidence.put("completionFailure", failCompletion);
+        evidence.put("scope", "parallel consumer threads across partitions; synchronous within each partition");
+        evidence.put("settings", Map.of("consumers", 3, "maxActive", 2, "queueCapacity", 0,
+                "maxPollRecords", 1, "ackCount", OffsetCommitPolicy.ACK_COUNT,
+                "ackTimeMillis", OffsetCommitPolicy.ACK_TIME_MS, "pollTimeoutMillis", 500, "holdLimitSeconds", 45));
+        evidence.put("phases", phases);
+        HeldProvider held = null;
+        boolean triggerInstalled = false;
+        Throwable primaryFailure = null;
+        try {
+            start(3, 2, 0, 5000, 0);
+            var blocked = create(); var later = create(); var fastFirst = create(); var fastSecond = create();
+            var events = new LinkedHashMap<String, Event>();
+            events.put("blocked", blocked); events.put("samePartitionLater", later);
+            events.put("independentFirst", fastFirst); events.put("independentSecond", fastSecond);
+            held = app.getBean(HeldProvider.class);
+            held.holdOnly(blocked.id());
+            try {
+                publish(blocked, 0);
+                assertThat(held.entered.await(10, TimeUnit.SECONDS)).isTrue();
+                publish(later, 0);
+                publish(fastFirst, 1); publish(fastSecond, 1);
+                await().atMost(Duration.ofSeconds(12)).untilAsserted(() -> {
+                    assertThat(status(fastFirst)).isEqualTo("PROVIDER_ACCEPTED");
+                    assertThat(status(fastSecond)).isEqualTo("PROVIDER_ACCEPTED");
+                    assertThat(offset(1)).isEqualTo(2);
+                });
+                // Longer than ACK_TIME and two poll intervals; the gate, not elapsed HTTP delay, holds p0.
+                await().during(Duration.ofMillis(1200)).atMost(Duration.ofSeconds(4)).untilAsserted(() -> {
+                    assertThat(offset(0)).isZero(); assertThat(offset(1)).isEqualTo(2);
+                    assertThat(status(blocked)).isEqualTo("PROCESSING");
+                    assertThat(attempts(blocked)).isEqualTo(1);
+                    assertThat(status(later)).isEqualTo("QUEUED");
+                    assertThat(attempts(later)).isZero();
+                    assertThat(stats().requests()).isEqualTo(2);
+                });
+                phases.add(offsetPhase("independentPartitionCommittedWhilePeerHeld", events));
+                if (failCompletion) {
+                    root("CREATE TRIGGER reject_parallel_offset_completion BEFORE UPDATE ON notification FOR EACH ROW "
+                            + "BEGIN IF NEW.notification_id = '" + blocked.id() + "' AND NEW.status = 'PROVIDER_ACCEPTED' THEN "
+                            + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'synthetic completion failure'; END IF; END");
+                    triggerInstalled = true;
+                }
+            } finally { held.release.countDown(); }
+            if (failCompletion) {
+                awaitStopped();
+                assertThat(offset(0)).isZero(); assertThat(offset(1)).isEqualTo(2);
+                assertThat(status(blocked)).isEqualTo("PROCESSING");
+                assertThat(attempts(blocked)).isEqualTo(1); assertThat(attempts(later)).isZero();
+                assertThat(stats().requests()).isEqualTo(3); assertThat(stats().accepted()).isEqualTo(3);
+                assertThat(outcomeCount(blocked, "STARTED")).isEqualTo(1);
+                phases.add(offsetPhase("stoppedAfterCompletionRollback", events));
+                root("DROP TRIGGER reject_parallel_offset_completion"); triggerInstalled = false;
+                app.close(); app = null;
+                // Deterministic DB-time control, not a real elapsed-lease or SIGKILL experiment.
+                try (var connection = DriverManager.getConnection(MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword());
+                     var statement = connection.prepareStatement("UPDATE notification SET worker_lease_until=TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP(6)) WHERE notification_id=?")) {
+                    statement.setString(1, blocked.id()); assertThat(statement.executeUpdate()).isEqualTo(1);
+                }
+                holdProvider = false;
+                startApplication(3, 2, 0, 5000);
+            }
+            awaitCompleted(List.copyOf(events.values()), 4);
+            assertThat(offset(0)).isEqualTo(2); assertThat(offset(1)).isEqualTo(2); assertThat(offset(2)).isZero();
+            assertThat(stats().requests()).isEqualTo(failCompletion ? 5 : 4);
+            assertThat(stats().accepted()).isEqualTo(failCompletion ? 5 : 4);
+            assertThat(stats().active()).isZero();
+            assertThat(attempts(blocked)).isEqualTo(failCompletion ? 2 : 1);
+            assertThat(outcomeCount(blocked, "UNKNOWN")).isEqualTo(failCompletion ? 1 : 0);
+            for (var event : events.values()) assertThat(outcomeCount(event, "PROVIDER_ACCEPTED")).isEqualTo(1);
+            for (var event : List.of(later, fastFirst, fastSecond)) assertThat(attempts(event)).isEqualTo(1);
+            phases.add(offsetPhase("recoveredAllFourLogicalTasks", events));
+            evidence.put("result", "PASS");
+            System.out.printf("OFFSET_ORDER mode=%s failure=%s heldOffsets=0,2,0 finalOffsets=2,2,0 logicalTasks=4 httpAccepted=%d%n",
+                    mode.name(), failCompletion, stats().accepted());
+        } catch (Exception | AssertionError failure) {
+            primaryFailure = failure;
+            evidence.put("result", "FAIL"); evidence.put("failureType", failure.getClass().getSimpleName());
+            throw failure;
+        } finally {
+            if (held != null) held.release.countDown();
+            Exception cleanupFailure = null;
+            if (triggerInstalled) {
+                try { root("DROP TRIGGER reject_parallel_offset_completion"); }
+                catch (Exception failure) {
+                    if (primaryFailure != null) primaryFailure.addSuppressed(failure);
+                    else cleanupFailure = failure;
+                }
+            }
+            if (cleanupFailure != null) {
+                evidence.put("result", "FAIL"); evidence.put("cleanupFailureType", cleanupFailure.getClass().getSimpleName());
+            }
+            evidence.put("finishedAtUtc", Instant.now().toString());
+            try { new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(directory.resolve("result.json").toFile(), evidence); }
+            catch (java.io.IOException failure) {
+                if (primaryFailure != null) primaryFailure.addSuppressed(failure);
+                else if (cleanupFailure != null) cleanupFailure.addSuppressed(failure);
+                else throw failure;
+            }
+            if (cleanupFailure != null) throw cleanupFailure;
+        }
+    }
+
+    private int outcomeCount(Event event, String outcome) {
+        return jdbc().queryForObject("SELECT COUNT(*) FROM delivery_attempt a JOIN delivery_task t USING(task_id) WHERE t.notification_id=? AND a.outcome=?",
+                Integer.class, event.id(), outcome);
+    }
+
+    private record OffsetState(int partition, long end, Long committed, boolean commitPresent) { }
+
+    private Map<String, Object> offsetPhase(String phase, Map<String, Event> events) throws Exception {
+        var committed = admin.listConsumerGroupOffsets(group).partitionsToOffsetAndMetadata().get(5, TimeUnit.SECONDS);
+        var requested = new LinkedHashMap<TopicPartition, OffsetSpec>();
+        for (int i = 0; i < 3; i++) requested.put(new TopicPartition(topic, i), OffsetSpec.latest());
+        var ends = admin.listOffsets(requested).all().get(5, TimeUnit.SECONDS);
+        var offsets = new ArrayList<OffsetState>();
+        for (var partition : requested.keySet()) {
+            var value = committed.get(partition);
+            offsets.add(new OffsetState(partition.partition(), ends.get(partition).offset(),
+                    value == null ? null : value.offset(), value != null));
+        }
+        var states = new LinkedHashMap<String, Object>();
+        for (var entry : events.entrySet()) {
+            var event = entry.getValue();
+            states.put(entry.getKey(), Map.of("status", status(event), "attempts", attempts(event),
+                    "started", outcomeCount(event, "STARTED"), "accepted", outcomeCount(event, "PROVIDER_ACCEPTED"),
+                    "unknown", outcomeCount(event, "UNKNOWN")));
+        }
+        return Map.of("phase", phase, "offsets", offsets, "tasks", states,
+                "http", stats(), "admissionActive", gate().active(), "admissionWaiting", gate().waiting());
+    }
+
     private Event create() throws Exception {
         try (var http = HttpClient.newHttpClient()) {
             var response = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + app.getWebServer().getPort() + "/notifications"))
@@ -352,15 +513,27 @@ class WorkerConcurrencyTest {
         private final CountDownLatch release = new CountDownLatch(1);
         private final AtomicInteger active = new AtomicInteger();
         private final AtomicInteger peak = new AtomicInteger();
+        private final CountDownLatch entered = new CountDownLatch(1);
+        private volatile String selectedNotification;
+        private volatile int holdSeconds = 20;
 
         HeldProvider(HttpPushProvider delegate) { this.delegate = delegate; }
+
+        void holdOnly(String notificationId) {
+            holdSeconds = 45;
+            selectedNotification = notificationId;
+        }
 
         @Override
         public PushResult send(PushRequest request) {
             peak.accumulateAndGet(active.incrementAndGet(), Math::max);
             try {
                 try {
-                    if (!release.await(20, TimeUnit.SECONDS)) throw new IllegalStateException("Test provider gate timed out");
+                    if (selectedNotification == null || selectedNotification.equals(request.notificationId().toString())) {
+                        assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                        entered.countDown();
+                        if (!release.await(holdSeconds, TimeUnit.SECONDS)) throw new IllegalStateException("Test provider gate timed out");
+                    }
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
                     throw new IllegalStateException("Test provider gate interrupted");

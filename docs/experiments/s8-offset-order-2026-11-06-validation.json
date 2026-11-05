@@ -1,0 +1,757 @@
+{
+  "date": "2026-11-06",
+  "baseCommit": "925f184a7335393c05713ea531b98266226fd9bf",
+  "command": "caffeinate -i ./gradlew --no-daemon --console=plain build",
+  "exitCode": 0,
+  "buildSeconds": 990,
+  "classes": 48,
+  "counts": {
+    "tests": 388,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "workerConcurrencyTests": 15,
+  "newOffsetOrderTests": 4,
+  "sourceFile": "docs/experiments/s8-offset-order-2026-11-06-source.json",
+  "sourceFileSha256": "fb923027de1f1a0b5e1dc59c067038378a2a07ec5e4561d570c8b9ee08ccafd6",
+  "fixedSourceFiles": 167,
+  "sourceAndBuildConfigurationHashesUnchanged": true,
+  "consoleSha256": "51539e9a478d3b452a105cf80f4134400b32ec51a3c120380fb35b2fee0cc4d0",
+  "junitSuites": [
+    {
+      "class": "dev.jinhyeon.notificationlab.api.NotificationApiTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.api.NotificationApiTest.xml",
+      "sha256": "a735589fb9711e8c12c433507e811dabdbba8323d6f2e97409c109de8296cc82",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.api.NotificationFailureApiTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.api.NotificationFailureApiTest.xml",
+      "sha256": "1c9ca79f153ca1aae8f828e128a45b0b7c0f1130463a14a63784779f119200ea",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.CampaignApiTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.CampaignApiTest.xml",
+      "sha256": "5f526cfe2296db652a9696e63e985eeb13beca4ee3a48220341fd795708dceca",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.SyntheticCampaignAudienceTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.SyntheticCampaignAudienceTest.xml",
+      "sha256": "b1c29b8e07efc2d1127edfc8766a8baf3522f3fc7b83686e1b02158968077bbd",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiDbObservationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiDbObservationTest.xml",
+      "sha256": "7b3b6393893bc4484be558ad3706beb4f64c2e4be8a08667a5aac83f3f2914a6",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiFailureObservationPlanTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiFailureObservationPlanTest.xml",
+      "sha256": "35e2628bd370c56ad20173e12ae7c54caf19317f224267c5bc48cd719f36d4ef",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiFailurePilotSupportTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiFailurePilotSupportTest.xml",
+      "sha256": "0de3c535d9cb5e125d7e38ebefe7f91ea8a8decaac143aa29e3e2af38ad9f309",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiFailureWindowTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiFailureWindowTest.xml",
+      "sha256": "a9f5171049bd40bdc89858d9da653b60120af7a3adaba1e2447e40beed4fdea0",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.ApiRequestTimingTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.ApiRequestTimingTest.xml",
+      "sha256": "b8f3e41274146d0f350a8f7e690e5910e36839a924b525d84cd548c3ae9c50a0",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignBatchTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignBatchTest.xml",
+      "sha256": "eaedc23df84e0a294985cde4cb749b19ef6d4ca62ca9fe3ec019cd723819073a",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignCheckpointTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignCheckpointTest.xml",
+      "sha256": "a6d1f4639612bd6f4ba5c45cd980a473fee0bc8eee8ac01d5e6bf8cfa9f7ac51",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignDeliveryBoundsTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignDeliveryBoundsTest.xml",
+      "sha256": "a6b704d8af0816ca30afb43eb3622322a5016a4720cf0fc3b0add034d0da288e",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignDeliveryDiagnosticsTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignDeliveryDiagnosticsTest.xml",
+      "sha256": "119fa75c7a81d628745839b94d6dc90860a125abebe4e6d7695d603756b1094a",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.CampaignRelayGroupTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.CampaignRelayGroupTest.xml",
+      "sha256": "8c1dfc205a6fbd1d4ac766f19085541f61ab5bc4f8089b01afeb8c4b2d5e9c0d",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.DeliveryProducerObservationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.DeliveryProducerObservationTest.xml",
+      "sha256": "c72df9f81eee9ee5ae23bbff89a6b721caff18c3fd244013ef2e6a4b07a4baca",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.DeliveryRelayObservationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.DeliveryRelayObservationTest.xml",
+      "sha256": "0e7fd620781a2d04cdaaf5d70bc8447f594e7f264537645a751a53ace426d4fd",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.DeliveryTimingTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.DeliveryTimingTest.xml",
+      "sha256": "35c090c549bd5a694d03c8147853ba26673abef00d00e2ac33891d43f496a8ee",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.FailureSnapshotStoreTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.FailureSnapshotStoreTest.xml",
+      "sha256": "3e8cd9c96bc9ba340aaab63f3c410fe478954eb3136f3661a5891b8a65bdd510",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.OffsetCommitPolicyTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.OffsetCommitPolicyTest.xml",
+      "sha256": "5c6bf10862fda05df35d9be9fc37c50611f8a3cb2f9fd6fd0af030817c8fff4c",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.campaign.batch.PilotFinalizationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.campaign.batch.PilotFinalizationTest.xml",
+      "sha256": "9cfe1d2685697b1ff0fcc2b3488e147467c75161557252e9f93f23b16fb0a463",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.config.AsyncPropertiesTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.config.AsyncPropertiesTest.xml",
+      "sha256": "f0af77cc623c1d52d174b4d0588bc592a4283e11e3def66a2a667958aa7e96a5",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.config.RateLimitConfigurationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.config.RateLimitConfigurationTest.xml",
+      "sha256": "cc94cac769562b39002c255b33088538299ebd7ea88c48967f697b001c423192",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.notification.InMemoryNotificationStoreTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.notification.InMemoryNotificationStoreTest.xml",
+      "sha256": "8146d54ec7c69409f96aef56c4b155cff4ac735fd94008ab9f8418951a7476e5",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.notification.MySqlNotificationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.notification.MySqlNotificationTest.xml",
+      "sha256": "6655278ea9b1e3ec8c9b3334e7a89811dd33d06637a2960ce6089cf8d09955cb",
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.notification.NotificationServiceTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.notification.NotificationServiceTest.xml",
+      "sha256": "931db6457bd9ba3c7caa9d4d6dd8688c4a5f035efd2e554faafa6edac9583457",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.AsyncNotificationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.AsyncNotificationTest.xml",
+      "sha256": "4e5893f32d53cd411deaa1bbadfdcbf2740a0888ad6c5203144a665a186a9b7d",
+      "tests": 65,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.KafkaPartitionExpansionTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.KafkaPartitionExpansionTest.xml",
+      "sha256": "865ab5546189530ea6e5139b05c5f35b4597fc8f802d372c6e61cc7703944637",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.KafkaRecoveryTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.KafkaRecoveryTest.xml",
+      "sha256": "691eb3cd16474b6ae2b88364f4363a84edbf8ecabca2b6c9dcfa25371500c189",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.OutboxProcessCrashTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.OutboxProcessCrashTest.xml",
+      "sha256": "e10eabe5821a0aa0d4ca75313b77928d506b9ca7c603e9b54daad01177bc6351",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.outbox.OutboxPublishProbeTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.outbox.OutboxPublishProbeTest.xml",
+      "sha256": "04f04910b51c5e5eb9bf444bbe92187989b8dd463b696c03cd345496cc3de1f1",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.provider.HttpPushProviderTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.provider.HttpPushProviderTest.xml",
+      "sha256": "6a043083d8922b77d3ae59be59a6c855c9aafd31e9f273d8229a8d8299101b08",
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.provider.MockPushProviderTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.provider.MockPushProviderTest.xml",
+      "sha256": "a09e0d4513e012a1e3586d5848e6d7d4d7c61574227fd158d1f8759dfc01d78a",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.provider.ProviderCircuitBreakerTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.provider.ProviderCircuitBreakerTest.xml",
+      "sha256": "ec9993da9877c45ceac32d65f3a4f0080ffffdda52759385c1999e34e7abeebc",
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiterTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.ratelimit.RedisRateLimiterTest.xml",
+      "sha256": "aa7c61f4be945177ad1dc8577d4d59c492cca5400c0cfa57f22692b79311dc55",
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.GracefulShutdownTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.GracefulShutdownTest.xml",
+      "sha256": "69f4358432a00e34c9bcb2d562e4860d326e39dea38f0931a9858379b6435188",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.HttpWorkerTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.HttpWorkerTest.xml",
+      "sha256": "ca47ccc2d4398c1e1eb10d16a689cd7c8795aef973a0d075080ff78bcbeae1a1",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.RetryPolicyTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.RetryPolicyTest.xml",
+      "sha256": "6cb70e233fd4c6efdc0d98674ccf715669868b9960bcc245dcc15c3e07dc353f",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.TrafficIsolationIntegrationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.TrafficIsolationIntegrationTest.xml",
+      "sha256": "05bf094085d761f17079e53d8d549f6e536b21b000c08172691276b4d4e30d04",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerAdmissionTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerAdmissionTest.xml",
+      "sha256": "e9530dcd5035cad84285ff6d81ceaf2fa647b70628402e10d145305b0d80d263",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerCircuitBreakerIntegrationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerCircuitBreakerIntegrationTest.xml",
+      "sha256": "a83c3a1f6bc6680cb9ccc9dd121f8ba9bd59d39b2dbab44b6848f0663658a860",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerConcurrencyTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerConcurrencyTest.xml",
+      "sha256": "a6979317f4571d908010463ac50bbf8fe27c482eb53613f43dc15fa59993b6f7",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerPauseErrorHandlerTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerPauseErrorHandlerTest.xml",
+      "sha256": "0504817f1cfa9844d372548ece63d8ac1b7a339307b6354ff3fc3dac4d71a4dc",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerProcessCrashTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerProcessCrashTest.xml",
+      "sha256": "e379c3da924c1175c19c5bf64f8fc48058823b87e7b9201061e0ac2fada4431b",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerQuotaIntegrationTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerQuotaIntegrationTest.xml",
+      "sha256": "ec156d0b9bed4afe5bfa7ba27998384677d32ad1afa6ef7aef07e54250f7af32",
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerQuotaTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerQuotaTest.xml",
+      "sha256": "6476cd0a5aefc057c501d3d64286f4b01d48e93fcf2485ac8497f1c5f60044cd",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationlab.worker.WorkerRebalanceTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationlab.worker.WorkerRebalanceTest.xml",
+      "sha256": "108588d0dda0c55ac9d036b0fcfb0a85658863ad19c2b9610a8139ca7ca1cba3",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationmock.FixedWindowQuotaTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationmock.FixedWindowQuotaTest.xml",
+      "sha256": "1d2db1b4c8af7561c37ddfb5f5530801a6d79c31470a23d91a7b81d17c42e71b",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "dev.jinhyeon.notificationmock.HttpMockServerTest",
+      "file": "build/test-results/test/TEST-dev.jinhyeon.notificationmock.HttpMockServerTest.xml",
+      "sha256": "969ba9bc20f701f11d6b7d7df248a868c44fa9aca66b79f6b176f22046a06ad2",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "experimentAssetsSha256": {
+    "docs/experiments/s8-offset-order-2026-11-06-count_time-recovery.json": "60d0bf4796491c6d9082678648e973483f04502246a120b87912fd50a12df981",
+    "docs/experiments/s8-offset-order-2026-11-06-count_time-release.json": "f6a4b0340d2ffd9cf8508c972746127857a379e9e0ce6f00f8d8ee589e03708e",
+    "docs/experiments/s8-offset-order-2026-11-06-focused.json": "bb5b49fe23515ae740ead012942ea717e8750adaafa6b2b810260a315947d344",
+    "docs/experiments/s8-offset-order-2026-11-06-record-recovery.json": "a4240c3cd14c3d478637872d9e8f751957089f16d4d8e09d157128519b396e27",
+    "docs/experiments/s8-offset-order-2026-11-06-record-release.json": "260361b107c17581c3ca8cfb01ada3753cce3cf7e2182978df1deb1a13273ebc",
+    "docs/experiments/s8-offset-order-2026-11-06-source.json": "fb923027de1f1a0b5e1dc59c067038378a2a07ec5e4561d570c8b9ee08ccafd6"
+  },
+  "regressionScenarios": [
+    {
+      "mode": "RECORD",
+      "completionFailure": false,
+      "path": "build/reports/worker-offset-order/record-release-7845656065288680730/result.json",
+      "sha256": "4f9e3e9778c1e5b55d34c5cf341e82b3b474cbde4d350e36ebca1ce6e0c6a74a",
+      "result": "PASS",
+      "startedAtUtc": "2026-11-05T20:31:15.093596Z",
+      "finishedAtUtc": "2026-11-05T20:31:17.246145Z",
+      "phaseCount": 2,
+      "heldCommitted": [
+        null,
+        2,
+        null
+      ],
+      "finalCommitted": [
+        2,
+        2,
+        null
+      ],
+      "httpAccepted": 4,
+      "logicalTasks": 4,
+      "finalAttemptHistory": {
+        "blocked": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "samePartitionLater": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentFirst": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentSecond": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "mode": "RECORD",
+      "completionFailure": true,
+      "path": "build/reports/worker-offset-order/record-recovery-4369739955549949732/result.json",
+      "sha256": "5be29fc907f5edbbdb567b51548a639799c70dbb362c5349818f9c17161f4a2d",
+      "result": "PASS",
+      "startedAtUtc": "2026-11-05T20:31:06.881809Z",
+      "finishedAtUtc": "2026-11-05T20:31:10.460546Z",
+      "phaseCount": 3,
+      "heldCommitted": [
+        null,
+        2,
+        null
+      ],
+      "finalCommitted": [
+        2,
+        2,
+        null
+      ],
+      "httpAccepted": 5,
+      "logicalTasks": 4,
+      "finalAttemptHistory": {
+        "blocked": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 2,
+          "unknown": 1
+        },
+        "samePartitionLater": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentFirst": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentSecond": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        }
+      },
+      "stoppedAttemptHistory": {
+        "blocked": {
+          "status": "PROCESSING",
+          "started": 1,
+          "accepted": 0,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "samePartitionLater": {
+          "status": "QUEUED",
+          "started": 0,
+          "accepted": 0,
+          "attempts": 0,
+          "unknown": 0
+        },
+        "independentFirst": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentSecond": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "mode": "COUNT_TIME",
+      "completionFailure": false,
+      "path": "build/reports/worker-offset-order/count_time-release-3482548052512495378/result.json",
+      "sha256": "af7b5d7108b9ac5bac51a32e450b9de2b601b2ba5c10fc0eba1114687fa0c91f",
+      "result": "PASS",
+      "startedAtUtc": "2026-11-05T20:31:17.717020Z",
+      "finishedAtUtc": "2026-11-05T20:31:20.995675Z",
+      "phaseCount": 2,
+      "heldCommitted": [
+        null,
+        2,
+        null
+      ],
+      "finalCommitted": [
+        2,
+        2,
+        null
+      ],
+      "httpAccepted": 4,
+      "logicalTasks": 4,
+      "finalAttemptHistory": {
+        "blocked": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "samePartitionLater": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentFirst": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentSecond": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        }
+      }
+    },
+    {
+      "mode": "COUNT_TIME",
+      "completionFailure": true,
+      "path": "build/reports/worker-offset-order/count_time-recovery-5788977667991543939/result.json",
+      "sha256": "7d8a18eceb47b847cb98bce9aea2ce9a3dcc4b0bf464170fed768ade255d2f94",
+      "result": "PASS",
+      "startedAtUtc": "2026-11-05T20:31:10.781238Z",
+      "finishedAtUtc": "2026-11-05T20:31:14.624528Z",
+      "phaseCount": 3,
+      "heldCommitted": [
+        null,
+        2,
+        null
+      ],
+      "finalCommitted": [
+        2,
+        2,
+        null
+      ],
+      "httpAccepted": 5,
+      "logicalTasks": 4,
+      "finalAttemptHistory": {
+        "blocked": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 2,
+          "unknown": 1
+        },
+        "samePartitionLater": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentFirst": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentSecond": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        }
+      },
+      "stoppedAttemptHistory": {
+        "blocked": {
+          "status": "PROCESSING",
+          "started": 1,
+          "accepted": 0,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "samePartitionLater": {
+          "status": "QUEUED",
+          "started": 0,
+          "accepted": 0,
+          "attempts": 0,
+          "unknown": 0
+        },
+        "independentFirst": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        },
+        "independentSecond": {
+          "status": "PROVIDER_ACCEPTED",
+          "started": 0,
+          "accepted": 1,
+          "attempts": 1,
+          "unknown": 0
+        }
+      }
+    }
+  ],
+  "jars": {
+    "build/libs/notification-lab-0.3.0-SNAPSHOT-http-mock.jar": {
+      "sha256": "3e4e2d006713a6977be647be7504cadb149306f6aa6a55ee88ccea931207b728",
+      "bytes": 59271623
+    },
+    "build/libs/notification-lab-0.3.0-SNAPSHOT.jar": {
+      "sha256": "429caa9dd750147da88ee8f9b889703f0e64cbace06fd11d6ab9be34522b4958",
+      "bytes": 59422450
+    }
+  },
+  "jarTasks": "UP-TO-DATE; existing 0.2.0 jars are preserved and outside this validation",
+  "productionSourceDiff": [],
+  "limits": {
+    "externalExactlyOnce": false,
+    "physicalDeviceDeliveryVerified": false,
+    "samePartitionAsyncProcessingIntroduced": false,
+    "relayPublishedVerifiedByNewScenarios": false,
+    "actualLeaseWallTimeWait": false,
+    "sigkillInjectedInNewScenarios": false
+  },
+  "largeRunsRepeated": false,
+  "remoteCiRun": false,
+  "pushed": false,
+  "cloudResourcesCreated": false
+}
