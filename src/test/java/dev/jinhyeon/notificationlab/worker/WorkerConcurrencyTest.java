@@ -17,6 +17,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +36,7 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.ConsumerGroupState;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +58,7 @@ import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 @Testcontainers
@@ -81,6 +85,58 @@ class WorkerConcurrencyTest {
     private String group;
     private OffsetCommitPolicy.Mode offsetMode = OffsetCommitPolicy.Mode.RECORD;
     private boolean holdProvider;
+
+    @Test
+    @Timeout(90)
+    void aggregateAssignmentDoesNotProveThreeIndependentRequestOwners() throws Exception {
+        var directory = Files.createTempDirectory(Files.createDirectories(Path.of("build/reports/worker-readiness")), "control-");
+        var evidence = new LinkedHashMap<String, Object>();
+        Throwable primaryFailure = null;
+        HeldProvider held = null;
+        try {
+            holdProvider = true;
+            start(1, 1, 1, 5000, 0);
+            assertThat(container().getAssignedPartitions()).hasSize(6); // The old readiness check passes.
+            evidence.put("singleConsumer", requireAssigned(1));
+            evidence.put("legacyAggregateReady", true);
+            assertThatThrownBy(() -> requireAssigned(3)).isInstanceOf(AssertionError.class);
+            evidence.put("readyForThree", false);
+            var first = create(); var second = create();
+            held = app.getBean(HeldProvider.class);
+            try {
+                publish(first, 0);
+                await().atMost(Duration.ofSeconds(5)).until(() -> app.getBean(HeldProvider.class).active.get() == 1);
+                publish(second, 1);
+                await().during(Duration.ofMillis(1200)).atMost(Duration.ofSeconds(4)).untilAsserted(() -> {
+                    assertThat(app.getBean(HeldProvider.class).active.get()).isEqualTo(1);
+                    assertThat(status(second)).isEqualTo("QUEUED");
+                    assertThat(attempts(second)).isZero();
+                    assertThat(stats().requests()).isZero();
+                    assertThat(offset(0)).isZero(); assertThat(offset(1)).isZero();
+                });
+                evidence.put("singleOwnerWhileHeld", Map.of("active", 1, "secondQueued", true,
+                        "secondAttempts", 0, "httpCalls", 0, "committed", 0));
+            } finally { held.release.countDown(); }
+            awaitCompleted(List.of(first, second), 2);
+            assertThat(stats().requests()).isEqualTo(2);
+            app.close(); app = null;
+            holdProvider = false;
+            startApplication(3, 2, 1, 5000);
+            evidence.put("threeConsumers", requireAssigned(3));
+            assertThat(stats().requests()).isEqualTo(2);
+            evidence.put("result", "PASS");
+        } catch (Exception | AssertionError failure) {
+            primaryFailure = failure;
+            evidence.put("result", "FAIL"); evidence.put("failureType", failure.getClass().getSimpleName());
+            throw failure;
+        } finally {
+            if (held != null) held.release.countDown();
+            try { new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(directory.resolve("result.json").toFile(), evidence); }
+            catch (java.io.IOException failure) {
+                if (primaryFailure != null) primaryFailure.addSuppressed(failure); else throw failure;
+            }
+        }
+    }
 
     @ParameterizedTest
     @EnumSource(OffsetCommitPolicy.Mode.class)
@@ -463,8 +519,43 @@ class WorkerConcurrencyTest {
     }
 
     private void awaitAssigned() {
-        await().atMost(Duration.ofSeconds(20)).until(() -> container().getAssignedPartitions() != null
-                && container().getAssignedPartitions().size() == 6);
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> requireAssigned(container().getConcurrency()));
+    }
+
+    private Map<String, Object> requireAssigned(int consumers) throws Exception {
+        var children = container().getContainers();
+        assertThat(children).hasSize(consumers);
+        var localAssignments = new ArrayList<Set<TopicPartition>>();
+        for (var child : children) {
+            assertThat(child.isRunning()).isTrue();
+            var assigned = child.getAssignedPartitions();
+            assertThat(assigned).isNotNull();
+            // Gated checks need independent request owners, not just six aggregate partitions.
+            assertThat(assigned.stream().anyMatch(partition -> partition.topic().equals(topic))).isTrue();
+            localAssignments.add(Set.copyOf(assigned));
+        }
+        var wanted = new HashSet<TopicPartition>();
+        for (int partition = 0; partition < 3; partition++) {
+            wanted.add(new TopicPartition(topic, partition));
+            wanted.add(new TopicPartition(topic + ".retry", partition));
+        }
+        assertThat(localAssignments.stream().flatMap(Set::stream).toList())
+                .doesNotHaveDuplicates().containsExactlyInAnyOrderElementsOf(wanted);
+        var description = admin.describeConsumerGroups(List.of(group)).all().get(5, TimeUnit.SECONDS).get(group);
+        assertThat(description.state()).isEqualTo(ConsumerGroupState.STABLE);
+        assertThat(description.members()).hasSize(consumers);
+        var brokerAssignments = new ArrayList<Set<TopicPartition>>();
+        for (var member : description.members()) {
+            var assigned = member.assignment().topicPartitions();
+            assertThat(assigned.stream().anyMatch(partition -> partition.topic().equals(topic))).isTrue();
+            brokerAssignments.add(Set.copyOf(assigned));
+        }
+        assertThat(brokerAssignments.stream().flatMap(Set::stream).toList())
+                .doesNotHaveDuplicates().containsExactlyInAnyOrderElementsOf(wanted);
+        assertThat(localAssignments).containsExactlyInAnyOrderElementsOf(brokerAssignments);
+        return Map.of("localConsumers", children.size(), "brokerMembers", description.members().size(),
+                "requestedOwners", consumers, "assignedPartitions", wanted.size(), "groupState", description.state().name(),
+                "memberPartitionCounts", brokerAssignments.stream().map(Set::size).sorted().toList());
     }
 
     private void awaitStopped() {
