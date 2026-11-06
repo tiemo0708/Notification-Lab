@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "verifiedAtUtc": "2026-11-06T07:24:10.156068+00:00",
+  "baseCommit": "b8f5043b779b4f3633ec1a741feec5d584ca37b1",
+  "scope": "Verified CI record and separate-host deployment planning only; no runtime or deployment configuration changes",
+  "remoteCi": {
+    "runId": 42173414421,
+    "url": "https://github.com/tiemo0708/Notification-Lab/actions/runs/42173414421",
+    "headSha": "b8f5043b779b4f3633ec1a741feec5d584ca37b1",
+    "status": "completed",
+    "conclusion": "success",
+    "observedTestCounts": {
+      "PASSED": 398,
+      "FAILED": 0,
+      "SKIPPED": 0
+    },
+    "gradleResults": [
+      "BUILD SUCCESSFUL in 24m 16s"
+    ],
+    "logSha256": "f67772960df776e1f1e7ad4f0487658612cbae0ec587646193e1acb860e8e169",
+    "selectedCounts": {
+      "WorkerConcurrencyTest": {
+        "PASSED": 16,
+        "FAILED": 0,
+        "SKIPPED": 0
+      },
+      "LocalTopologyIntegrationTest": {
+        "PASSED": 1,
+        "FAILED": 0,
+        "SKIPPED": 0
+      },
+      "CommitWakeupRetryTest": {
+        "PASSED": 7,
+        "FAILED": 0,
+        "SKIPPED": 0
+      },
+      "CampaignBatchTest": {
+        "PASSED": 13,
+        "FAILED": 0,
+        "SKIPPED": 0
+      },
+      "WorkerRebalanceTest": {
+        "PASSED": 2,
+        "FAILED": 0,
+        "SKIPPED": 0
+      }
+    },
+    "historicalFailureCauseConfirmed": false
+  },
+  "runtimeVerification": {
+    "reference": "docs/experiments/worker-readiness-2026-11-06-validation.json",
+    "referenceSha256": "bde647fe7c57ef0dedf6ef2aa12cf3c067347fbd8718ef3b8fe52f8c40d3121b",
+    "sourceFiles": 172,
+    "configurationFiles": 23,
+    "allUnchanged": true
+  },
+  "configurationChecks": {
+    "composeConfigurationParsed": true,
+    "composeServices": [
+      "mysql",
+      "kafka",
+      "redis"
+    ],
+    "composeHostBindings": "127.0.0.1 only",
+    "kafkaAdvertisedListenerForNativeJvm": "PLAINTEXT://127.0.0.1:19092",
+    "localLbConfigurationParsed": true,
+    "linuxLbRuntimeVerified": false,
+    "resourcesStarted": 0
+  },
+  "sshCheck": {
+    "command": "ssh -G -F /dev/null -NT -L 127.0.0.1:18000:127.0.0.1:8080 -o ExitOnForwardFailure=yes -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 lab-user@ec2.example.invalid",
+    "exitCode": 0,
+    "forwarding": "localforward [127.0.0.1]:18000 [127.0.0.1]:8080",
+    "scope": "configuration interpretation only (-G); no remote connection or tunnel created",
+    "shellExampleSyntaxValid": true
+  },
+  "developmentCheckCorrection": "Initial local checker expected unbracketed IPv4 endpoints in ssh -G output; checker now normalizes brackets and still requires the same exact source/destination address and port. SSH configuration was not changed.",
+  "gradle": {
+    "command": "./gradlew --no-daemon --console=plain test",
+    "exitCode": 0,
+    "elapsed": "7s",
+    "testTask": "UP-TO-DATE",
+    "newJUnitTests": 0,
+    "logSha256": "a50f67eebf2e39e1d5ebdac5bcaf0ab11477e06c34545fcff9a390139f64a690"
+  },
+  "awsResourcesCreated": 0,
+  "externalHostsContacted": 0,
+  "separateHostSmokeImplemented": false,
+  "separateHostSmokeExecuted": false,
+  "newLoadExperiments": 0,
+  "documentationChangesPushed": false,
+  "remainingInputs": [
+    "AWS account and region",
+    "experiment budget and duration",
+    "instance sizing and OS/architecture",
+    "SSH account, key held locally and allowed source IP",
+    "fresh experiment data and exact release/JAR hashes"
+  ],
+  "sources": [
+    "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules-reference.html",
+    "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html",
+    "https://aws.amazon.com/vpc/pricing/",
+    "https://man.openbsd.org/ssh.1"
+  ]
+}

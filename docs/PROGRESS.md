@@ -3161,3 +3161,27 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
   [검증 원본](experiments/worker-readiness-2026-11-06-validation.json)에 기록하고 전체 JUnit/HTML 원본은 build 아래 보존했다.
   [진단·변경·검증·한계](CI_WORKER_READINESS.md)에 원격 실패, 준비 조건 반례와 로컬 결과를 구분했다.
   이번 보완의 원격 CI는 미실행이며 사용자 검토 전 푸시하지 않는다. 새 장시간 부하/AWS/FCM/별도 호스트 실행은 없다.
+
+
+## 2026-11-06: 보완 커밋 원격 CI 통과와 별도 머신 준비 계획
+
+- 사용자 승인으로 `70fe60f`→`b8f5043`을 fast-forward 푸시하고 로컬/원격 main SHA 일치를 확인했다.
+  [원격 CI 42173414421](https://github.com/tiemo0708/Notification-Lab/actions/runs/42173414421)은
+  **success/398개 통과·실패·스킵0**, Gradle **24분16초**였다.
+  WorkerConcurrencyTest16개에 과거 실패3개와 새 제어가 포함된다. S9 토폴로지1개/커밋 Wakeup7개/Batch13개/재할당2개도 통과했다.
+  감시 연결의 reset/timeout은 새 API 연결로 실제 실행 상태를 확인했으며 테스트 실패로 집계하지 않았다.
+- [CI 후속 기록](CI_WORKER_READINESS.md)과 README/PLAN을 실제 결과로 갱신했다.
+  이전 로컬/실패/전체 검증 JSON은 수정하지 않았다. 과거 실패 당시의 파티션 할당과 정확한 원인은 여전히 미확정이다.
+- [별도 머신 준비 계획](S9_SEPARATE_HOST_PREPARATION.md)을 추가했다.
+  별도 PC가 있으면 AWS는 필수가 아니며, 장비가 없을 때 Mac 부하 발생기+EC2 한 대의 첫 배포부터 시작하는 계획이다.
+  한 서버의 여러 JVM 재현, 앱 호스트 분리, 공유 인프라 장애 범위를 구분했다.
+  loopback/SSH 터널, Linux용 LB 미검증, Kafka advertised listener와 native JVM 가정을 명시했다.
+  계정/리전/규격/예산/접속 범위는 미정이고 AWS 자원 생성·원격 배포·외부 smoke 도구 구현/실행은 하지 않았다.
+- 원격398개 PASS와 원본 로그 SHA를 대조하고 소스172개/구성23개 불변을 확인했다.
+  기존 Compose2개를 임시 가상 환경값으로 해석했으며 서비스를 만들지 않았다. SSH 예시는 `-G` 옵션 해석/쉘 문법만 확인했다.
+  초기 로컬 검사기는 SSH IPv4 출력에 대괄호가 없다고 가정해 실패했다. 대괄호 표기만 정규화하고 같은 주소/포트를 정확히 검사하도록 고쳤다.
+  실제 SSH 설정/연결/서버를 바꾼 오류가 아니다. 최종 설정 해석 검사는 통과했다.
+- `./gradlew --no-daemon --console=plain test`는 **7초/종료0/test UP-TO-DATE**, 새 JUnit 실행은0개였다.
+  원격398개를 이번 문서 작업의 새 테스트 실행으로 합산하지 않는다.
+  [원격 SHA·집계·로그 SHA·준비 검사 기록](experiments/s9-remote-ci-and-deployment-preparation-2026-11-06.json)을 보존했다.
+  다음은 AWS를 선택할 경우 리전·예산·접속 범위를 정하고 A단계의 원격 실행 구성/작은 외부 smoke 도구를 구현하는 것이다.

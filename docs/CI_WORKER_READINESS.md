@@ -81,6 +81,18 @@ test task를 실제 실행했고 콘솔398개 PASS와 JUnit 집계를 대조했�
 격리된 Testcontainers MySQL 8.4.8 / Kafka 4.0.2다. 원격 Ubuntu 24.04 / Temurin 21과 구분한다.
 기존 사용자 DB와 모니터링 서비스를 초기화하지 않았다.
 
-아직 이 보완은 푸시하지 않았으며 새 커밋의 원격 CI 통과는 미검증이다.
-로컬 통과만으로 원격 실패 해결을 완료했다고 기록하지 않는다. 다음은 사용자 검토와 푸시 승인 후
-동일 커밋 SHA의 원격 CI를 확인하는 것이다. AWS/FCM/별도 호스트 및 장시간 대량 실험은 실행하지 않았다.
+위 로컬 검증 당시에는 보완을 아직 푸시하지 않았고 원격 CI는 미검증이었다.
+당시 [검증 원본](experiments/worker-readiness-2026-11-06-validation.json)의 상태는 그대로 보존한다.
+
+## 보완 커밋의 원격 CI 확인
+
+사용자 승인 후 `70fe60f`→`b8f5043`을 fast-forward 푸시했다.
+[CI 실행 42173414421](https://github.com/tiemo0708/Notification-Lab/actions/runs/42173414421)은
+`b8f5043b779b4f3633ec1a741feec5d584ca37b1`에서 **success**, **398개 통과/실패·스킵0**, Gradle **24분16초**였다.
+이전 실패 대상3개와 제어 테스트를 포함한 WorkerConcurrencyTest16개,
+S9 토폴로지1개/CommitWakeupRetryTest7개/Batch13개/재할당2개도 같은 실행에서 통과했다.
+실행 SHA/집계/원본 로그 SHA는 [후속 확인 기록](experiments/s9-remote-ci-and-deployment-preparation-2026-11-06.json)에 보존한다.
+
+이번 원격 실행 통과를 확인했지만 과거 실패 당시의 소비자별 할당을 소급해 확인한 것은 아니다.
+AWS/FCM/별도 호스트와 새 장시간 대량 실험은 실행하지 않았다.
+필수 로컬·CI 단계 이후에는 [별도 머신 준비 계획](S9_SEPARATE_HOST_PREPARATION.md)을 따른다.
