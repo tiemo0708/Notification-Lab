@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "verifiedAtUtc": "2026-11-06T01:52:23.091497+00:00",
+  "baseCommit": "45c72459ba2252bf2345a5d63220c54fb194885c",
+  "scope": "Documentation synthesis of preserved results; no new load, fault injection or live DB queries",
+  "sourceVerification": {
+    "reference": "docs/experiments/s9-topology-2026-11-06-validation.json",
+    "sourceFiles": 172,
+    "configurationFiles": 15,
+    "unchanged": true
+  },
+  "gradle": {
+    "command": "./gradlew --no-daemon --console=plain test --tests '*LocalTopologyIntegrationTest'",
+    "exitCode": 0,
+    "elapsed": "7s",
+    "testTask": "UP-TO-DATE",
+    "newJUnitTests": 0,
+    "logSha256": "a50f67eebf2e39e1d5ebdac5bcaf0ab11477e06c34545fcff9a390139f64a690"
+  },
+  "offlineS8Check": {
+    "command": "python3 scripts/review_s8_experiments.py --check docs/experiments/s8-evidence-review-2026-11-06.json",
+    "exitCode": 0,
+    "httpRuns": 18,
+    "producerRuns": 8,
+    "pooledRatesPerSecond": {
+      "consumers": {
+        "1": "47.323",
+        "2": "67.534",
+        "3": "94.139"
+      },
+      "partitions": {
+        "3": "54.041",
+        "6": "68.366"
+      },
+      "compression": {
+        "none": "85.595",
+        "lz4": "74.843"
+      },
+      "window": {
+        "1": "86.279",
+        "10": "90.969"
+      }
+    }
+  },
+  "facts": {
+    "sqlPrimaryLockRecordsBefore": 100001,
+    "sqlIndexOnlyOverallResult": "FAIL",
+    "sqlIndexOnlyGapWaitObserved": true,
+    "sqlPrimaryLockRecordsAfter": 1,
+    "sqlAfterCases": 4,
+    "millionCampaignAccepted": 1000000,
+    "millionRealtimeAccepted": 54124,
+    "millionPreloadSeconds": "2678.243",
+    "millionDrainSeconds": "12698.848",
+    "millionRatePerSecond": "78.747",
+    "historicalFullSuiteTests": 397,
+    "historicalFullTopologyTasks": 21,
+    "historicalFullTopologyWakeupRetries": 1,
+    "historicalFinalTopologyTasks": 27
+  },
+  "relativeLinksChecked": 25,
+  "evidenceSha256": {
+    "docs/ARCHITECTURE.md": "11c86f9ce4194bb484fd43bf2c9495b9312d2879e6377912874835508cc546bf",
+    "docs/S4_UNCERTAIN_OUTCOMES.md": "b8eda8f779e963e8c3e43b1d5ee5edcbb50add9d76629af6f9a63015dc31baac",
+    "docs/S5_OUTBOX_ACK_CRASH.md": "a672a02dde9a905a28f03a60563ed56a688c48d44fb67da6e3573964e3839a1e",
+    "docs/S6_CIRCUIT_BREAKER.md": "df2f3870b50073223771e32a06cb162e5de0571c569b43e111ee26287db430ce",
+    "docs/S6_CONSUMER_PAUSE.md": "657fb9d6477fb4bb800ab285d4d6a330ba15dfc150cb8149b102bd73917d1c04",
+    "docs/S6_HTTP_CLIENT.md": "544cc9d87ca5c94a088c3c2eb1a1704e8b1541c8f89af152645c92111e961cbc",
+    "docs/S6_REDIS_RECOVERY.md": "d49d0cc63342c38c986ba52f04ac74b6ce3c649a123c315c31924d8954913314",
+    "docs/S6_TRAFFIC_ISOLATION.md": "73e959a224b2fb8d00c95f6b18d580a054a24ca74e07028b3043ad0677d83c2d",
+    "docs/S6_WORKER_QUOTA.md": "e70d39a6f60693d8041074b0b612755ca9fd6bd99651cfb97ab1fe1de21cbe70",
+    "docs/S7_DELIVERY_MILLION_SUCCESS.md": "79a0d68ff14aedc791096fca2ccd71c2a7a5ddc9a33fb5525ed63a7e91fd3f49",
+    "docs/S7_OFFSET_100K.md": "aa657c50a41924e6d71a0b913ed9f87d861a5e1cae68681f46fb4fc9d8bf530a",
+    "docs/S7_OUTBOX_CLAIM_LOCKS.md": "b5bd8aca66d235b496f592122d597fd60910db11523d941b974852db7c84184a",
+    "docs/S8_OFFSET_ORDER.md": "0cdda7c7bb4296a71ae5cdbe0a5596fb57030f583612df16728f51b04e661a98",
+    "docs/S8_REVIEW.md": "98906cee19d4b5ab059faf10106289ef3f70e7ed16e74e443e26c76cec59a97e",
+    "docs/S9_LOCAL_TOPOLOGY.md": "c33a06ba578b8ba19680414293ee977aafbef871e84628b86d16a587479f2095",
+    "docs/experiments/s7-delivery-million-2026-11-04-recovery-attempt-3-result.json": "a52527b9a9478e74b6a1eded4e5ab828908304eb38e1842750f6ebddf4920bfe",
+    "docs/experiments/s7-delivery-million-2026-11-04-recovery-attempt-3-summary.json": "3c4e7da8c9a17bd38fc15916389c694f4d7bf95412f16c27c2d310784fdb14af",
+    "docs/experiments/s7-outbox-locks-2026-11-02-after.json": "e2d7dac503bf7d45b99972389a26d6af2c0d9cbdbec4226c23d93f1cbe368989",
+    "docs/experiments/s7-outbox-locks-2026-11-02-before.json": "67e6a7699f3d3930944857dbc4bae867495c5966fa75176c166607dd79e44910",
+    "docs/experiments/s7-outbox-locks-2026-11-02-index-only.json": "34bd81d5b39672ab8049f82464fc27491ef10d591709c9706ba0edc5d733782a",
+    "docs/experiments/s8-evidence-review-2026-11-06.json": "23cccf3ebd03b2c15ef9129b2ca5224485f2ceb5d5d249edbf0e07226d0f18ba",
+    "docs/experiments/s9-topology-2026-11-06-observation.json": "51cdebc0cb137545af76968d53e5fcb258b4b2aef843c1c480d389f7758070c8",
+    "docs/experiments/s9-topology-2026-11-06-validation.json": "5aceda01c48a943afb061cccdaf1c582ee44aa64bd5cce874bf4dff78c4989b0",
+    "src/main/java/dev/jinhyeon/notificationlab/outbox/IdempotentSubmissionService.java": "6209436e712cf9cdc4fd02ed5964ff8a3184e5b84e7fa6a42ede1835089c4d1a",
+    "src/main/java/dev/jinhyeon/notificationlab/outbox/OutboxStore.java": "c5e6bd229d922f2ae76ccd0db2447aad0295c99cd346f56aee6f84fd7990b16c",
+    "src/main/java/dev/jinhyeon/notificationlab/outbox/SubmissionService.java": "76cba4d1a75a33d432e862f6a2600555d533fbc7b4069ebd908ef40bb6f9bf40",
+    "src/main/java/dev/jinhyeon/notificationlab/worker/NotificationWorker.java": "6ab700a9727e0452d4c4495ffdfee622d8ffe5a9dba756a449fe72da9fdcc88c",
+    "src/main/resources/application.yml": "ff7847fcaa98d8b1b5d68d9bf927d11bb4a3a994eea6ba2fe4e235162ceb54c1"
+  },
+  "documentationSha256": {
+    "docs/S9_DECISIONS.md": "2905107dbd82a80d0b1f965c2ae4ebbc46d40171318198d4c8830549966c104c",
+    "README.md": "9059841a4859ed2c3ecbffd0975c55bb056e5373e4db976d2ae023242f2d6b01",
+    "PLAN.md": "5a9fae57fec40c71913de7cab3244b711bc7f9dc6ca01bfeba554c20453447f7",
+    "docs/PROGRESS.md": "d70b701b0173cf194e68b81d69cb6816585d4d8f537e121a19cd0d006a2fe37c"
+  },
+  "newLoadExecutions": 0,
+  "remoteCiRun": false,
+  "pushed": false
+}
