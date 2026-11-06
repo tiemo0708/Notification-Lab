@@ -259,7 +259,7 @@ class CampaignBatchTest {
         assertThatThrownBy(() -> run(draft)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> app.getBean(CampaignBatchService.class).execute(UUID.randomUUID()))
                 .isInstanceOf(dev.jinhyeon.notificationlab.campaign.CampaignNotFoundException.class);
-        assertThat(command(draft.campaignId())).isEqualTo(1);
+        assertThat(command(draft.campaignId(), 1)).isEqualTo(1);
         assertThat(db().queryForObject("SELECT COUNT(*) FROM BATCH_JOB_INSTANCE", Integer.class)).isZero();
         assertRows(0);
     }
@@ -466,16 +466,26 @@ class CampaignBatchTest {
         assertThat(command.exitValue()).isZero();
     }
 
-    private int command(UUID id) throws Exception {
+    private int command(UUID id) throws Exception { return command(id, 0); }
+
+    private int command(UUID id, int expectedExit) throws Exception {
+        boolean expectedOutcome = false;
         Path output = Files.createTempFile("campaign-command-", ".log");
         Process process = startCommand(id, output);
         try {
             assertThat(process.waitFor(40, TimeUnit.SECONDS)).as("campaign command exited; log %s", output).isTrue();
             assertThat(Files.readString(output)).contains("CAMPAIGN_BATCH");
+            expectedOutcome = process.exitValue() == expectedExit;
             return process.exitValue();
         } finally {
             if (process.isAlive()) { process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); }
-            Files.deleteIfExists(output);
+            if (expectedOutcome) Files.deleteIfExists(output);
+            else {
+                Path reports = Files.createDirectories(Path.of("build/reports/campaign-command-failures"));
+                Path preserved = reports.resolve(output.getFileName());
+                Files.move(output, preserved);
+                System.out.println("CAMPAIGN_COMMAND_FAILURE log=" + preserved);
+            }
         }
     }
 
