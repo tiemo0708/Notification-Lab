@@ -1,0 +1,122 @@
+{
+  "dateKst": "2026-11-06",
+  "baseCommit": "0bf380b111b1fe97ec0086640509537d3b2cda0d",
+  "assessment": "Share with caveats",
+  "reviewScope": {
+    "httpRuns": 18,
+    "producerRuns": 8,
+    "evidenceFilesShaChecked": 43,
+    "httpAcceptancesSummedAcrossRuns": 192065,
+    "newLoadExecutions": 0,
+    "sourceDataRequeried": false
+  },
+  "recomputeCommand": "python3 scripts/review_s8_experiments.py --check docs/experiments/s8-evidence-review-2026-11-06.json",
+  "recomputeExitCode": 0,
+  "adverseControls": {
+    "controlCases": 11,
+    "controls": [
+      {
+        "case": "mapping-count-mismatch",
+        "result": "REJECTED",
+        "reason": "Target mapping count differs"
+      },
+      {
+        "case": "fixed-condition-drift",
+        "result": "REJECTED",
+        "reason": "Within-study fixed conditions changed"
+      },
+      {
+        "case": "uncommitted-offset",
+        "result": "REJECTED",
+        "reason": "Uncommitted records remain"
+      },
+      {
+        "case": "duplicate-http-acceptance",
+        "result": "REJECTED",
+        "reason": "Audit duplicate/invalid records"
+      },
+      {
+        "case": "wrong-rate-denominator",
+        "result": "REJECTED",
+        "reason": "Raw rate formula differs"
+      },
+      {
+        "case": "historical-mean-mismatch",
+        "result": "REJECTED",
+        "reason": "Historical mean differs"
+      },
+      {
+        "case": "unconfirmed-relay-ack",
+        "result": "REJECTED",
+        "reason": "Uncertain publish outcome"
+      },
+      {
+        "case": "producer-retry-in-measured-window",
+        "result": "REJECTED",
+        "reason": "Measured producer counters differ"
+      },
+      {
+        "case": "raw-byte-sha-mismatch",
+        "result": "REJECTED",
+        "reason": "SHA mismatch: s8-consumer-scaling-2026-11-04-group-2-run-1-consumers-1.json"
+      },
+      {
+        "case": "existing-output-not-overwritten",
+        "result": "REJECTED"
+      },
+      {
+        "case": "modified-report-not-accepted",
+        "result": "REJECTED"
+      }
+    ]
+  },
+  "gradle": {
+    "command": "caffeinate -i ./gradlew --no-daemon --console=plain test",
+    "exitCode": 0,
+    "seconds": 6,
+    "testTask": "UP-TO-DATE",
+    "newJUnitTestsExecuted": 0,
+    "consoleSha256": "4c1e56e91920c72135c64530fff3c39de52caaf4a2dae6df246e42cf6b5fde30"
+  },
+  "reusedRegression": {
+    "source": "docs/experiments/s8-monitoring-2026-11-06-validation.json",
+    "sha256": "500e576c041a4cb03c007a019c645bd5c011d86de07a5981e9d1048d1d143e0e",
+    "classes": 49,
+    "counts": {
+      "tests": 389,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "currentSourceInventoryFiles": 168,
+    "currentConfigurationFiles": 10,
+    "sourceConfigurationAndJUnitHashesUnchanged": true
+  },
+  "figure": {
+    "path": "docs/experiments/s8-evidence-review-2026-11-06-rates.png",
+    "library": "Matplotlib 3.9.2",
+    "font": "AppleGothic",
+    "source": "review JSON, 18 per-run rates and 9 within-condition pooled rates",
+    "reviewed": "visible points/numeric labels, zero origins, distinct scales and scope note, Korean labels; no causal or confidence interval claim",
+    "finalReproductionShaMatches": true
+  },
+  "documentTableRowsCompared": 9,
+  "displayRounding": "3 decimal places, Decimal ROUND_HALF_UP",
+  "assetsSha256": {
+    "docs/S8_REVIEW.md": "98906cee19d4b5ab059faf10106289ef3f70e7ed16e74e443e26c76cec59a97e",
+    "docs/S8_CONSUMER_SCALING.md": "12a054a1515d4472bca43a7aa7579dd41ea41e768425fc64177dd019c6668cb3",
+    "PLAN.md": "90a63b35646cd8fa753d131ee39e3ee3646a5f68887752c5dab7802a09335034",
+    "README.md": "7efd9b7365892bb435778fe118bf3606429d58cf7da6aa376dc4516b7ee91111",
+    "docs/PROGRESS.md": "84a26565efd108a60947c9107a336b2c68f177b9b595f9826812153c96cd9264",
+    "scripts/review_s8_experiments.py": "adba6acab5507e84c63feb8bbe82b614beaa68c96b441f025bd3ca31886c12e1",
+    "scripts/plot_s8_review.py": "be0202e0f5c3380c6b982dd19a9716c2f416d5972a86fc20b28d4eec0b7778e6",
+    "docs/experiments/s8-evidence-review-2026-11-06.json": "23cccf3ebd03b2c15ef9129b2ca5224485f2ceb5d5d249edbf0e07226d0f18ba",
+    "docs/experiments/s8-evidence-review-2026-11-06-rates.png": "0e2b2b9916442cb83b9ce06f8f8654cba1bfd2ea3188f0298216f06083da4756"
+  },
+  "historicalMeasurementsChanged": false,
+  "applicationDefaultsChanged": false,
+  "remoteCiRun": false,
+  "pushed": false,
+  "s9Started": false,
+  "remainingConditionalS8": "Virtual thread comparison deferred; external I/O primary bottleneck not established"
+}

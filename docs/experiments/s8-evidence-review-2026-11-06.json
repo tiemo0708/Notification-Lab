@@ -1,0 +1,824 @@
+{
+  "reviewDateKst": "2026-11-06",
+  "assessment": "Share with caveats",
+  "methods": {
+    "primaryRate": "sum campaign acceptances / sum drain seconds within each study and condition",
+    "secondaryRate": "arithmetic mean of two per-run rates; differs from pooled rate",
+    "percentiles": "per-run p95/range only; never averaged or pooled from summaries",
+    "historicalFreeze": "archived validations report unchanged code within studies; current review verifies archived file hashes, not a new execution",
+    "crossStudyComparison": "no causal comparison across changed source/protocol/clock; no overall pooled throughput",
+    "scope": "HTTP Mock acceptance, not physical delivery or production capacity"
+  },
+  "studies": [
+    {
+      "id": "consumers",
+      "sourceManifest": "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-source.json",
+      "baseCommit": "f8bf1c01ce61cd2fb401176086e76e36d538c459",
+      "archivedSourceInventoryCount": 160,
+      "historicalFreezeReported": true,
+      "fixedRuntimeConditions": {
+        "java": "Amazon.com Inc. 21.0.6",
+        "os": "Mac OS X 15.7.7 aarch64",
+        "jvmMaxHeapBytes": 536870912,
+        "availableProcessors": 10,
+        "infra": {
+          "mysqlBufferPoolMiB": 512,
+          "mysqlCpu": 2,
+          "kafkaMemoryMiB": 1024,
+          "kafkaCpu": 1,
+          "redisMemoryMiB": 256,
+          "mysql": "8.4.8",
+          "kafka": "4.0.2",
+          "redis": "7.4.11",
+          "mysqlMemoryMiB": 2048
+        },
+        "bounds": {
+          "maxResourceSamples": 452,
+          "queryPageRows": 1000,
+          "latencyArrayBytes": 80000,
+          "drainLimitSeconds": 900,
+          "campaignAuditBytes": 1256,
+          "maxRealtimeProbes": 5000
+        },
+        "redisConnectionsPerLane": 3,
+        "publishBatchSize": 1,
+        "campaignRelayInstances": 1,
+        "relayScheduling": "application-scheduled-bean",
+        "fineTimingEnabled": false,
+        "transientQuotaRecoveryEnabled": true,
+        "offsetComparison": false,
+        "campaignOffsetMode": "RECORD",
+        "settings": {
+          "campaignBurst": 20,
+          "mockDelayMillis": 1,
+          "httpConnectionsPerLane": 3,
+          "totalRate": 1000,
+          "campaignRate": 200,
+          "totalBurst": 100,
+          "baselineProbes": 50,
+          "probeDelayMillis": 200,
+          "realtimeWorkerMaxActive": 3
+        },
+        "stageTimingVersion": "caller-side-transaction-and-ack-v1"
+      },
+      "sequence": [
+        1,
+        2,
+        3,
+        3,
+        2,
+        1
+      ],
+      "runs": [
+        {
+          "index": 1,
+          "condition": "1",
+          "targets": 10000,
+          "drainSeconds": "212.047066916",
+          "ratePerSecond": "47.15934129832309667862154453192323448021",
+          "mixedApiP95Ms": "13.772834",
+          "realtimeAcceptedIncludingBaseline": 1027,
+          "httpAccepted": 11027,
+          "raw": "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-1-consumers-1.json"
+        },
+        {
+          "index": 2,
+          "condition": "2",
+          "targets": 10000,
+          "drainSeconds": "151.269736542",
+          "ratePerSecond": "66.10707619777934100978134299578940295290",
+          "mixedApiP95Ms": "14.636625",
+          "realtimeAcceptedIncludingBaseline": 738,
+          "httpAccepted": 10738,
+          "raw": "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-2-consumers-2.json"
+        },
+        {
+          "index": 3,
+          "condition": "3",
+          "targets": 10000,
+          "drainSeconds": "107.5764545",
+          "ratePerSecond": "92.95714426059654159730649981590534757771",
+          "mixedApiP95Ms": "17.116333",
+          "realtimeAcceptedIncludingBaseline": 536,
+          "httpAccepted": 10536,
+          "raw": "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-3-consumers-3.json"
+        },
+        {
+          "index": 4,
+          "condition": "3",
+          "targets": 10000,
+          "drainSeconds": "104.875368375",
+          "ratePerSecond": "95.35127413563185017036656487453315226555",
+          "mixedApiP95Ms": "15.4505",
+          "realtimeAcceptedIncludingBaseline": 531,
+          "httpAccepted": 10531,
+          "raw": "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-4-consumers-3.json"
+        },
+        {
+          "index": 5,
+          "condition": "2",
+          "targets": 10000,
+          "drainSeconds": "144.875453875",
+          "ratePerSecond": "69.02480532435881557648027765324576450788",
+          "mixedApiP95Ms": "13.058",
+          "realtimeAcceptedIncludingBaseline": 717,
+          "httpAccepted": 10717,
+          "raw": "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-5-consumers-2.json"
+        },
+        {
+          "index": 6,
+          "condition": "1",
+          "targets": 10000,
+          "drainSeconds": "210.577934792",
+          "ratePerSecond": "47.48835631747256954549532677990705897188",
+          "mixedApiP95Ms": "13.068625",
+          "realtimeAcceptedIncludingBaseline": 1009,
+          "httpAccepted": 11009,
+          "raw": "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-6-consumers-1.json"
+        }
+      ],
+      "byCondition": [
+        {
+          "condition": "1",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "422.625001708",
+          "pooledRatePerSecond": "47.32327694568906945108090950027520041060",
+          "perRunRateArithmeticMean": "47.32384880789783311205843565591514672604",
+          "rateRange": [
+            "47.15934129832309667862154453192323448021",
+            "47.48835631747256954549532677990705897188"
+          ],
+          "mixedApiP95RangeMs": [
+            "13.068625",
+            "13.772834"
+          ]
+        },
+        {
+          "condition": "2",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "296.145190417",
+          "pooledRatePerSecond": "67.53444137261907899843939406090226444874",
+          "perRunRateArithmeticMean": "67.5659407610690782931308103245175837304",
+          "rateRange": [
+            "66.10707619777934100978134299578940295290",
+            "69.02480532435881557648027765324576450788"
+          ],
+          "mixedApiP95RangeMs": [
+            "13.058",
+            "14.636625"
+          ]
+        },
+        {
+          "condition": "3",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "212.451822875",
+          "pooledRatePerSecond": "94.13898986297412817621134755820108187434",
+          "perRunRateArithmeticMean": "94.15420919811419588383653234521924992165",
+          "rateRange": [
+            "92.95714426059654159730649981590534757771",
+            "95.35127413563185017036656487453315226555"
+          ],
+          "mixedApiP95RangeMs": [
+            "15.4505",
+            "17.116333"
+          ]
+        }
+      ],
+      "totals": {
+        "campaign": 60000,
+        "realtimeIncludingBaselines": 4558,
+        "httpAccepted": 64558
+      }
+    },
+    {
+      "id": "partitions",
+      "sourceManifest": "docs/experiments/s8-partition-scaling-2026-11-04-group-1-source.json",
+      "baseCommit": "9445fbd7d06d6720a4598218fdde3e941dea7c06",
+      "archivedSourceInventoryCount": 162,
+      "historicalFreezeReported": true,
+      "fixedRuntimeConditions": {
+        "java": "Amazon.com Inc. 21.0.6",
+        "os": "Mac OS X 15.7.7 aarch64",
+        "jvmMaxHeapBytes": 536870912,
+        "availableProcessors": 10,
+        "infra": {
+          "kafka": "4.0.2",
+          "redis": "7.4.11",
+          "mysqlMemoryMiB": 2048,
+          "mysqlBufferPoolMiB": 512,
+          "mysqlCpu": 2,
+          "kafkaMemoryMiB": 1024,
+          "kafkaCpu": 1,
+          "redisMemoryMiB": 256,
+          "mysql": "8.4.8"
+        },
+        "bounds": {
+          "drainLimitSeconds": 900,
+          "campaignAuditBytes": 1256,
+          "maxRealtimeProbes": 5000,
+          "maxResourceSamples": 452,
+          "queryPageRows": 1000,
+          "latencyArrayBytes": 80000
+        },
+        "redisConnectionsPerLane": 3,
+        "publishBatchSize": 1,
+        "campaignRelayInstances": 1,
+        "relayScheduling": "application-scheduled-bean",
+        "fineTimingEnabled": false,
+        "transientQuotaRecoveryEnabled": true,
+        "offsetComparison": false,
+        "campaignOffsetMode": "RECORD",
+        "settings": {
+          "probeDelayMillis": 200,
+          "campaignBurst": 20,
+          "mockDelayMillis": 1,
+          "httpConnectionsPerLane": 3,
+          "totalRate": 1000,
+          "campaignRate": 200,
+          "workersPerLane": 3,
+          "totalBurst": 100,
+          "baselineProbes": 50,
+          "recoveryCapacityPerLane": 12
+        },
+        "stageTimingVersion": "caller-side-transaction-and-ack-v1"
+      },
+      "sequence": [
+        3,
+        6,
+        6,
+        3
+      ],
+      "runs": [
+        {
+          "index": 1,
+          "condition": "3",
+          "targets": 10000,
+          "drainSeconds": "152.649818792",
+          "ratePerSecond": "65.50941284526487300856277848440198887334",
+          "mixedApiP95Ms": "37.564333",
+          "realtimeAcceptedIncludingBaseline": 689,
+          "httpAccepted": 10689,
+          "raw": "docs/experiments/s8-partition-scaling-2026-11-04-group-1-run-1-partitions-3.json"
+        },
+        {
+          "index": 2,
+          "condition": "6",
+          "targets": 10000,
+          "drainSeconds": "143.446794917",
+          "ratePerSecond": "69.71225816363563527217012919382493504360",
+          "mixedApiP95Ms": "28.868083",
+          "realtimeAcceptedIncludingBaseline": 659,
+          "httpAccepted": 10659,
+          "raw": "docs/experiments/s8-partition-scaling-2026-11-04-group-1-run-2-partitions-6.json"
+        },
+        {
+          "index": 3,
+          "condition": "6",
+          "targets": 10000,
+          "drainSeconds": "149.094793958",
+          "ratePerSecond": "67.07142304926488424585183798118247639961",
+          "mixedApiP95Ms": "31.746542",
+          "realtimeAcceptedIncludingBaseline": 681,
+          "httpAccepted": 10681,
+          "raw": "docs/experiments/s8-partition-scaling-2026-11-04-group-1-run-3-partitions-6.json"
+        },
+        {
+          "index": 4,
+          "condition": "3",
+          "targets": 10000,
+          "drainSeconds": "217.441541125",
+          "ratePerSecond": "45.98937235388397314460029216277934435561",
+          "mixedApiP95Ms": "84.34804199999999",
+          "realtimeAcceptedIncludingBaseline": 909,
+          "httpAccepted": 10909,
+          "raw": "docs/experiments/s8-partition-scaling-2026-11-04-group-1-run-4-partitions-3.json"
+        }
+      ],
+      "byCondition": [
+        {
+          "condition": "3",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "370.091359917",
+          "pooledRatePerSecond": "54.04071039238900082014421268324656282900",
+          "perRunRateArithmeticMean": "55.7493925995744230765815353235906666145",
+          "rateRange": [
+            "45.98937235388397314460029216277934435561",
+            "65.50941284526487300856277848440198887334"
+          ],
+          "mixedApiP95RangeMs": [
+            "37.564333",
+            "84.34804199999999"
+          ]
+        },
+        {
+          "condition": "6",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "292.541588875",
+          "pooledRatePerSecond": "68.36634776242291303853847642092799855755",
+          "perRunRateArithmeticMean": "68.3918406064502597590109835875037057216",
+          "rateRange": [
+            "67.07142304926488424585183798118247639961",
+            "69.71225816363563527217012919382493504360"
+          ],
+          "mixedApiP95RangeMs": [
+            "28.868083",
+            "31.746542"
+          ]
+        }
+      ],
+      "totals": {
+        "campaign": 40000,
+        "realtimeIncludingBaselines": 2938,
+        "httpAccepted": 42938
+      }
+    },
+    {
+      "id": "compression",
+      "sourceManifest": "docs/experiments/s8-compression-delivery-2026-11-05-group-1-source.json",
+      "baseCommit": "d0685b650667da5e480c0c279c0b23d8fd6b4392",
+      "archivedSourceInventoryCount": 165,
+      "historicalFreezeReported": true,
+      "fixedRuntimeConditions": {
+        "java": "Amazon.com Inc. 21.0.6",
+        "os": "Mac OS X 15.7.7 aarch64",
+        "jvmMaxHeapBytes": 536870912,
+        "availableProcessors": 10,
+        "infra": {
+          "mysqlBufferPoolMiB": 512,
+          "mysqlMemoryMiB": 2048,
+          "redis": "7.4.11",
+          "kafka": "4.0.2",
+          "mysql": "8.4.8",
+          "redisMemoryMiB": 256,
+          "kafkaCpu": 1,
+          "kafkaMemoryMiB": 1024,
+          "mysqlCpu": 2
+        },
+        "bounds": {
+          "maxResourceSamples": 452,
+          "maxRealtimeProbes": 5000,
+          "campaignAuditBytes": 1256,
+          "drainLimitSeconds": 900,
+          "latencyArrayBytes": 80000,
+          "queryPageRows": 1000
+        },
+        "redisConnectionsPerLane": 3,
+        "publishBatchSize": 1,
+        "campaignRelayInstances": 1,
+        "relayScheduling": "application-scheduled-bean",
+        "fineTimingEnabled": false,
+        "transientQuotaRecoveryEnabled": true,
+        "offsetComparison": false,
+        "campaignOffsetMode": "RECORD",
+        "settings": {
+          "mockDelayMillis": 1,
+          "campaignBurst": 20,
+          "probeDelayMillis": 200,
+          "baselineProbes": 50,
+          "totalBurst": 100,
+          "workersPerLane": 3,
+          "campaignRate": 200,
+          "totalRate": 1000,
+          "httpConnectionsPerLane": 3,
+          "recoveryCapacityPerLane": 12
+        },
+        "stageTimingVersion": "caller-side-transaction-and-ack-v1",
+        "fixedProducerConfiguration": {
+          "campaign": {
+            "enable.idempotence": "true",
+            "buffer.memory": "1048576",
+            "batch.size": "16384",
+            "retries": "3",
+            "max.in.flight.requests.per.connection": "1",
+            "acks": "all",
+            "linger.ms": "0",
+            "delivery.timeout.ms": "10000",
+            "request.timeout.ms": "3000",
+            "max.block.ms": "3000"
+          },
+          "realtime": {
+            "enable.idempotence": "true",
+            "buffer.memory": "1048576",
+            "batch.size": "16384",
+            "retries": "3",
+            "max.in.flight.requests.per.connection": "1",
+            "acks": "all",
+            "linger.ms": "0",
+            "compression.type": "none",
+            "delivery.timeout.ms": "10000",
+            "request.timeout.ms": "3000",
+            "max.block.ms": "3000"
+          }
+        }
+      },
+      "sequence": [
+        "none",
+        "lz4",
+        "lz4",
+        "none"
+      ],
+      "runs": [
+        {
+          "index": 1,
+          "condition": "none",
+          "targets": 10000,
+          "drainSeconds": "142.726841291",
+          "ratePerSecond": "70.06390605682503221285417244020300161972",
+          "mixedApiP95Ms": "28.477290999999997",
+          "realtimeAcceptedIncludingBaseline": 661,
+          "httpAccepted": 10661,
+          "raw": "docs/experiments/s8-compression-delivery-2026-11-05-group-1-run-1-none.json",
+          "campaignOutgoingBytesLifetime": "3800336.0",
+          "campaignRecordsPerRequestWindowAverage": "1.0"
+        },
+        {
+          "index": 2,
+          "condition": "lz4",
+          "targets": 10000,
+          "drainSeconds": "139.123713625",
+          "ratePerSecond": "71.87847232826480698394310131038237659033",
+          "mixedApiP95Ms": "31.133125",
+          "realtimeAcceptedIncludingBaseline": 632,
+          "httpAccepted": 10632,
+          "raw": "docs/experiments/s8-compression-delivery-2026-11-05-group-1-run-2-lz4.json",
+          "campaignOutgoingBytesLifetime": "3618423.0",
+          "campaignRecordsPerRequestWindowAverage": "1.0"
+        },
+        {
+          "index": 3,
+          "condition": "lz4",
+          "targets": 10000,
+          "drainSeconds": "128.104089041",
+          "ratePerSecond": "78.06152071226608270714208512897019633551",
+          "mixedApiP95Ms": "55.88",
+          "realtimeAcceptedIncludingBaseline": 592,
+          "httpAccepted": 10592,
+          "raw": "docs/experiments/s8-compression-delivery-2026-11-05-group-1-run-3-lz4.json",
+          "campaignOutgoingBytesLifetime": "3618469.0",
+          "campaignRecordsPerRequestWindowAverage": "1.0"
+        },
+        {
+          "index": 4,
+          "condition": "none",
+          "targets": 10000,
+          "drainSeconds": "90.931203584",
+          "ratePerSecond": "109.9732501699732478051084761500037553490",
+          "mixedApiP95Ms": "11.144417",
+          "realtimeAcceptedIncludingBaseline": 467,
+          "httpAccepted": 10467,
+          "raw": "docs/experiments/s8-compression-delivery-2026-11-05-group-1-run-4-none.json",
+          "campaignOutgoingBytesLifetime": "3800290.0",
+          "campaignRecordsPerRequestWindowAverage": "1.0"
+        }
+      ],
+      "byCondition": [
+        {
+          "condition": "none",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "233.658044875",
+          "pooledRatePerSecond": "85.59516968782049088435008244866450160568",
+          "perRunRateArithmeticMean": "90.01857811339914000898132429510337848435",
+          "rateRange": [
+            "70.06390605682503221285417244020300161972",
+            "109.9732501699732478051084761500037553490"
+          ],
+          "mixedApiP95RangeMs": [
+            "11.144417",
+            "28.477290999999997"
+          ],
+          "campaignOutgoingBytesLifetimeMean": "3800313.0"
+        },
+        {
+          "condition": "lz4",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "267.227802666",
+          "pooledRatePerSecond": "74.84251189610460919479602004983692021240",
+          "perRunRateArithmeticMean": "74.9699965202654448455425932196762864629",
+          "rateRange": [
+            "71.87847232826480698394310131038237659033",
+            "78.06152071226608270714208512897019633551"
+          ],
+          "mixedApiP95RangeMs": [
+            "31.133125",
+            "55.88"
+          ],
+          "campaignOutgoingBytesLifetimeMean": "3618446.0"
+        }
+      ],
+      "totals": {
+        "campaign": 40000,
+        "realtimeIncludingBaselines": 2352,
+        "httpAccepted": 42352
+      }
+    },
+    {
+      "id": "window",
+      "sourceManifest": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-source.json",
+      "baseCommit": "a61a1eef71119c9a86916486caa5f0885412ca85",
+      "archivedSourceInventoryCount": 167,
+      "historicalFreezeReported": true,
+      "fixedRuntimeConditions": {
+        "java": "Amazon.com Inc. 21.0.6",
+        "os": "Mac OS X 15.7.7 aarch64",
+        "jvmMaxHeapBytes": 536870912,
+        "availableProcessors": 10,
+        "infra": {
+          "kafkaMemoryMiB": 1024,
+          "kafkaCpu": 1,
+          "redisMemoryMiB": 256,
+          "mysql": "8.4.8",
+          "kafka": "4.0.2",
+          "redis": "7.4.11",
+          "mysqlMemoryMiB": 2048,
+          "mysqlBufferPoolMiB": 512,
+          "mysqlCpu": 2
+        },
+        "bounds": {
+          "drainLimitSeconds": 900,
+          "campaignAuditBytes": 1256,
+          "maxRealtimeProbes": 5000,
+          "maxResourceSamples": 452,
+          "queryPageRows": 1000,
+          "latencyArrayBytes": 80000
+        },
+        "redisConnectionsPerLane": 3,
+        "publishBatchSize": 1,
+        "campaignRelayInstances": 1,
+        "relayScheduling": "application-scheduled-bean",
+        "fineTimingEnabled": false,
+        "transientQuotaRecoveryEnabled": true,
+        "offsetComparison": false,
+        "campaignOffsetMode": "RECORD",
+        "settings": {
+          "totalRate": 1000,
+          "campaignRate": 200,
+          "workersPerLane": 3,
+          "totalBurst": 100,
+          "baselineProbes": 50,
+          "probeDelayMillis": 200,
+          "campaignBurst": 20,
+          "mockDelayMillis": 1,
+          "httpConnectionsPerLane": 3,
+          "recoveryCapacityPerLane": 12
+        },
+        "stageTimingVersion": "window-aware-relay-ack-observation-v2",
+        "fixedProducerConfiguration": {
+          "campaign": {
+            "delivery.timeout.ms": "10000",
+            "compression.type": "none",
+            "linger.ms": "0",
+            "acks": "all",
+            "max.in.flight.requests.per.connection": "1",
+            "retries": "3",
+            "batch.size": "16384",
+            "buffer.memory": "1048576",
+            "enable.idempotence": "true",
+            "max.block.ms": "3000",
+            "request.timeout.ms": "3000"
+          },
+          "realtime": {
+            "delivery.timeout.ms": "10000",
+            "compression.type": "none",
+            "linger.ms": "0",
+            "acks": "all",
+            "max.in.flight.requests.per.connection": "1",
+            "retries": "3",
+            "batch.size": "16384",
+            "buffer.memory": "1048576",
+            "enable.idempotence": "true",
+            "max.block.ms": "3000",
+            "request.timeout.ms": "3000"
+          }
+        }
+      },
+      "sequence": [
+        1,
+        10,
+        10,
+        1
+      ],
+      "runs": [
+        {
+          "index": 1,
+          "condition": "1",
+          "targets": 10000,
+          "drainSeconds": "123.827770459",
+          "ratePerSecond": "80.75732901377765248195988275312083724287",
+          "mixedApiP95Ms": "20.578584",
+          "realtimeAcceptedIncludingBaseline": 594,
+          "httpAccepted": 10594,
+          "raw": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-1-window-1.json",
+          "campaignOutgoingBytesLifetime": "3800290.0",
+          "campaignRecordsPerRequestWindowAverage": "1.0"
+        },
+        {
+          "index": 2,
+          "condition": "10",
+          "targets": 10000,
+          "drainSeconds": "105.597010416",
+          "ratePerSecond": "94.69965068712594527208305203730153299305",
+          "mixedApiP95Ms": "16.188834",
+          "realtimeAcceptedIncludingBaseline": 532,
+          "httpAccepted": 10532,
+          "raw": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-2-window-10.json",
+          "campaignOutgoingBytesLifetime": "3797782.0",
+          "campaignRecordsPerRequestWindowAverage": "1.0008282716731087"
+        },
+        {
+          "index": 3,
+          "condition": "10",
+          "targets": 10000,
+          "drainSeconds": "114.257371917",
+          "ratePerSecond": "87.52170500879629469974237163514155432979",
+          "mixedApiP95Ms": "19.331500000000002",
+          "realtimeAcceptedIncludingBaseline": 552,
+          "httpAccepted": 10552,
+          "raw": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-3-window-10.json",
+          "campaignOutgoingBytesLifetime": "3797938.0",
+          "campaignRecordsPerRequestWindowAverage": "1.001092597650915"
+        },
+        {
+          "index": 4,
+          "condition": "1",
+          "targets": 10000,
+          "drainSeconds": "107.979560584",
+          "ratePerSecond": "92.61011941441223007375893768158325884969",
+          "mixedApiP95Ms": "14.222459",
+          "realtimeAcceptedIncludingBaseline": 539,
+          "httpAccepted": 10539,
+          "raw": "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-4-window-1.json",
+          "campaignOutgoingBytesLifetime": "3800290.0",
+          "campaignRecordsPerRequestWindowAverage": "1.0"
+        }
+      ],
+      "byCondition": [
+        {
+          "condition": "1",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "231.807331043",
+          "pooledRatePerSecond": "86.27854826683640313569735490878419949075",
+          "perRunRateArithmeticMean": "86.6837242140949412778594102173520480463",
+          "rateRange": [
+            "80.75732901377765248195988275312083724287",
+            "92.61011941441223007375893768158325884969"
+          ],
+          "mixedApiP95RangeMs": [
+            "14.222459",
+            "20.578584"
+          ],
+          "campaignOutgoingBytesLifetimeMean": "3800290.0"
+        },
+        {
+          "condition": "10",
+          "runs": 2,
+          "targets": 20000,
+          "summedDrainSeconds": "219.854382333",
+          "pooledRatePerSecond": "90.96930335328600356646864929153852292067",
+          "perRunRateArithmeticMean": "91.1106778479611199859127118362215436614",
+          "rateRange": [
+            "87.52170500879629469974237163514155432979",
+            "94.69965068712594527208305203730153299305"
+          ],
+          "mixedApiP95RangeMs": [
+            "16.188834",
+            "19.331500000000002"
+          ],
+          "campaignOutgoingBytesLifetimeMean": "3797860.0"
+        }
+      ],
+      "totals": {
+        "campaign": 40000,
+        "realtimeIncludingBaselines": 2217,
+        "httpAccepted": 42217
+      }
+    }
+  ],
+  "httpExperimentTotals": {
+    "campaign": 180000,
+    "realtimeIncludingBaselines": 12065,
+    "httpAccepted": 192065
+  },
+  "producerOnly": {
+    "baseCommit": "790a02b772272cbd0bdbd3b6a1e8b1347d5ac887",
+    "raw": "s8-producer-batching-2026-11-04-result.json",
+    "runs": 8,
+    "verifiedRecords": 13200,
+    "warmupRecords": 1200,
+    "measuredRecords": 12000,
+    "byCondition": [
+      {
+        "mode": "SERIAL_NONE_L0",
+        "runs": 2,
+        "measuredRecords": 3000,
+        "pooledRecordsPerSecond": "1229.689605168400494715277345001045855108",
+        "perRunRateArithmeticMean": "1249.438431600262348455628691218519101680",
+        "meanMeasuredOutgoingBytes": "738500.0",
+        "warmupRetries": [
+          "0.0",
+          "0.0"
+        ]
+      },
+      {
+        "mode": "SERIAL_NONE_L5",
+        "runs": 2,
+        "measuredRecords": 3000,
+        "pooledRecordsPerSecond": "122.7421483765836423199068825921550606117",
+        "perRunRateArithmeticMean": "122.8791213630260787768956204411032636270",
+        "meanMeasuredOutgoingBytes": "738500.0",
+        "warmupRetries": [
+          "1.0",
+          "1.0"
+        ]
+      },
+      {
+        "mode": "WINDOW10_NONE_L5",
+        "runs": 2,
+        "measuredRecords": 3000,
+        "pooledRecordsPerSecond": "1263.150670578712222885000653909944396305",
+        "perRunRateArithmeticMean": "1263.513089506472584418759573603719618459",
+        "meanMeasuredOutgoingBytes": "548300.0",
+        "warmupRetries": [
+          "0.0",
+          "3.0"
+        ]
+      },
+      {
+        "mode": "WINDOW10_LZ4_L5",
+        "runs": 2,
+        "measuredRecords": 3000,
+        "pooledRecordsPerSecond": "1208.537897255848530319723232736149438128",
+        "perRunRateArithmeticMean": "1208.564005672320144899618071197492297272",
+        "meanMeasuredOutgoingBytes": "176020.0",
+        "warmupRetries": [
+          "0.0",
+          "3.0"
+        ]
+      }
+    ]
+  },
+  "applicationWorkerDefaults": {
+    "consumers": 1,
+    "maxActive": 1,
+    "queueCapacity": 2,
+    "queueWaitMs": 1000,
+    "historicalConsumerStudyDefaultAlsoOne": true
+  },
+  "evidenceSha256": {
+    "docs/experiments/ci-plugin-resolution-2026-11-04.json": "a466388fc6275c83d613f03e9f869de0dd121b32056886cbc884974c00310581",
+    "docs/experiments/s8-compression-delivery-2026-11-05-group-1-run-1-none.json": "32e8857eeda9f41ce9c456f55d1bfbd003ebbb209b01f1a36edbb1a058a79992",
+    "docs/experiments/s8-compression-delivery-2026-11-05-group-1-run-2-lz4.json": "03b484ea9d8886ce496384fbb61324586662fe97f2abff6c8a19e671c664c480",
+    "docs/experiments/s8-compression-delivery-2026-11-05-group-1-run-3-lz4.json": "37efe9adc53a01d0530413bcd93e86a6ec4243f443a01b5fe19a21262b7311c7",
+    "docs/experiments/s8-compression-delivery-2026-11-05-group-1-run-4-none.json": "50d7b074a37ce81e36bc74d8f5b776f18788333f8d0ef2bf34766c94efe4360c",
+    "docs/experiments/s8-compression-delivery-2026-11-05-group-1-source.json": "941b5ed6586a7c09d36645976e9afa9aa34affaefd23a6f0d5b55e32d096e75c",
+    "docs/experiments/s8-compression-delivery-2026-11-05-group-1-summary.json": "d77c1ef62c4d6d2737540bfd2a5c3a31ee8a31c8b7ffa83659a7ae90ff579935",
+    "docs/experiments/s8-compression-delivery-2026-11-05-group-1-validation.json": "974f524f21d471eb91ef19f2c71d05f49f3d3869577e58802eab2598e37a8666",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-1-initial-failure.json": "5772b80e09e021a590a90e94099cda4b96fe6b2068ce90ec2fdec079d155a974",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-1-initial-verification.json": "2c3b010fb70e0f759c53a9be1ba857571e950228d2cd743ccf71eb2dad956e42",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-1-source.json": "2003691562c1150d32894f2f705f8ecc1c3d24d2b2ee0ee50504efacfa77f860",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-1-consumers-1.json": "b3ba0ba646ced5c04e9b227c65b5cc8c559980ff7e381f163bb1c89d3255d41a",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-2-consumers-2.json": "8d455e07963d9b0f5704be36b99a3b5de2da878aaefc57a64d4f1763f07e29ce",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-3-consumers-3.json": "5ce8495ac11408bbacfc39491565631312776830133871f6321820b628603992",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-4-consumers-3.json": "3e1673695a4b39aab2c338f5f4f317453eef58b8d35967bfba136ad8129248c9",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-5-consumers-2.json": "91b938fa1bdaf23ef54831bdad9e08cb0b81cd3c7787d4648d56a916bbbcbf90",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-run-6-consumers-1.json": "1f8f93677506d6eb6a4c79a1cc6cc6e6c809e2826b8ff7dea5f535e5eed06aa0",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-source.json": "ca92b48f36cc5a256ce31ef579c20c043ef857facacce71deb0334e180c5bc86",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-group-2-summary.json": "2e285d89a3120476c944d0f368d76379353da8f2e9cf77cc268188ca3c7c2b74",
+    "docs/experiments/s8-consumer-scaling-2026-11-04-validation.json": "1631bddfb7daa9a158dc2be41e2f82f8ea7bf9f960c5a8d6455f48fd35ecf646",
+    "docs/experiments/s8-partition-scaling-2026-11-04-group-1-run-1-partitions-3.json": "222d768a52d63c8b6bdf0f3cc71e6d2209d0460eb26cb2cd4f187a4dfef94c12",
+    "docs/experiments/s8-partition-scaling-2026-11-04-group-1-run-2-partitions-6.json": "4c04c668ff845efc21522b4884a95bc581bfbb70488eb35f2d92d1763b6f668e",
+    "docs/experiments/s8-partition-scaling-2026-11-04-group-1-run-3-partitions-6.json": "052cc7527365c7858bc23e150a2d3e4c5b54b24c9645485f46e20cf6a1e977d5",
+    "docs/experiments/s8-partition-scaling-2026-11-04-group-1-run-4-partitions-3.json": "70afc45c8b954e4a7640f0ecd1b59c9131b88181ad0436d734a3f648eba09235",
+    "docs/experiments/s8-partition-scaling-2026-11-04-group-1-source.json": "5472a025638a71cc940b7b47c40d448d01b588538bc07b95e71a75829fde7420",
+    "docs/experiments/s8-partition-scaling-2026-11-04-group-1-summary.json": "59657061528ad3e1f3bf9339294b7fe8e6104fb4fd8b9720774cd365184cd0ad",
+    "docs/experiments/s8-partition-scaling-2026-11-04-group-1-validation.json": "52ebac49ed66c8866c39a6508dca44657453f6127fa7b234c74cdfbc0ab8d1f0",
+    "docs/experiments/s8-producer-batching-2026-11-04-before-source.json": "010bd7319bdf295008e6f258dc27545c5c734945292a66cf992006d739a00f00",
+    "docs/experiments/s8-producer-batching-2026-11-04-fixture-failure.json": "8b27264240eb9184eae85f08051bd79da3655815452c85f8edd1f08c18089a5b",
+    "docs/experiments/s8-producer-batching-2026-11-04-result.json": "694d10e5b2a4135642513ba69045a5978f5c817bfb028c7e48ae1ca0bb5dfea0",
+    "docs/experiments/s8-producer-batching-2026-11-04-source.json": "42a7071b9e975b7b0951598c914d72b31181af764011a6b2cef7303dcbe793d3",
+    "docs/experiments/s8-producer-batching-2026-11-04-summary.json": "ec9c79e3ed258bc3c09830947517cf70d5cf68d83d34c0c2d4535eb0c196f7aa",
+    "docs/experiments/s8-producer-batching-2026-11-04-validation.json": "01a6fd2e1b81c8a1835e36576d1f8eef5e3cbe66c5045c665d458f271976a475",
+    "docs/experiments/s8-producer-batching-2026-11-04-warm-before-source.json": "57c9ce3c2ef6d672fa3e41d4ccc7cb95d01d95eea799e4cf5cce0a093fe155f7",
+    "docs/experiments/s8-producer-batching-2026-11-04-warm-fixture-failure.json": "528e9a59afbd16b2b23bbed170d22586f39b09f3fb0eff19fc9075f57326937d",
+    "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-1-window-1.json": "69aaabe365464bc8c50d09f63b4a02d75d848f1d93458152211b9d60d7902cab",
+    "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-2-window-10.json": "88aeaa7a0b41bafe833c14e6ce113c0dbbeeb6fe1ba428abe9d15df118193b75",
+    "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-3-window-10.json": "40435087d646d082c6520a06f31848ba581f8a08bfacc7fb6dcb7734972f05b0",
+    "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-run-4-window-1.json": "4fd2c52c985725558d17cc4a1e59b5f256852bfb85cbfe92287acae49d3dd7b9",
+    "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-source.json": "da65e5e7e4a85bd64df4b709d2ce4eea9cec8a4be3cadba26d2f8145498a0562",
+    "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-summary.json": "aba6aafd7635d2034546fad64b9c134315aadb0bc0aa1d6c9898a841610f22ed",
+    "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-throughput.png": "628883a148c9cba2925c51d01ec89626aa3124ec4021aa29c49e500f47bd0be2",
+    "docs/experiments/s8-relay-window-delivery-2026-11-06-group-1-validation.json": "5191fd88716cf2eb3a722bdf43743153b91fb4baa4484dafc0475b0a87b8ae10"
+  },
+  "currentDefaultConfigurationSha256": "ff7847fcaa98d8b1b5d68d9bf927d11bb4a3a994eea6ba2fe4e235162ceb54c1",
+  "newLoadExecutions": 0,
+  "defaultSettingsChanged": false,
+  "remoteCiRun": false,
+  "pushed": false
+}
