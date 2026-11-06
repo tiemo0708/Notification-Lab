@@ -1,0 +1,13 @@
+name: notification-lab-topology
+
+# Optional local LB only. Native API JVMs must already listen on 18010/18011.
+# Workers are deliberately absent from this backend pool.
+services:
+  lb:
+    image: haproxy:3.4.7-alpine
+    ports:
+      - "127.0.0.1:18000:8080"
+      - "127.0.0.1:18404:8404"
+    volumes:
+      - ./deploy/local/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    mem_limit: 128m

@@ -3069,3 +3069,46 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - 그림은 Matplotlib3.9.2/AppleGothic의 Markdown용 정적 PNG다. 원본 18개 점/조건별 합산9개 표시·0 시작 축/다른 y축 범위·한글 라벨을 실제 이미지에서 확인했다.
   최종 그리기 스크립트로 임시 파일을 재생성해 PNG SHA가 같음을 대조했다. 저장소 기본값은 유지하고 가상 스레드 비교는 조건부 미실행으로 남겼다.
   다음은 S9 결과 설명과 로컬 프록시/LB·API2/Worker2 검증이다. 새 푸시/원격CI·서버/LB·클라우드 배포는 미실행이다.
+
+
+## 2026-11-06: S9 로컬 HAProxy와 API2개·Worker2개 JVM의 정합성
+
+- 시작 main=6f148e0/작업 트리 clean이었다. S8 종합 대조 이후 S9의 로컬 다중 프로세스 항목을 진행했다.
+  새 `compose.topology.yml`은 HAProxy3.4.7만 실행하는 선택 구성이다. 기존 compose/사용자 DB·볼륨/.env는 변경하지 않았다.
+- 실제 네 JVM에서 API는 Worker/Relay를 끄고, Worker 두 개는 같은 REALTIME group·Redis v2 예산으로 소비하며 각자 Relay를 실행했다.
+  HTTP Mock은 기존 구현을 부모 테스트 JVM에서 실제 HTTP로 실행하고 요청·응답별 ID/수신자/제목/본문/공급자 ID를 전수 대조했다.
+  감사 Map은 최대181개이며 집계 JSON에 요청 식별자·수신자·본문을 내보내지 않는다.
+- HAProxy round-robin/health200·실패2회 제외/성공1회 복귀를 검증했다. POST 자동 재시도는0이며
+  전체 maxconn64, backend별 동시/큐16, connect/check500ms·client/server5s·queue1s 상한이다.
+  localhost18000/18404의 선택 수동 LB는 native API18010/18011가 별도로 필요하다. 자동 테스트는 동적 주소만 바꿔 같은 cfg를 쓴다.
+- API 간 동일 key/본문의202→200·동일ID, 완료 후 API1 강제 종료/DOWN 확인·API2 재접수/본문 충돌409를 검증했다.
+  Worker2는 작업과 offset이 모두 정리된 뒤 종료했다. 살아 있는 Worker/Relay가 요청·retry 총6파티션을 인수하고 새 작업을 완료했다.
+  모든 완료 단계에서 고유 작업·HTTP 수락/매핑·DB 결과/작업 attempt1/완료 이력1/Outbox PUBLISHED와 개별 requested end=committed,
+  retry/DLQ end0을 확인했다. 없는 offset은 존재 여부와-1로 분리했다.
+- 공식 Lua로 새 예산을 초기화한 뒤 테스트에서만 refill을30초 고정하고 토큰2개를 넣었다.
+  두 Worker pause 동안 전체 수락/시도/커밋2개와 나머지 QUEUED/attempt0이1.2초 유지됨을 확인하고 실제 레코드별 미완료 offset도 대조했다.
+  이후 fixture clock만 해제하며 운영 초기화/실제 rate 처리량 측정과 구분한다. Worker 종료 후 예산을 재초기화하지 않는다.
+- 개발 중 import 충돌은 실행 테스트0의 컴파일 실패였다. 감사 Bean 이름 충돌과 임의 provider ID를 잘못 가정한 assertion은 새 테스트 구성 오류였다.
+  별도 실제 실행에서는 timed commit의 WakeupException으로 살아 있는 Worker가 멈췄다. 공식 Spring Kafka 소스/이슈를 대조했다.
+  완료 offset snapshot의 timed commit만 같은 deadline의 남은 시간 안에1회 재시도하도록 보완했다.
+  두 번째 실패·시간 소진·일반 오류는 기존 중단 정책에 전달한다. poll/리스너/공급자/implicit-position/async commit은 재시도하지 않는다.
+  Consumer의 equals/hashCode 객체 계약도 보완했다. 새 counter는 식별자 label 없이 커밋 Wakeup 재시도만 센다.
+- 보완 중 집중8개는2분4초에 통과했고, 최종 Object 계약까지 포함한 어댑터 집중7개는9초에 통과했다.
+  첫 전체 실행은 기존 Batch CLI 두 번째 실행의 종료 코드 검증 실패로 중단했다. 기존 helper가 로그를 지워 최초 원인은 미확정이다.
+  예상 밖 종료/timeout의 자식 로그를 보존하도록 테스트를 고쳤다. 단독 재검증1개는39초에 통과했고 최종 전체에서도 통과했다.
+  두 번째 전체는 테스트 실패 없이 진행 중 어댑터 객체 계약 검토로 중단했다. 중단한 실행을 전체 통과로 합산하지 않는다.
+- 최종 전체 `./gradlew --no-daemon --console=plain build`는 **25분53초/종료0**, **51개 클래스/397개 통과·실패·오류·스킵0**이었다.
+  기존389개+새7개 단위/1개 통합이며 test를 새 실행했다. 소스172개/구성15개의 SHA 불변을 대조했다.
+  전체 회귀 안의 토폴로지는 고유21개/중복·잘못된 매핑0, 실제 커밋 Wakeup 재시도1회 후 신규 작업과 전체 offset까지 통과했다.
+  알림 JAR의 retry class는 compiled class와 같고 테스트 진입점은 제외됐다. HTTP Mock JAR는 기존 산출물을 재사용했다.
+- 전체 회귀 후 테스트 표본 하한만 파티션당2→3으로 강화했다. 토큰2개를 한 Worker가 모두 써도 두 Worker에 대기 작업이 남도록 보장한다.
+  다른171개 소스/구성15개/JAR가 전체 회귀 시점과 같음을 검산했다. 마지막 집중은 **1분33초/종료0/1개 통과·실패·오류·스킵0**이었다.
+  고유27개·HTTP/이력27개·중복/매핑 오류0, 실제 커밋 Wakeup 재시도0회다. 전체397개와 합산하지 않는다.
+  원래 전체 JUnit51개/HTML은 build/reports/s9-topology-validation에 보존하고 최종1개 결과와 구분했다.
+- [구성·판단·실행·한계](S9_LOCAL_TOPOLOGY.md), [실패와 성공 단계 집계](experiments/s9-topology-2026-11-06-observation.json),
+  [실행·소스/JUnit/JAR SHA와 최종 테스트 한 줄 차이](experiments/s9-topology-2026-11-06-validation.json)를 남겼다.
+  초기 Batch 실패 원인이 해결됐다고 주장하지 않는다. 원격 CI·푸시·호스트 장애·실제 FCM·AWS는 미실행이다.
+  새 S9 토폴로지에서의 처리 중 종료·캠페인 동시 lane은 미실행이며 기존 S5/S8 경계 테스트의 전체 회귀와 구분한다.
+  S9 로컬 항목을 완료했고 다음은 외부 API 보호/유실·중복/병렬 처리·배포의 세 주제에 따른 결과·의사결정·한계 정리다.
+- 커밋은 논리 단위로 분리했다. 커밋 Wakeup 보완은 `8eab7aa`, Batch 진단 보존은 `18bf566`이며
+  토폴로지·설정·검증 기록은 별도 로컬 커밋으로 보존한다. 사용자 검토 전 푸시는 하지 않았다.

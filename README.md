@@ -490,6 +490,21 @@ DB/Kafka 지표는 약 5초 주기로 수집하며 수집 실패는 `NaN`으로 
 [실행·메트릭 해석·검증·제한](docs/S8_MONITORING.md)을 참고한다. 외부 경고 전송은 연결하지 않았다.
 추가 후 전체 build는17분30초/49개 클래스·389개 통과(실패·오류·스킵0)였다. [로컬 검증 원본](docs/experiments/s8-monitoring-2026-11-06-validation.json)을 보존했다.
 
+## 로컬 LB와 여러 앱 프로세스
+
+[S9 로컬 토폴로지](docs/S9_LOCAL_TOPOLOGY.md)는 실제 HAProxy 앞의 API2개와 별도 Worker2개 JVM을 사용한다.
+API는 Worker/Relay를 끄고, Worker 두 개는 같은 REALTIME group·Redis 예산으로 소비하며 각각 Relay를 실행한다.
+`./gradlew test --tests '*LocalTopologyIntegrationTest'`로 기존 사용자 DB와 분리된 실제 MySQL/Kafka/Redis/HTTP Mock 검증을 재현한다.
+API 제외 후 재접수·본문 충돌, 작업을 비운 Worker 종료 후 6파티션 인수, 공통 예산과 HTTP/DB/offset 전수 대조를 확인한다.
+검증 중 드러난 timed offset 커밋의 Wakeup은 같은 완료 offset·원래 deadline 안에서 한 번만 재시도한다.
+공급자 호출이나 미완료 작업을 성공으로 바꾸지 않으며 재차 실패하면 기존 중단 정책을 유지한다.
+
+선택 `compose.topology.yml`은 localhost18000의 LB만 실행한다. native API18010/18011와 공유 인프라는 별도 준비해야 한다.
+동일 PC·REALTIME 한 lane의 정합성 실험이며 실제 서버 고가용성·처리 중 종료·대량 처리량·클라우드 배포를 검증한 결과는 아니다.
+실제 건수·실패와 보완·검증 결과는 [실험 문서](docs/S9_LOCAL_TOPOLOGY.md)에 기록한다.
+전체 회귀는51개 클래스·397개 통과(25분53초)였고, 이후 테스트 표본 하한만 강화해 집중1개/27건을 다시 통과했다.
+운영 소스·구성은 같으며 두 실행을 합산하지 않는다. [검증 원본](docs/experiments/s9-topology-2026-11-06-validation.json)을 보존한다.
+
 ## 한계와 문서
 
 자동 Redis failover, 실제 회원 DB 대상자 조회, 다중 DB/failover 환경의 Batch 복구, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.

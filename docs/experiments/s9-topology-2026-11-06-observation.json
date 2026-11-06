@@ -1,0 +1,1417 @@
+{
+  "schemaVersion": 1,
+  "scope": "local single-host REALTIME; synthetic HTTP Mock acceptance",
+  "note": "Development failures, focused pass and final full-build pass are separate runs; counts are not device delivery or a throughput benchmark.",
+  "runs": [
+    {
+      "run": "1793925686993-04422f52-5e17-433f-a061-3ef5e0baaf84",
+      "classification": "audit Bean name collision",
+      "observation": {
+        "schemaVersion": 1,
+        "scope": "single-host REALTIME; settled API/Worker removal; HTTP Mock acceptance only",
+        "startedAt": "2026-11-06T00:41:26.995152Z",
+        "phases": [],
+        "passed": false,
+        "cleanupFailures": 0,
+        "finishedAt": "2026-11-06T00:41:27.984542Z"
+      },
+      "rawResultSha256": "6dfa268a4efafa565e886bf9e0261022f72bc204a2ae24aa536cdfbfc49561ed"
+    },
+    {
+      "run": "1793925724141-0f3f89ed-0a4a-4717-8fff-ea694a4972a0",
+      "classification": "incorrect provider-message-ID test assumption",
+      "observation": {
+        "schemaVersion": 1,
+        "scope": "single-host REALTIME; settled API/Worker removal; HTTP Mock acceptance only",
+        "startedAt": "2026-11-06T00:42:04.142874Z",
+        "phases": [
+          {
+            "fixtureCredits": 2,
+            "logicalTasks": 11,
+            "httpAccepted": 2,
+            "apiRoutes": {
+              "api1": 6,
+              "api2": 6
+            },
+            "phase": "shared-budget-frozen",
+            "committed": 2,
+            "pausedWorkers": 2
+          }
+        ],
+        "passed": false,
+        "cleanupFailures": 0,
+        "finishedAt": "2026-11-06T00:43:21.765125Z"
+      },
+      "rawResultSha256": "18f58a50564bc95ba2693e8f37e73389911afeb2de68ad7995e38cd2d4e2734d"
+    },
+    {
+      "run": "1793925859801-9f28f7d2-f451-4f6b-bd33-b1a8767531b7",
+      "classification": "actual WakeupException during timed completed-offset commit",
+      "observation": {
+        "schemaVersion": 1,
+        "scope": "single-host REALTIME; settled API/Worker removal; HTTP Mock acceptance only",
+        "startedAt": "2026-11-06T00:44:19.803491Z",
+        "phases": [
+          {
+            "fixtureCredits": 2,
+            "logicalTasks": 9,
+            "httpAccepted": 2,
+            "apiRoutes": {
+              "api1": 5,
+              "api2": 5
+            },
+            "phase": "shared-budget-frozen",
+            "committed": 2,
+            "pausedWorkers": 2
+          },
+          {
+            "assignedPartitions": 6,
+            "logicalTasks": 9,
+            "phase": "two-api-two-worker",
+            "offsets": [
+              {
+                "committed": 4,
+                "role": "requested",
+                "partition": 0,
+                "end": 4,
+                "committedPresent": true
+              },
+              {
+                "committed": 3,
+                "role": "requested",
+                "partition": 1,
+                "end": 3,
+                "committedPresent": true
+              },
+              {
+                "committed": 2,
+                "role": "requested",
+                "partition": 2,
+                "end": 2,
+                "committedPresent": true
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              }
+            ],
+            "members": 2,
+            "httpAudit": {
+              "duplicates": 0,
+              "unique": 9,
+              "invalid": 0
+            }
+          },
+          {
+            "assignedPartitions": 6,
+            "logicalTasks": 18,
+            "phase": "api1-down-replay-and-conflict",
+            "offsets": [
+              {
+                "committed": 7,
+                "role": "requested",
+                "partition": 0,
+                "end": 7,
+                "committedPresent": true
+              },
+              {
+                "committed": 4,
+                "role": "requested",
+                "partition": 1,
+                "end": 4,
+                "committedPresent": true
+              },
+              {
+                "committed": 7,
+                "role": "requested",
+                "partition": 2,
+                "end": 7,
+                "committedPresent": true
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              }
+            ],
+            "members": 2,
+            "httpAudit": {
+              "duplicates": 0,
+              "unique": 18,
+              "invalid": 0
+            }
+          }
+        ],
+        "passed": false,
+        "cleanupFailures": 0,
+        "finishedAt": "2026-11-06T00:46:26.807096Z"
+      },
+      "rawResultSha256": "4f045197880b045d370685e18555353d8dcc0c4594141efadb706cb00cbddb80"
+    },
+    {
+      "run": "1793926159699-47f59040-14a3-4ffd-b7f0-46b7ee516e38",
+      "classification": "focused pass after bounded commit retry",
+      "observation": {
+        "schemaVersion": 1,
+        "scope": "single-host REALTIME; settled API/Worker removal; HTTP Mock acceptance only",
+        "startedAt": "2026-11-06T00:49:19.703177Z",
+        "phases": [
+          {
+            "logicalTasks": 12,
+            "pausedWorkers": 2,
+            "phase": "shared-budget-frozen",
+            "committed": 2,
+            "httpAccepted": 2,
+            "offsets": [
+              {
+                "role": "requested",
+                "partition": 0,
+                "firstUnfinished": 1,
+                "committedPresent": true,
+                "committed": 1
+              },
+              {
+                "role": "requested",
+                "partition": 1,
+                "firstUnfinished": 0,
+                "committedPresent": false,
+                "committed": -1
+              },
+              {
+                "role": "requested",
+                "partition": 2,
+                "firstUnfinished": 1,
+                "committedPresent": true,
+                "committed": 1
+              }
+            ],
+            "fixtureCredits": 2,
+            "apiRoutes": {
+              "api1": 7,
+              "api2": 6
+            }
+          },
+          {
+            "assignedPartitions": 6,
+            "logicalTasks": 12,
+            "phase": "two-api-two-worker",
+            "offsets": [
+              {
+                "committed": 6,
+                "role": "requested",
+                "partition": 0,
+                "end": 6,
+                "committedPresent": true
+              },
+              {
+                "committed": 4,
+                "role": "requested",
+                "partition": 1,
+                "end": 4,
+                "committedPresent": true
+              },
+              {
+                "committed": 2,
+                "role": "requested",
+                "partition": 2,
+                "end": 2,
+                "committedPresent": true
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              }
+            ],
+            "members": 2,
+            "httpAudit": {
+              "duplicates": 0,
+              "unique": 12,
+              "invalid": 0
+            }
+          },
+          {
+            "assignedPartitions": 6,
+            "logicalTasks": 21,
+            "phase": "api1-down-replay-and-conflict",
+            "offsets": [
+              {
+                "committed": 9,
+                "role": "requested",
+                "partition": 0,
+                "end": 9,
+                "committedPresent": true
+              },
+              {
+                "committed": 9,
+                "role": "requested",
+                "partition": 1,
+                "end": 9,
+                "committedPresent": true
+              },
+              {
+                "committed": 3,
+                "role": "requested",
+                "partition": 2,
+                "end": 3,
+                "committedPresent": true
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              }
+            ],
+            "members": 2,
+            "httpAudit": {
+              "duplicates": 0,
+              "unique": 21,
+              "invalid": 0
+            }
+          },
+          {
+            "assignedPartitions": 6,
+            "logicalTasks": 24,
+            "phase": "worker2-down-six-partition-takeover",
+            "offsets": [
+              {
+                "committed": 10,
+                "role": "requested",
+                "partition": 0,
+                "end": 10,
+                "committedPresent": true
+              },
+              {
+                "committed": 10,
+                "role": "requested",
+                "partition": 1,
+                "end": 10,
+                "committedPresent": true
+              },
+              {
+                "committed": 4,
+                "role": "requested",
+                "partition": 2,
+                "end": 4,
+                "committedPresent": true
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 0,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 1,
+                "end": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": -1,
+                "role": "retry",
+                "partition": 2,
+                "end": 0,
+                "committedPresent": false
+              }
+            ],
+            "members": 1,
+            "httpAudit": {
+              "duplicates": 0,
+              "unique": 24,
+              "invalid": 0
+            }
+          }
+        ],
+        "distinctApplicationProcesses": 4,
+        "roleAssertions": {
+          "apiRelayPresent": false,
+          "workerListenersRunning": true,
+          "workerRelayPresent": true,
+          "apiListenersRunning": false
+        },
+        "logicalTasks": 24,
+        "httpAudit": {
+          "duplicates": 0,
+          "unique": 24,
+          "invalid": 0
+        },
+        "apiRoutes": {
+          "api1": 7,
+          "api2": 19
+        },
+        "proxyImage": "haproxy:3.4.7-alpine",
+        "passed": true,
+        "cleanupFailures": 0,
+        "finishedAt": "2026-11-06T00:50:44.850520Z"
+      },
+      "rawResultSha256": "e9dbbfdf08de155f48e46799a7970412ae729d26a897766338b4ef438a5736db"
+    },
+    {
+      "run": "1793927218500-9c3bce03-486e-4468-a87a-9bbf9756bf83",
+      "classification": "intermediate topology pass in a later cancelled full build; not a full-build pass",
+      "observation": {
+        "schemaVersion": 1,
+        "scope": "single-host REALTIME; settled API/Worker removal; HTTP Mock acceptance only",
+        "startedAt": "2026-11-06T01:06:58.513006Z",
+        "phases": [
+          {
+            "apiRoutes": {
+              "api1": 5,
+              "api2": 4
+            },
+            "logicalTasks": 8,
+            "pausedWorkers": 2,
+            "phase": "shared-budget-frozen",
+            "committed": 2,
+            "httpAccepted": 2,
+            "offsets": [
+              {
+                "committedPresent": true,
+                "committed": 1,
+                "role": "requested",
+                "partition": 0,
+                "firstUnfinished": 1
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "requested",
+                "partition": 1,
+                "firstUnfinished": 0
+              },
+              {
+                "committedPresent": true,
+                "committed": 1,
+                "role": "requested",
+                "partition": 2,
+                "firstUnfinished": 1
+              }
+            ],
+            "fixtureCredits": 2
+          },
+          {
+            "httpAudit": {
+              "invalid": 0,
+              "duplicates": 0,
+              "unique": 8
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 8,
+            "phase": "two-api-two-worker",
+            "offsets": [
+              {
+                "end": 3,
+                "committedPresent": true,
+                "committed": 3,
+                "role": "requested",
+                "partition": 0
+              },
+              {
+                "end": 2,
+                "committedPresent": true,
+                "committed": 2,
+                "role": "requested",
+                "partition": 1
+              },
+              {
+                "end": 3,
+                "committedPresent": true,
+                "committed": 3,
+                "role": "requested",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2
+              }
+            ],
+            "members": 2
+          },
+          {
+            "httpAudit": {
+              "invalid": 0,
+              "duplicates": 0,
+              "unique": 14
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 14,
+            "phase": "api1-down-replay-and-conflict",
+            "offsets": [
+              {
+                "end": 6,
+                "committedPresent": true,
+                "committed": 6,
+                "role": "requested",
+                "partition": 0
+              },
+              {
+                "end": 4,
+                "committedPresent": true,
+                "committed": 4,
+                "role": "requested",
+                "partition": 1
+              },
+              {
+                "end": 4,
+                "committedPresent": true,
+                "committed": 4,
+                "role": "requested",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2
+              }
+            ],
+            "members": 2
+          },
+          {
+            "httpAudit": {
+              "invalid": 0,
+              "duplicates": 0,
+              "unique": 17
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 17,
+            "phase": "worker2-down-six-partition-takeover",
+            "offsets": [
+              {
+                "end": 7,
+                "committedPresent": true,
+                "committed": 7,
+                "role": "requested",
+                "partition": 0
+              },
+              {
+                "end": 5,
+                "committedPresent": true,
+                "committed": 5,
+                "role": "requested",
+                "partition": 1
+              },
+              {
+                "end": 5,
+                "committedPresent": true,
+                "committed": 5,
+                "role": "requested",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2
+              }
+            ],
+            "members": 1
+          }
+        ],
+        "distinctApplicationProcesses": 4,
+        "roleAssertions": {
+          "apiListenersRunning": false,
+          "apiRelayPresent": false,
+          "workerListenersRunning": true,
+          "workerRelayPresent": true
+        },
+        "wakeupCommitRetries": 0.0,
+        "logicalTasks": 17,
+        "httpAudit": {
+          "invalid": 0,
+          "duplicates": 0,
+          "unique": 17
+        },
+        "apiRoutes": {
+          "api1": 5,
+          "api2": 14
+        },
+        "proxyImage": "haproxy:3.4.7-alpine",
+        "proxyImageId": "sha256:835e9ff4482f52c7086ce05ab783ada79619a5281216aa2caf6fcb2f4ce3166a",
+        "passed": true,
+        "cleanupFailures": 0,
+        "finishedAt": "2026-11-06T01:08:02.991586Z"
+      },
+      "rawResultSha256": "09ff768ff3c71309c116d3c6eb9f720ad9ba69640bdd474bd8b965a915a9e4eb"
+    },
+    {
+      "run": "1793928015678-6d08ae2b-5d91-42cf-8c57-46ac088580ca",
+      "classification": "completed full-build pass before final test-only fixture strengthening",
+      "observation": {
+        "schemaVersion": 1,
+        "scope": "single-host REALTIME; settled API/Worker removal; HTTP Mock acceptance only",
+        "startedAt": "2026-11-06T01:20:15.697467Z",
+        "phases": [
+          {
+            "phase": "shared-budget-frozen",
+            "committed": 2,
+            "httpAccepted": 2,
+            "offsets": [
+              {
+                "firstUnfinished": 1,
+                "committedPresent": true,
+                "committed": 1,
+                "role": "requested",
+                "partition": 0
+              },
+              {
+                "firstUnfinished": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "requested",
+                "partition": 1
+              },
+              {
+                "firstUnfinished": 1,
+                "committedPresent": true,
+                "committed": 1,
+                "role": "requested",
+                "partition": 2
+              }
+            ],
+            "fixtureCredits": 2,
+            "apiRoutes": {
+              "api1": 7,
+              "api2": 7
+            },
+            "logicalTasks": 13,
+            "pausedWorkers": 2
+          },
+          {
+            "phase": "two-api-two-worker",
+            "offsets": [
+              {
+                "end": 4,
+                "committedPresent": true,
+                "committed": 4,
+                "role": "requested",
+                "partition": 0
+              },
+              {
+                "end": 2,
+                "committedPresent": true,
+                "committed": 2,
+                "role": "requested",
+                "partition": 1
+              },
+              {
+                "end": 7,
+                "committedPresent": true,
+                "committed": 7,
+                "role": "requested",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2
+              }
+            ],
+            "members": 2,
+            "httpAudit": {
+              "unique": 13,
+              "invalid": 0,
+              "duplicates": 0
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 13
+          },
+          {
+            "phase": "api1-down-replay-and-conflict",
+            "offsets": [
+              {
+                "end": 6,
+                "committedPresent": true,
+                "committed": 6,
+                "role": "requested",
+                "partition": 0
+              },
+              {
+                "end": 3,
+                "committedPresent": true,
+                "committed": 3,
+                "role": "requested",
+                "partition": 1
+              },
+              {
+                "end": 8,
+                "committedPresent": true,
+                "committed": 8,
+                "role": "requested",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2
+              }
+            ],
+            "members": 2,
+            "httpAudit": {
+              "unique": 17,
+              "invalid": 0,
+              "duplicates": 0
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 17
+          },
+          {
+            "phase": "worker2-down-six-partition-takeover",
+            "offsets": [
+              {
+                "end": 7,
+                "committedPresent": true,
+                "committed": 7,
+                "role": "requested",
+                "partition": 0
+              },
+              {
+                "end": 5,
+                "committedPresent": true,
+                "committed": 5,
+                "role": "requested",
+                "partition": 1
+              },
+              {
+                "end": 9,
+                "committedPresent": true,
+                "committed": 9,
+                "role": "requested",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1
+              },
+              {
+                "end": 0,
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2
+              }
+            ],
+            "members": 1,
+            "httpAudit": {
+              "unique": 21,
+              "invalid": 0,
+              "duplicates": 0
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 21
+          }
+        ],
+        "distinctApplicationProcesses": 4,
+        "roleAssertions": {
+          "workerListenersRunning": true,
+          "workerRelayPresent": true,
+          "apiListenersRunning": false,
+          "apiRelayPresent": false
+        },
+        "wakeupCommitRetries": 1.0,
+        "logicalTasks": 21,
+        "httpAudit": {
+          "unique": 21,
+          "invalid": 0,
+          "duplicates": 0
+        },
+        "apiRoutes": {
+          "api1": 7,
+          "api2": 16
+        },
+        "proxyImage": "haproxy:3.4.7-alpine",
+        "proxyImageId": "sha256:835e9ff4482f52c7086ce05ab783ada79619a5281216aa2caf6fcb2f4ce3166a",
+        "passed": true,
+        "cleanupFailures": 0,
+        "finishedAt": "2026-11-06T01:21:18.612758Z"
+      },
+      "rawResultSha256": "bd183f358dfa7b3d84863936e063d55b7b43c00a38d470bfbd64f44aeff418b0"
+    },
+    {
+      "run": "1793929081067-afe58ed4-2200-4df9-b19d-bba7a4f16573",
+      "classification": "final focused pass after only fixture coverage bound strengthening",
+      "observation": {
+        "schemaVersion": 1,
+        "scope": "single-host REALTIME; settled API/Worker removal; HTTP Mock acceptance only",
+        "startedAt": "2026-11-06T01:38:01.074727Z",
+        "phases": [
+          {
+            "apiRoutes": {
+              "api1": 8,
+              "api2": 8
+            },
+            "logicalTasks": 15,
+            "pausedWorkers": 2,
+            "phase": "shared-budget-frozen",
+            "committed": 2,
+            "httpAccepted": 2,
+            "offsets": [
+              {
+                "committed": -1,
+                "role": "requested",
+                "partition": 0,
+                "firstUnfinished": 0,
+                "committedPresent": false
+              },
+              {
+                "committed": 1,
+                "role": "requested",
+                "partition": 1,
+                "firstUnfinished": 1,
+                "committedPresent": true
+              },
+              {
+                "committed": 1,
+                "role": "requested",
+                "partition": 2,
+                "firstUnfinished": 1,
+                "committedPresent": true
+              }
+            ],
+            "fixtureCredits": 2
+          },
+          {
+            "httpAudit": {
+              "invalid": 0,
+              "duplicates": 0,
+              "unique": 15
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 15,
+            "phase": "two-api-two-worker",
+            "offsets": [
+              {
+                "committedPresent": true,
+                "committed": 7,
+                "role": "requested",
+                "partition": 0,
+                "end": 7
+              },
+              {
+                "committedPresent": true,
+                "committed": 4,
+                "role": "requested",
+                "partition": 1,
+                "end": 4
+              },
+              {
+                "committedPresent": true,
+                "committed": 4,
+                "role": "requested",
+                "partition": 2,
+                "end": 4
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2,
+                "end": 0
+              }
+            ],
+            "members": 2
+          },
+          {
+            "httpAudit": {
+              "invalid": 0,
+              "duplicates": 0,
+              "unique": 21
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 21,
+            "phase": "api1-down-replay-and-conflict",
+            "offsets": [
+              {
+                "committedPresent": true,
+                "committed": 8,
+                "role": "requested",
+                "partition": 0,
+                "end": 8
+              },
+              {
+                "committedPresent": true,
+                "committed": 6,
+                "role": "requested",
+                "partition": 1,
+                "end": 6
+              },
+              {
+                "committedPresent": true,
+                "committed": 7,
+                "role": "requested",
+                "partition": 2,
+                "end": 7
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2,
+                "end": 0
+              }
+            ],
+            "members": 2
+          },
+          {
+            "httpAudit": {
+              "invalid": 0,
+              "duplicates": 0,
+              "unique": 27
+            },
+            "assignedPartitions": 6,
+            "logicalTasks": 27,
+            "phase": "worker2-down-six-partition-takeover",
+            "offsets": [
+              {
+                "committedPresent": true,
+                "committed": 10,
+                "role": "requested",
+                "partition": 0,
+                "end": 10
+              },
+              {
+                "committedPresent": true,
+                "committed": 9,
+                "role": "requested",
+                "partition": 1,
+                "end": 9
+              },
+              {
+                "committedPresent": true,
+                "committed": 8,
+                "role": "requested",
+                "partition": 2,
+                "end": 8
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 0,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 1,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "dlq",
+                "partition": 2,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 0,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 1,
+                "end": 0
+              },
+              {
+                "committedPresent": false,
+                "committed": -1,
+                "role": "retry",
+                "partition": 2,
+                "end": 0
+              }
+            ],
+            "members": 1
+          }
+        ],
+        "distinctApplicationProcesses": 4,
+        "roleAssertions": {
+          "apiListenersRunning": false,
+          "apiRelayPresent": false,
+          "workerListenersRunning": true,
+          "workerRelayPresent": true
+        },
+        "wakeupCommitRetries": 0.0,
+        "logicalTasks": 27,
+        "httpAudit": {
+          "invalid": 0,
+          "duplicates": 0,
+          "unique": 27
+        },
+        "apiRoutes": {
+          "api1": 8,
+          "api2": 21
+        },
+        "proxyImage": "haproxy:3.4.7-alpine",
+        "proxyImageId": "sha256:835e9ff4482f52c7086ce05ab783ada79619a5281216aa2caf6fcb2f4ce3166a",
+        "passed": true,
+        "cleanupFailures": 0,
+        "finishedAt": "2026-11-06T01:39:05.235936Z"
+      },
+      "rawResultSha256": "265d30851a77273f1066459a8b6f5bde55ebb899d9c365a475fe735a99210a6c"
+    }
+  ]
+}

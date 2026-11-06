@@ -54,6 +54,8 @@ tasks.named('test') {
     // Provisioning lives outside Java resources; edits must invalidate the monitoring regression.
     inputs.files(fileTree('monitoring') { include '**/*.yml', '**/*.json' }, file('compose.monitoring.yml'))
             .withPropertyName('monitoringConfiguration').withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(file('deploy/local/haproxy.cfg'), file('compose.topology.yml'))
+            .withPropertyName('topologyConfiguration').withPathSensitivity(PathSensitivity.RELATIVE)
     doFirst {
         // The process-crash experiment forks a test-only Spring Boot entry point.
         systemProperty 'notificationLab.testClasspath', sourceSets.test.runtimeClasspath.asPath
