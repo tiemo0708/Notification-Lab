@@ -1,6 +1,8 @@
 package dev.jinhyeon.notificationlab.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.boot.autoconfigure.kafka.DefaultKafkaConsumerFactoryCustomizer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.context.WebServerGracefulShutdownLifecycle;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +18,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableConfigurationProperties({AsyncProperties.class, DeliveryProperties.class, WorkerProperties.class, RelayProperties.class})
 public class AsyncConfiguration {
+    @Bean
+    DefaultKafkaConsumerFactoryCustomizer commitWakeupRetry(MeterRegistry registry) {
+        var retries = registry.counter("notification.kafka.commit.wakeup.retries");
+        return factory -> factory.addPostProcessor(consumer -> CommitWakeupRetry.wrap(consumer, retries::increment));
+    }
+
     @Bean
     NewTopic notificationTopic(TrafficRouting properties) {
         return TopicBuilder.name(properties.topic()).partitions(3).replicas(1).build();
