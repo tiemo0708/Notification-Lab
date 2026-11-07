@@ -3,6 +3,7 @@
 기준 소스: `76c4042`, 2026-11-04. [README 그림](../README.md#아키텍처)은
 역할 분리·Redis quota·HTTP 공급자 옵션을 켠 로컬 실험 구조다.
 논리적 처리 경로를 그린 것으로, 독립 서버나 클라우드 배포를 완료했다는 뜻은 아니다.
+2026-11-07의 클래스별 검토와 읽는 순서는 [클래스 학습 안내](CLASS_GUIDE.md)를 참고한다.
 
 ## 두 가지 입력 경로
 
@@ -32,13 +33,16 @@
 | Micrometer / Actuator | 처리·Outbox·lag·pool 지표와 Prometheus scrape endpoint | [지표](../src/main/java/dev/jinhyeon/notificationlab/outbox/PipelineMetrics.java), [README](../README.md#지표) |
 | Gradle / Docker / Testcontainers | 빌드와 실제 MySQL·Kafka·Redis 기반 검증 | [빌드](../build.gradle), [검증 이력](PROGRESS.md) |
 
-Prometheus/Grafana 서버를 상시 배포한 그림은 아니다. 현재는 계측과 노출 endpoint가 있고 Grafana 대시보드는 계획에 남아 있다.
+이후 [S8 모니터링](S8_MONITORING.md)에서 선택 로컬 Compose와 Prometheus/Grafana provisioning,
+22개 패널/27개 쿼리의 대시보드 및 실제 통합 검증을 추가했다. 기본 앱 실행만으로 이 서버들이 자동 배포되지는 않는다.
 
 ## 실행 경계와 보장
 
 - 역할 분리를 켜면 같은 JAR를 REALTIME/CAMPAIGN의 별도 프로세스로 실행한다.
   역할별 토픽·group·Relay 선점 경로·Worker/HTTP/DB pool은 나뉘고, MySQL/Kafka/Redis 서버와 호스트 자원은 공유한다.
   부하 테스트 일부는 같은 JVM의 독립 Spring context로 이를 비교했다. 여러 서버 배포 결과로 표현하지 않는다.
+  이후 [S9 토폴로지](S9_LOCAL_TOPOLOGY.md)에서는 같은 PC의 API2개/Worker2개를 별도 JVM으로 실행해 검증했다.
+  이것도 별도 물리 호스트 장애 검증과는 구분한다.
 - 기본 `split-enabled=false`, Redis client OFF, provider MOCK이다. 그림은 구현된 선택 옵션을 함께 켠 구성이다.
   일시 Redis 오류의 유한 복구도 기본 OFF이며 [별도 계약](S7_QUOTA_RECOVERY.md)을 따른다.
 - Kafka ACK 전 Outbox를 PUBLISHED로 만들지 않는다. DB 완료/재시도 인계 전 미완료 offset을 건너뛰지 않는다.

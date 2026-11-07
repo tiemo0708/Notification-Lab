@@ -20,6 +20,9 @@ S4에서 선택적 `Idempotency-Key` 접수 중복 방지, 발송 작업/시도 
 
 [구성요소·코드 근거·보장 범위](docs/ARCHITECTURE.md) · [확대 이미지](docs/architecture/notification-lab.png) · [어두운 테마](docs/architecture/notification-lab-dark.png)
 
+[클래스별 학습 안내](docs/CLASS_GUIDE.md)에서 앱 Java71개·HTTP Mock4개와 중첩 타입40개의 역할,
+주요 메서드, 호출 관계, 트랜잭션 경계와 읽는 순서를 실제 소스 링크로 따라갈 수 있다.
+
 ## 실행
 
 Java 21, Docker(Compose 포함), 인터넷 연결이 필요하다. Gradle은 Wrapper가 설치한다.
