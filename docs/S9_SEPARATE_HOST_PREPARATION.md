@@ -1,8 +1,23 @@
 # S9 후속: 별도 머신과 AWS 실험 준비
 
-상태는 **원격 실행 절차와 합성 알림 검증 도구 준비**다. EC2 실행과 별도 머신 실험은 대기 중이다.
-기준 코드는 `b8f5043`이며 [원격 CI](https://github.com/tiemo0708/Notification-Lab/actions/runs/42173414421)의
-기본 회귀398개 통과와 실제 AWS 실행을 구분한다.
+서울 리전에서 **Mac → SSH 터널 → EC2 한 대**로 가상 알림 20건의 정합성 검증을 완료했다.
+배포 대상 SHA는 `03f88cc`이며 [원격 CI](https://github.com/tiemo0708/Notification-Lab/actions/runs/42173414421)의
+회귀 398개는 앞선 `b8f5043`에서 실행한 결과다.
+
+2026-11-17 13:53 KST에 Ubuntu 24.04.5 LTS(x86_64), `m7i-flex.large`, gp3 20GiB에서
+Java 21.0.13.0.3, Docker 29.10.0, Compose v5.7.1로 실행했다. DB와 Kafka 오프셋은 모두 0에서 시작했다.
+Mac 검증 도구의 전체 소요 시간은 6.491초다.
+
+| 항목 | 확인 결과 |
+| --- | --- |
+| HTTP | 202 접수 20건. 같은 키·같은 본문은 동일 ID로 200, 같은 키·다른 본문은 409 |
+| MySQL | 알림 완료 20건, 서로 다른 공급자 ID 20개, 알림당 시도 1회, 발행 완료 Outbox 20건 |
+| HTTP Mock | 요청 20건, 수락 20건, 오류 0건 |
+| Kafka | 요청 파티션의 끝 오프셋은 3·10·7. 커밋값 일치, 미처리 0건, Retry/DLQ 끝 오프셋 0 |
+
+결과와 로그는 로컬 `build/reports/remote-smoke/aws-20-xk7FUi`에 보존했다.
+EC2는 다음 실험을 위해 실행 상태로 뒀고, 앱·Mock과 전용 Compose 서비스는 종료했다.
+MySQL·Kafka 데이터 볼륨은 보존했다. 원격 100건과 네트워크·호스트 장애 실험은 아직 실행 전이다.
 
 ## AWS가 필요한가
 
@@ -32,7 +47,7 @@ Redis quota와 여러 JVM은 B에서 기존 [초기화 계약](S6_REDIS_RECOVERY
 | --- | --- |
 | `src/main/resources/application.yml` | 앱은 `127.0.0.1:8080`. native JVM은 같은 호스트의 DB/Kafka에 접속 가능 |
 | `src/mockServer/resources/mock-server.yml` | HTTP Mock은 `127.0.0.1:18081`. 별도 Mock JAR 필요 |
-| `compose.yml` | DB/Kafka/선택 Redis의 호스트 공개 주소가 loopback. EC2에서 그대로 해석할 수 있으나 실제 기동은 미검증 |
+| `compose.yml` | DB/Kafka/선택 Redis의 호스트 바인딩 주소가 loopback. 첫 EC2 실행에서 DB와 Kafka의 기동과 접속을 확인 |
 | `compose.topology.yml`, `deploy/local/haproxy.cfg` | Docker Desktop용 `host.docker.internal`을 사용. Linux의 native loopback API 접근을 검증한 배포 구성은 아직 없음 |
 
 따라서 A에서는 앱에 직접 터널을 연결한다. B의 Linux용 LB 구성은 별도 구현·검증 대상으로 남긴다.
@@ -150,6 +165,6 @@ docker compose -p notification-remote-smoke exec -T kafka \
 이전 로컬 설정 해석과 원격 CI 증거는
 [검증 기록](experiments/s9-remote-ci-and-deployment-preparation-2026-11-06.json)에 별도로 남긴다.
 현재 소스172개/구성23개는 기준과 같고 Compose2개는 서비스 생성 없이 설정을 해석했다.
-SSH 예시는 `ssh -G`의 옵션 해석과 `sh -n`의 문법만 검사했다. 실제 접속/터널 개통은 하지 않았다.
+이전 기록 시점에는 SSH 예시를 `ssh -G`와 `sh -n`으로 검사했다. 2026-11-17에는 위와 같이 실제 터널을 열어 검증했다.
 `./gradlew --no-daemon --console=plain test`는7초/종료0이지만 test가 `UP-TO-DATE`여서 새 JUnit 실행은0개다.
 이를 앞선 원격398개 통과에 더하지 않는다.

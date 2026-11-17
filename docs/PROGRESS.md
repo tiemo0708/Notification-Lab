@@ -3209,3 +3209,11 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - Mac의 새 MySQL·Kafka 컨테이너와 두 JVM에서 20건은 4.817초, 100건은 13.381초로 통과했다. 각 실행에서 DB 완료와 Mock 요청·수락 건수가 일치했다. Kafka를 별도로 조회해 각 실행에서 요청 토픽 증가량이 각각 20·100이고, 요청 파티션의 커밋과 끝 오프셋이 일치하며 Retry/DLQ 끝 오프셋은 0임을 확인했다.
 - Mock 포트가 닫혀 있으면 접수 0건으로 실패 보고서를 남겼다. 기존 보고서를 덮어쓰려는 실행도 거부했다. 확인 후 이번 실험의 JVM·컨테이너·볼륨을 정리했다. 로컬 결과는 `build/reports/remote-smoke/local-20261117-114839`에 보관했다.
 - Python 구문, 문서 셸 구문과 SSH 포트 전달 옵션을 확인했다. Gradle `test bootJar mockServerJar`는 6초에 성공했고 기존 산출물을 사용해 새 JUnit 실행은 0개였다. EC2 기동과 터널을 경유한 실측은 다음 단계다.
+
+## 2026-11-17 서울 EC2 가상 알림 20건 검증
+
+- 사용자 요청으로 서울 리전 EC2 한 대를 시작했다. Ubuntu 24.04 LTS, `m7i-flex.large`, gp3 20GiB의 조건에서 Java 21과 Docker Compose로 실행했다. 앱과 Mock JAR·Compose 파일의 SHA-256을 배포 전후 대조했다.
+- 첫 SSH 접속은 시간 초과였다. 브라우저와 Mac 터미널이 보여 준 공인 IPv4가 달라 보안 그룹의 SSH 소스를 터미널 주소 한 개로 수정했다. 첫 JAR 전송이 끊긴 뒤 전송량과 동시 요청을 제한해 재시도했고 체크섬을 확인했다.
+- 빈 MySQL과 Kafka에서 SSH 터널을 거쳐 20건을 검증했다. **6.491초에 접수·DB 완료·Mock 수락 각 20건**, 단일 시도 이력 20건, 중복 Mock 수락 0건이었다. 같은 키 재응답 200과 본문 충돌 409, Outbox 발행 완료 20건과 Kafka 미처리 0건을 확인했다. [실행 조건과 결과](S9_SEPARATE_HOST_PREPARATION.md)
+- 보고서, 전후 DB·Kafka 상태, 실행 환경과 서비스 로그는 `build/reports/remote-smoke/aws-20-xk7FUi`에 보존했다. 앱·Mock·Compose 서비스와 터널을 종료했고 EC2와 두 데이터 볼륨은 보존했다.
+- `./gradlew --no-daemon --console=plain test`는 5초에 성공했다. Gradle 결과는 `UP-TO-DATE`여서 새 JUnit 실행은 0개다. 원격 100건·부하·장애 실험은 범위 밖이었다.
