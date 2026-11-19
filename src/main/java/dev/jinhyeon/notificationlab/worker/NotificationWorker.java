@@ -5,11 +5,13 @@ import dev.jinhyeon.notificationlab.notification.NotificationService;
 import dev.jinhyeon.notificationlab.provider.ProviderCircuitBreaker;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.CannotCreateTransactionException;
 
 @Component
 @Profile("!memory & !sync")
@@ -51,7 +53,8 @@ public class NotificationWorker {
         var handler = Timer.start(registry);
         try {
             admission.execute(() -> process(record));
-        } catch (WorkerQuota.QuotaDeferred | WorkerQuota.QuotaUnavailableDeferred | ProviderCircuitBreaker.CircuitDeferred deferred) {
+        } catch (WorkerQuota.QuotaDeferred | WorkerQuota.QuotaUnavailableDeferred | ProviderCircuitBreaker.CircuitDeferred
+                 | WorkerDatabaseUnavailable deferred) {
             throw deferred;
         } catch (RuntimeException failure) {
             registry.counter("notification.worker.failures").increment();
@@ -72,11 +75,11 @@ public class NotificationWorker {
             UUID eventId = UUID.fromString(event.path("eventId").asText());
             if (!id.toString().equals(record.key())) throw new IllegalArgumentException();
             String token = UUID.randomUUID().toString();
-            var claimed = initialClaimTime.record(() -> store.claim(id, eventId, token, taskId, !quota.enabled() && !circuit.enabled()));
+            var claimed = initialClaimTime.record(() -> claim(id, eventId, token, taskId, !quota.enabled() && !circuit.enabled()));
             try (var permit = claimed.isPresent() && claimed.get().needsPermit() ? circuit.acquire() : null) {
                 if (claimed.isPresent() && claimed.get().needsPermit()) {
                     quota.awaitPermit();
-                    claimed = admittedClaimTime.record(() -> store.claim(id, eventId, token, taskId)); // Revalidate after admission, then start the attempt.
+                    claimed = admittedClaimTime.record(() -> claim(id, eventId, token, taskId, true)); // Revalidate after admission, then start the attempt.
                 }
                 if (claimed.isPresent()) {
                     Timer.Sample sample = Timer.start(registry);
@@ -99,11 +102,21 @@ public class NotificationWorker {
                     registry.counter("notification.worker.replays").increment();
                 }
             }
-        } catch (WorkerQuota.QuotaDeferred | WorkerQuota.QuotaUnavailableDeferred | ProviderCircuitBreaker.CircuitDeferred deferred) {
+        } catch (WorkerQuota.QuotaDeferred | WorkerQuota.QuotaUnavailableDeferred | ProviderCircuitBreaker.CircuitDeferred
+                 | WorkerDatabaseUnavailable deferred) {
             throw deferred;
         } catch (Exception failure) {
             // Do not attach SQL/JSON exceptions: they can contain recipient data or payloads.
             throw new IllegalStateException("Notification processing failed; offset must remain uncommitted");
+        }
+    }
+
+    private Optional<WorkerStore.Claim> claim(UUID id, UUID eventId, String token, UUID taskId, boolean sendPermitted) {
+        try {
+            return store.claim(id, eventId, token, taskId, sendPermitted);
+        } catch (CannotCreateTransactionException failure) {
+            if (WorkerDatabaseUnavailable.isConnectionFailure(failure)) throw new WorkerDatabaseUnavailable();
+            throw failure;
         }
     }
 }

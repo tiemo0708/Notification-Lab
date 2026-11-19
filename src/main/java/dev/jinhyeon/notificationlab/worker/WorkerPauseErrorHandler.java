@@ -17,19 +17,23 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.event.ConsumerStoppedEvent;
 import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler;
 import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
-/** Retain failed records in Spring's bounded poll buffer; quota shortage and open provider circuits are resumable. */
+/** Retain failed records in Spring's bounded poll buffer while a dependency is temporarily unavailable. */
 @Component
 @Profile("!memory & !sync")
 public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler {
+    private static final long DATABASE_PROBE_INTERVAL_MS = 2_000;
     private final WorkerAdmission admission;
+    private final JdbcTemplate jdbc;
     private final MeterRegistry registry;
     private final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1, runnable -> {
-        var thread = new Thread(runnable, "worker-quota-resume");
+        var thread = new Thread(runnable, "worker-resume");
         thread.setDaemon(true);
         return thread;
     });
@@ -46,23 +50,23 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         private String reason;
     }
 
-    public WorkerPauseErrorHandler(WorkerAdmission admission, MeterRegistry registry) {
-        this(admission, registry, 6);
-    }
-
     @Autowired
-    public WorkerPauseErrorHandler(WorkerAdmission admission, MeterRegistry registry,
+    public WorkerPauseErrorHandler(WorkerAdmission admission, JdbcTemplate jdbc, MeterRegistry registry,
                                   @Value("${app.rate-limit.transient-recovery-max-records:6}") int maxTransientRecords) {
         if (maxTransientRecords < 1 || maxTransientRecords > 12) {
             throw new IllegalArgumentException("Transient quota capacity must be 1..12 topic-partitions");
         }
         this.maxTransientRecords = maxTransientRecords;
         this.admission = admission;
+        this.jdbc = jdbc;
         this.registry = registry;
         scheduler.setRemoveOnCancelPolicy(true);
         registry.gauge("notification.worker.quota.pauses.pending", this, handler -> handler.pendingCount("quota"));
         registry.gauge("notification.worker.circuit.pauses.pending", this, handler -> handler.pendingCount("circuit"));
         registry.gauge("notification.worker.quota_transient.pauses.pending", this, handler -> handler.pendingCount("quota_transient"));
+        registry.gauge("notification.worker.database.pauses.pending", this, handler -> handler.pendingCount("database"));
+        registry.counter("notification.worker.database.pauses");
+        registry.counter("notification.worker.database.resumes");
         registry.gauge("notification.worker.quota.transient.records", this, WorkerPauseErrorHandler::transientRecordCount);
         registry.counter("notification.worker.quota.transient.exhausted");
         registry.counter("notification.worker.quota.transient.capacity.exhausted");
@@ -81,6 +85,9 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         ensureRunning();
         Throwable cause = failure;
         for (int depth = 0; cause != null && depth < 8; depth++, cause = cause.getCause()) {
+            if (cause instanceof WorkerDatabaseUnavailable) {
+                return defer(failure, record, consumer, container, DATABASE_PROBE_INTERVAL_MS, "database");
+            }
             if (cause instanceof WorkerQuota.QuotaUnavailableDeferred) {
                 long delay;
                 try {
@@ -97,16 +104,21 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
             long delay = cause instanceof WorkerQuota.QuotaDeferred quota ? quota.delayMs()
                     : cause instanceof ProviderCircuitBreaker.CircuitDeferred circuit ? circuit.delayMs() : -1;
             if (delay >= 0) {
-                try {
-                    pause(container, delay, reason);
-                } catch (RuntimeException unavailable) {
-                    handleRemaining(new IllegalStateException("Worker pause unavailable"), List.of(record), consumer, container);
-                }
-                return false; // Never recover/skip: Spring retains this record and keeps polling while paused.
+                return defer(failure, record, consumer, container, delay, reason);
             }
         }
         handleRemaining(failure, List.of(record), consumer, container);
         return false;
+    }
+
+    private boolean defer(Exception failure, ConsumerRecord<?, ?> record, Consumer<?, ?> consumer,
+                          MessageListenerContainer container, long delay, String reason) {
+        try {
+            pause(container, delay, reason);
+        } catch (RuntimeException unavailable) {
+            handleRemaining(failure, List.of(record), consumer, container);
+        }
+        return false; // Spring retains this record and keeps polling while paused.
     }
 
     private synchronized long transientDelay(MessageListenerContainer container, ConsumerRecord<?, ?> record) {
@@ -136,7 +148,9 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         ticket.reason = reason;
         pending.put(container, ticket);
         try {
-            ticket.future = scheduler.schedule(() -> resume(container, ticket), delayMs, TimeUnit.MILLISECONDS);
+            ticket.future = "database".equals(reason)
+                    ? scheduler.scheduleWithFixedDelay(() -> probeDatabase(container, ticket), delayMs, delayMs, TimeUnit.MILLISECONDS)
+                    : scheduler.schedule(() -> resume(container, ticket), delayMs, TimeUnit.MILLISECONDS);
         } catch (RuntimeException failure) {
             pending.remove(container);
             container.resume();
@@ -145,9 +159,18 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         registry.counter("notification.worker." + reason + ".pauses").increment();
     }
 
+    private void probeDatabase(MessageListenerContainer container, Pause ticket) {
+        try {
+            if (Integer.valueOf(1).equals(jdbc.queryForObject("SELECT 1", Integer.class))) resume(container, ticket);
+        } catch (DataAccessException unavailable) {
+            // Leave the same record paused. Probe with a fixed delay and one task per container.
+        }
+    }
+
     private synchronized void resume(MessageListenerContainer container, Pause ticket) {
         if (pending.get(container) != ticket) return; // A cancelled task cannot release a newer pause.
         pending.remove(container);
+        ticket.future.cancel(false);
         if (!stopping && !admission.isStopping()) {
             container.resume(); // Container API only; never access KafkaConsumer from this scheduler.
             registry.counter("notification.worker." + ticket.reason + ".resumes").increment();

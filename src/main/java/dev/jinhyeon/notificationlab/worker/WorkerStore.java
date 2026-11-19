@@ -9,6 +9,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.context.annotation.Profile;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,16 @@ public class WorkerStore {
 
     @Transactional
     public Optional<Claim> claim(UUID id, UUID eventId, String token, UUID expectedTaskId, boolean sendPermitted) {
+        try {
+            return claimInTransaction(id, eventId, token, expectedTaskId, sendPermitted);
+        } catch (DataAccessException failure) {
+            // A commit error from the transaction proxy has an uncertain outcome.
+            if (WorkerDatabaseUnavailable.isConnectionFailure(failure)) throw new WorkerDatabaseUnavailable();
+            throw failure;
+        }
+    }
+
+    private Optional<Claim> claimInTransaction(UUID id, UUID eventId, String token, UUID expectedTaskId, boolean sendPermitted) {
         // One lock order for every claim/completion; no provider I/O while this lock is held.
         var roles = jdbc.queryForList("SELECT traffic_class FROM notification WHERE notification_id = ? FOR UPDATE",
                 String.class, id.toString());

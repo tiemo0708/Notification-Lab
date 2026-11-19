@@ -18,17 +18,22 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.common.TopicPartition;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -132,6 +137,91 @@ class HttpWorkerTest {
             System.out.printf("HTTP_WORKER offsetMode=%s mode=%s delayMs=%d status=%s attempts=%d accepted=%d committed=%d%n",
                     offsetMode, mode, delay, finalStatus, attempts, accepted, attempts);
         }
+    }
+
+    @Test
+    void resumesUncommittedDeliveryAfterMySqlReturns() throws Exception {
+        mock = MockServerApplication.start("--server.port=0", "--logging.level.root=WARN", "--spring.main.banner-mode=off");
+        String topic = "worker-db-recovery-" + UUID.randomUUID();
+        String group = topic;
+        app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class).run(
+                "--server.port=0", "--app.provider.mode=HTTP",
+                "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort(),
+                "--spring.datasource.url=" + MYSQL.getJdbcUrl() + "&socketTimeout=1000&connectTimeout=1000",
+                "--spring.datasource.username=" + MYSQL.getUsername(), "--spring.datasource.password=" + MYSQL.getPassword(),
+                "--spring.datasource.hikari.connection-timeout=2000", "--spring.datasource.hikari.validation-timeout=1000",
+                "--spring.kafka.bootstrap-servers=" + KAFKA.getBootstrapServers(), "--app.async.topic=" + topic,
+                "--app.async.group=" + group, "--spring.kafka.consumer.properties.max.poll.interval.ms=5000",
+                "--logging.level.root=WARN", "--spring.main.banner-mode=off");
+        var jdbc = app.getBean(JdbcTemplate.class);
+        var listener = app.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker");
+        var metrics = app.getBean(MeterRegistry.class);
+        var pending = metrics.get("notification.worker.database.pauses.pending").gauge();
+        var resumed = metrics.get("notification.worker.database.resumes").counter();
+        var endpoint = mock.getBean(MockPushEndpoint.class);
+        try (var http = HttpClient.newHttpClient();
+             var admin = Admin.create(Map.of("bootstrap.servers", KAFKA.getBootstrapServers()))) {
+            listener.pause();
+            await().atMost(Duration.ofSeconds(20)).until(listener::isContainerPaused);
+            var submit = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + app.getWebServer().getPort() + "/notifications"))
+                    .timeout(Duration.ofSeconds(5)).header("Content-Type", "application/json")
+                    .header("Idempotency-Key", UUID.randomUUID().toString())
+                    .POST(HttpRequest.BodyPublishers.ofString("""
+                            {"recipientId":"synthetic-db-recovery","title":"MySQL 복구","body":"가상 데이터"}
+                            """)).build();
+            var response = http.send(submit, HttpResponse.BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(202);
+            String id = new ObjectMapper().readTree(response.body()).path("notificationId").asText();
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+                assertThat(jdbc.queryForObject("SELECT status FROM outbox_event WHERE notification_id = ?", String.class, id))
+                        .isEqualTo("PUBLISHED");
+                assertThat(jdbc.queryForObject("SELECT attempt_count FROM delivery_task WHERE notification_id = ?", Integer.class, id)).isZero();
+            });
+            var member = memberId(admin, group);
+            var docker = DockerClientFactory.instance().client();
+            docker.pauseContainerCmd(MYSQL.getContainerId()).exec();
+            try {
+                listener.resume();
+                await().atMost(Duration.ofSeconds(20)).until(() -> pending.value() == 1);
+                // Outlast max.poll.interval.ms while the listener keeps polling the same group.
+                await().during(Duration.ofSeconds(6)).atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+                    assertThat(listener.isRunning()).isTrue();
+                    assertThat(listener.isContainerPaused()).isTrue();
+                    assertThat(resumed.count()).isZero();
+                    assertThat(memberId(admin, group)).isEqualTo(member);
+                    assertThat(committed(admin, group, topic)).isZero();
+                    assertThat(endpoint.stats().requests()).isZero();
+                });
+            } finally {
+                docker.unpauseContainerCmd(MYSQL.getContainerId()).exec();
+            }
+            await().atMost(Duration.ofSeconds(25)).untilAsserted(() -> {
+                assertThat(pending.value()).isZero();
+                assertThat(resumed.count()).isEqualTo(1);
+                assertThat(memberId(admin, group)).isEqualTo(member);
+                assertThat(committed(admin, group, topic)).isEqualTo(1);
+                assertThat(jdbc.queryForObject("SELECT status FROM notification WHERE notification_id = ?", String.class, id))
+                        .isEqualTo("PROVIDER_ACCEPTED");
+            });
+            assertThat(jdbc.queryForList("SELECT a.outcome FROM delivery_attempt a JOIN delivery_task t USING (task_id) WHERE t.notification_id = ?", String.class, id))
+                    .containsExactly("PROVIDER_ACCEPTED");
+            assertThat(endpoint.stats().requests()).isEqualTo(1);
+            assertThat(endpoint.stats().accepted()).isEqualTo(1);
+            var repeated = http.send(submit, HttpResponse.BodyHandlers.ofString());
+            assertThat(repeated.statusCode()).isEqualTo(200);
+            assertThat(new ObjectMapper().readTree(repeated.body()).path("notificationId").asText()).isEqualTo(id);
+            assertThat(endpoint.stats().requests()).isEqualTo(1);
+        }
+    }
+
+    private String memberId(Admin admin, String group) throws Exception {
+        return admin.describeConsumerGroups(List.of(group)).describedGroups().get(group).get(5, TimeUnit.SECONDS)
+                .members().iterator().next().consumerId();
+    }
+
+    private long committed(Admin admin, String group, String topic) throws Exception {
+        return admin.listConsumerGroupOffsets(group).partitionsToOffsetAndMetadata().get(5, TimeUnit.SECONDS)
+                .entrySet().stream().filter(e -> e.getKey().topic().equals(topic)).mapToLong(e -> e.getValue().offset()).sum();
     }
 
     @AfterEach

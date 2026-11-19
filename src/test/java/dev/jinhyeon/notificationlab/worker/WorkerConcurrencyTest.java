@@ -433,7 +433,8 @@ class WorkerConcurrencyTest {
             awaitCompleted(List.copyOf(events.values()), 4);
             assertThat(offset(0)).isEqualTo(2); assertThat(offset(1)).isEqualTo(2); assertThat(offset(2)).isZero();
             assertThat(stats().requests()).isEqualTo(failCompletion ? 5 : 4);
-            assertThat(stats().accepted()).isEqualTo(failCompletion ? 5 : 4);
+            assertThat(stats().accepted()).isEqualTo(4);
+            assertThat(stats().idempotencyReplays()).isEqualTo(failCompletion ? 1 : 0);
             assertThat(stats().active()).isZero();
             assertThat(attempts(blocked)).isEqualTo(failCompletion ? 2 : 1);
             assertThat(outcomeCount(blocked, "UNKNOWN")).isEqualTo(failCompletion ? 1 : 0);

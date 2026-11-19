@@ -5,6 +5,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -12,6 +14,7 @@ class WorkerPauseErrorHandlerTest {
     private final ApplicationContextRunner context = new ApplicationContextRunner()
             .withUserConfiguration(WorkerPauseErrorHandler.class)
             .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+            .withBean(JdbcTemplate.class, () -> new JdbcTemplate(new DriverManagerDataSource()))
             .withBean(WorkerAdmission.class, () -> new WorkerAdmission(
                     new WorkerProperties(3, 3, 0, 1000), new SimpleMeterRegistry()));
 
