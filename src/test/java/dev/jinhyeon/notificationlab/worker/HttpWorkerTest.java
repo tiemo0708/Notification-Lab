@@ -67,7 +67,7 @@ class HttpWorkerTest {
             "RECORD,SERVER_ERROR,0,RETRYABLE_FAILURE,3,0,HTTP_STATUS_500", "COUNT_TIME,SERVER_ERROR,0,RETRYABLE_FAILURE,3,0,HTTP_STATUS_500",
             "RECORD,TOO_MANY_REQUESTS,0,RETRYABLE_FAILURE,3,0,HTTP_STATUS_429", "COUNT_TIME,TOO_MANY_REQUESTS,0,RETRYABLE_FAILURE,3,0,HTTP_STATUS_429",
             "RECORD,INVALID_RECIPIENT,0,PERMANENT_FAILURE,1,0,HTTP_STATUS_400", "COUNT_TIME,INVALID_RECIPIENT,0,PERMANENT_FAILURE,1,0,HTTP_STATUS_400",
-            "RECORD,SUCCESS,700,RETRYABLE_FAILURE,3,3,HTTP_UNKNOWN_TIMEOUT", "COUNT_TIME,SUCCESS,700,RETRYABLE_FAILURE,3,3,HTTP_UNKNOWN_TIMEOUT"})
+            "RECORD,SUCCESS,700,PROVIDER_ACCEPTED,2,1,", "COUNT_TIME,SUCCESS,700,PROVIDER_ACCEPTED,2,1,"})
     void deliversThroughHttpAndPersistsBoundedAttemptsBeforeOffsets(OffsetCommitPolicy.Mode offsetMode, String mode, int delay, String finalStatus,
                                                                    int attempts, int accepted, String error) throws Exception {
         mock = MockServerApplication.start("--server.port=0", "--mock.http.mode=" + mode,
@@ -109,7 +109,12 @@ class HttpWorkerTest {
             });
             assertThat(jdbc.queryForObject("SELECT attempt_count FROM delivery_task WHERE notification_id = ?", Integer.class, id)).isEqualTo(attempts);
             var history = jdbc.queryForList("SELECT a.outcome, a.error_code FROM delivery_attempt a JOIN delivery_task t USING (task_id) WHERE t.notification_id = ? ORDER BY a.attempt_no", id);
-            assertThat(history).hasSize(attempts).allSatisfy(row -> {
+            assertThat(history).hasSize(attempts);
+            if (delay != 0) {
+                assertThat(history.getFirst()).containsEntry("outcome", "RETRYABLE_FAILURE")
+                        .containsEntry("error_code", "HTTP_UNKNOWN_TIMEOUT");
+                assertThat(history.getLast()).containsEntry("outcome", "PROVIDER_ACCEPTED").containsEntry("error_code", null);
+            } else assertThat(history).allSatisfy(row -> {
                 assertThat(row.get("outcome")).isEqualTo(finalStatus);
                 assertThat(row.get("error_code")).isEqualTo(error);
             });
@@ -134,6 +139,7 @@ class HttpWorkerTest {
             var stats = mock.getBean(MockPushEndpoint.class).stats();
             assertThat(stats.requests()).isEqualTo(attempts);
             assertThat(stats.accepted()).isEqualTo(accepted);
+            assertThat(stats.idempotencyReplays()).isEqualTo(delay == 0 ? 0 : 1);
             System.out.printf("HTTP_WORKER offsetMode=%s mode=%s delayMs=%d status=%s attempts=%d accepted=%d committed=%d%n",
                     offsetMode, mode, delay, finalStatus, attempts, accepted, attempts);
         }

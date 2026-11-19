@@ -7,6 +7,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
@@ -72,6 +75,69 @@ class HttpMockServerTest {
             assertThat(stats.path("active").asInt()).isZero();
         });
         assertThat(get("/mock/stats").path("requests").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void sameKeyReturnsTheFirstReceiptWhileItsResponseIsStillPending() throws Exception {
+        start("--mock.http.response-delay-ms=800", "--mock.http.max-in-flight=1",
+                "--mock.http.requests-per-window=1", "--mock.http.window-ms=60000");
+        String key = mapper.readTree(payload).path("notificationId").asText();
+        var original = http.sendAsync(keyed(payload, key), HttpResponse.BodyHandlers.ofString());
+        await().atMost(Duration.ofSeconds(3)).until(() -> get("/mock/stats").path("accepted").asInt() == 1);
+        var replay = http.send(keyed(" " + payload, key), HttpResponse.BodyHandlers.ofString());
+        assertThat(replay.statusCode()).isEqualTo(202);
+        assertThat(replay.body()).isEqualTo(original.get(3, TimeUnit.SECONDS).body());
+        assertThat(get("/mock/stats").path("accepted").asInt()).isEqualTo(1);
+        assertThat(get("/mock/stats").path("idempotencyReplays").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void differentPayloadConflictsAndFullStorePreservesPreviouslyAcceptedKeys() throws Exception {
+        start("--mock.http.idempotency-capacity=1");
+        String key = mapper.readTree(payload).path("notificationId").asText();
+        String other = UUID.randomUUID().toString();
+        var first = http.send(keyed(payload, key), HttpResponse.BodyHandlers.ofString());
+        assertThat(first.statusCode()).isEqualTo(202);
+        var conflict = http.send(keyed(payload.replace("synthetic-user", "another-user"), key), HttpResponse.BodyHandlers.ofString());
+        assertThat(conflict.statusCode()).isEqualTo(409);
+        var invalid = http.send(keyed(payload, other), HttpResponse.BodyHandlers.ofString());
+        assertThat(invalid.statusCode()).isEqualTo(400);
+        var full = http.send(keyed(payload.replace(key, other), other), HttpResponse.BodyHandlers.ofString());
+        assertThat(full.statusCode()).isEqualTo(503);
+        assertThat(mapper.readTree(full.body()).path("errorCode").asText()).isEqualTo("MOCK_IDEMPOTENCY_CAPACITY");
+        assertThat(http.send(keyed(payload, key), HttpResponse.BodyHandlers.ofString()).body()).isEqualTo(first.body());
+        assertThat(get("/mock/stats").path("accepted").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void reopeningTheStoreReturnsTheSameReceiptAndRestoresItsCapacity(@TempDir Path directory) throws Exception {
+        String store = "--mock.http.idempotency-file=" + directory.resolve("acceptances");
+        start(store, "--mock.http.idempotency-capacity=1");
+        String key = mapper.readTree(payload).path("notificationId").asText();
+        var original = http.send(keyed(payload, key), HttpResponse.BodyHandlers.ofString());
+        assertThat(original.statusCode()).isEqualTo(202);
+        app.close();
+        start(store, "--mock.http.idempotency-capacity=1");
+
+        var replay = http.send(keyed(payload, key), HttpResponse.BodyHandlers.ofString());
+        assertThat(replay.statusCode()).isEqualTo(202);
+        assertThat(replay.body()).isEqualTo(original.body());
+        assertThat(http.send(keyed(payload.replace("synthetic-user", "other-user"), key),
+                HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(409);
+        String other = UUID.randomUUID().toString();
+        assertThat(http.send(keyed(payload.replace(key, other), other),
+                HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(503);
+        var stats = get("/mock/stats");
+        assertThat(stats.path("storedAcceptances").asInt()).isEqualTo(1);
+        assertThat(stats.path("accepted").asInt()).isZero();
+        assertThat(stats.path("idempotencyReplays").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void inaccessibleStoreFailsStartup(@TempDir Path directory) throws Exception {
+        Path file = Files.writeString(directory.resolve("file"), "not a directory");
+        assertThatThrownBy(() -> start("--mock.http.idempotency-file=" + file.resolve("acceptances")))
+                .hasRootCauseInstanceOf(java.nio.file.FileAlreadyExistsException.class);
     }
 
     @Test
@@ -162,6 +228,11 @@ class HttpMockServerTest {
     private HttpRequest request(String body, Duration timeout) {
         return HttpRequest.newBuilder(uri("/pushes")).timeout(timeout).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+    }
+
+    private HttpRequest keyed(String body, String key) {
+        return HttpRequest.newBuilder(uri("/pushes")).timeout(Duration.ofSeconds(3)).header("Content-Type", "application/json")
+                .header("Idempotency-Key", key).POST(HttpRequest.BodyPublishers.ofString(body)).build();
     }
 
     private URI uri(String path) { return URI.create("http://127.0.0.1:" + app.getWebServer().getPort() + path); }

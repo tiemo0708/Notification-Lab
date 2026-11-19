@@ -49,6 +49,10 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+tasks.withType(Test).configureEach {
+    systemProperty 'mock.http.idempotency-file', ':memory:'
+}
+
 tasks.named('test') {
     useJUnitPlatform { excludeTags 'reconciliation', 'campaign-load', 'campaign-delivery-pilot', 'producer-batching-pilot', 'outbox-query-probe', 'outbox-statistics-probe', 'outbox-lock-probe', 'api-wait-probe', 'api-failure-persistence', 'api-failure-pilot-controls' }
     // Provisioning lives outside Java resources; edits must invalidate the monitoring regression.
@@ -91,6 +95,8 @@ configurations {
 }
 dependencies {
     testImplementation sourceSets.mockServer.output
+    mockServerRuntimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'com.h2database:h2'
 }
 tasks.register('mockServer', JavaExec) {
     group = 'application'

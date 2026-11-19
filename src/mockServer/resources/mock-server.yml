@@ -21,6 +21,8 @@ mock:
     requests-per-window: 100
     window-ms: 1000
     max-in-flight: 4
+    idempotency-capacity: 1100000
+    idempotency-file: ./.mock-data/acceptances
 management:
   endpoints:
     web:

@@ -53,9 +53,12 @@ class HttpPushProviderTest {
         await().atMost(Duration.ofSeconds(3)).until(() -> stats().active() == 0);
         assertThat(stats().accepted()).isEqualTo(1);
         assertThat(provider.poolStats().getLeased()).isZero();
-        // A second explicit call can be accepted again; the client does not promise idempotency.
-        assertThat(provider.send(request).errorCode()).isEqualTo("HTTP_UNKNOWN_TIMEOUT");
-        assertThat(stats().accepted()).isEqualTo(2);
+        var replay = provider.send(request);
+        assertThat(replay.outcome()).isEqualTo(PushResult.Outcome.ACCEPTED);
+        assertThat(replay.providerMessageId()).startsWith("http-mock-");
+        assertThat(stats().requests()).isEqualTo(2);
+        assertThat(stats().accepted()).isEqualTo(1);
+        assertThat(stats().idempotencyReplays()).isEqualTo(1);
     }
 
     @Test

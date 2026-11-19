@@ -4,6 +4,7 @@ build/
 .idea/
 *.iml
 .env
+/.mock-data/
 *.log
 .DS_Store
 scripts/__pycache__/

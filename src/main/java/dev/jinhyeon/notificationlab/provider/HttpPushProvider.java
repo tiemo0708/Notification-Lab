@@ -75,6 +75,7 @@ public final class HttpPushProvider implements PushProvider, AutoCloseable {
         active.add(post);
         try {
             if (closed.get()) return retry("HTTP_CLIENT_CLOSED");
+            post.setHeader("Idempotency-Key", request.notificationId().toString());
             post.setEntity(new ByteArrayEntity(mapper.writeValueAsBytes(request), ContentType.APPLICATION_JSON));
             // At most maxConnections + maxPending scheduled tasks; cancellation removes completed tasks.
             deadline = deadlines.schedule(() -> {

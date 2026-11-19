@@ -8,6 +8,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
@@ -24,6 +27,7 @@ public class MockPushEndpoint {
     private final HttpMockProperties settings;
     private final ObjectMapper mapper;
     private final Validator validator;
+    private final MockAcceptanceStore acceptances;
     private final FixedWindowQuota quota;
     private final Semaphore slots;
     private final LongAdder requests = new LongAdder();
@@ -34,11 +38,15 @@ public class MockPushEndpoint {
     private final LongAdder busy = new LongAdder();
     private final AtomicInteger active = new AtomicInteger();
     private final AtomicInteger maxActive = new AtomicInteger();
+    private final LongAdder idempotencyReplays = new LongAdder();
+    private boolean storageFailed;
+    private record Reply(ResponseEntity<?> response, boolean acquiredSlot) { }
 
-    public MockPushEndpoint(HttpMockProperties settings, ObjectMapper mapper, Validator validator) {
+    public MockPushEndpoint(HttpMockProperties settings, ObjectMapper mapper, Validator validator, MockAcceptanceStore acceptances) {
         this.settings = settings;
         this.mapper = mapper;
         this.validator = validator;
+        this.acceptances = acceptances;
         this.quota = new FixedWindowQuota(settings.requestsPerWindow(), settings.windowMs(), System::nanoTime);
         this.slots = new Semaphore(settings.maxInFlight());
     }
@@ -55,24 +63,69 @@ public class MockPushEndpoint {
             return error(400, "MOCK_INVALID_REQUEST");
         }
         if (payload == null || !validator.validate(payload).isEmpty()) return error(400, "MOCK_INVALID_REQUEST");
+        var keys = request.getHeaders("Idempotency-Key");
+        UUID key = null;
+        byte[] fingerprint = null;
+        if (keys.hasMoreElements()) {
+            if (!payload.notificationId().toString().equals(keys.nextElement()) || keys.hasMoreElements()) {
+                return error(400, "MOCK_INVALID_IDEMPOTENCY_KEY");
+            }
+            key = payload.notificationId();
+            fingerprint = fingerprint(payload);
+        }
         requests.increment();
+        Reply reply = begin(key, fingerprint);
+        if (!reply.acquiredSlot()) return reply.response();
+        try {
+            Thread.sleep(settings.responseDelayMs());
+            return reply.response();
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            return error(503, "MOCK_RESPONSE_INTERRUPTED");
+        } finally {
+            active.decrementAndGet();
+            slots.release();
+        }
+    }
+
+    private synchronized Reply begin(UUID key, byte[] fingerprint) {
+        if (key != null) {
+            if (storageFailed) return storageUnavailable();
+            MockAcceptanceStore.Acceptance first;
+            try {
+                first = acceptances.find(key);
+            } catch (SQLException failure) {
+                return storageUnavailable();
+            }
+            if (first != null) {
+                if (!MessageDigest.isEqual(first.fingerprint(), fingerprint)) {
+                    return new Reply(error(409, "MOCK_IDEMPOTENCY_CONFLICT"), false);
+                }
+                idempotencyReplays.increment();
+                return new Reply(accepted(first.providerId()), false);
+            }
+            if (settings.mode() == HttpMockProperties.Mode.SUCCESS && acceptances.count() >= settings.idempotencyCapacity()) {
+                return new Reply(error(503, "MOCK_IDEMPOTENCY_CAPACITY"), false);
+            }
+        }
         long retryAfter = quota.acquire();
         if (retryAfter > 0) {
             rateLimited.increment();
-            return ResponseEntity.status(429).header("Retry-After", Long.toString(retryAfter))
-                    .body(Map.of("errorCode", "MOCK_RATE_LIMITED"));
+            return new Reply(ResponseEntity.status(429).header("Retry-After", Long.toString(retryAfter))
+                    .body(Map.of("errorCode", "MOCK_RATE_LIMITED")), false);
         }
         if (!slots.tryAcquire()) {
             busy.increment();
-            return error(503, "MOCK_BUSY");
+            return new Reply(error(503, "MOCK_BUSY"), false);
         }
-        maxActive.accumulateAndGet(active.incrementAndGet(), Math::max);
+        ResponseEntity<?> response;
         try {
-            ResponseEntity<?> result = switch (settings.mode()) {
+            response = switch (settings.mode()) {
                 case SUCCESS -> {
-                    // Record acceptance BEFORE delaying the response; client timeout does not undo it.
+                    UUID providerId = UUID.randomUUID();
+                    if (key != null) acceptances.save(key, fingerprint, providerId);
                     accepted.increment();
-                    yield ResponseEntity.accepted().body(Map.of("providerMessageId", "http-mock-" + UUID.randomUUID()));
+                    yield accepted(providerId);
                 }
                 case TOO_MANY_REQUESTS -> {
                     rateLimited.increment();
@@ -87,23 +140,37 @@ public class MockPushEndpoint {
                     yield error(400, "MOCK_INVALID_RECIPIENT");
                 }
             };
-            try {
-                Thread.sleep(settings.responseDelayMs());
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                return error(503, "MOCK_RESPONSE_INTERRUPTED");
-            }
-            return result;
-        } finally {
-            active.decrementAndGet();
+        } catch (SQLException failure) {
             slots.release();
+            return storageUnavailable();
         }
+        maxActive.accumulateAndGet(active.incrementAndGet(), Math::max);
+        return new Reply(response, true);
+    }
+
+    private Reply storageUnavailable() {
+        // A failed commit or sync can leave the receipt's durability uncertain until the store is reopened.
+        storageFailed = true;
+        return new Reply(error(503, "MOCK_IDEMPOTENCY_STORAGE_UNAVAILABLE"), false);
+    }
+
+    private byte[] fingerprint(Payload payload) throws IOException {
+        try {
+            // Hash the parsed fields so formatting does not affect equality; retain no message body.
+            return MessageDigest.getInstance("SHA-256").digest(mapper.writeValueAsBytes(payload));
+        } catch (NoSuchAlgorithmException missing) {
+            throw new IllegalStateException("SHA-256 is unavailable", missing);
+        }
+    }
+
+    private ResponseEntity<?> accepted(UUID providerId) {
+        return ResponseEntity.accepted().body(Map.of("providerMessageId", "http-mock-" + providerId));
     }
 
     @GetMapping("/mock/stats")
     public Stats stats() {
         return new Stats(requests.sum(), accepted.sum(), rateLimited.sum(), serverErrors.sum(),
-                permanentFailures.sum(), busy.sum(), active.get(), maxActive.get());
+                permanentFailures.sum(), busy.sum(), active.get(), maxActive.get(), idempotencyReplays.sum(), acceptances.count());
     }
 
     @GetMapping("/mock/config")
@@ -116,5 +183,6 @@ public class MockPushEndpoint {
     public record Payload(@NotNull UUID notificationId, @NotBlank @Size(max = 100) String recipientId,
                           @NotBlank @Size(max = 100) String title, @NotBlank @Size(max = 500) String body) { }
     public record Stats(long requests, long accepted, long rateLimited, long serverErrors,
-                        long permanentFailures, long busy, int active, int maxActive) { }
+                        long permanentFailures, long busy, int active, int maxActive, long idempotencyReplays,
+                        int storedAcceptances) { }
 }
