@@ -3218,6 +3218,14 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - 보고서, 전후 DB·Kafka 상태, 실행 환경과 서비스 로그는 `build/reports/remote-smoke/aws-20-xk7FUi`에 보존했다. 앱·Mock·Compose 서비스와 터널을 종료했고 EC2와 두 데이터 볼륨은 보존했다.
 - `./gradlew --no-daemon --console=plain test`는 5초에 성공했다. Gradle 결과는 `UP-TO-DATE`여서 새 JUnit 실행은 0개다. 원격 100건·부하·장애 실험은 범위 밖이었다.
 
+## 2026-11-17 Codex 작업 진입점과 검증 설정
+
+- `docs/CURRENT_STATE.md`를 짧은 작업 진입점으로 추가하고 AGENTS에서 관련 계획/최신 기록만 찾아 읽도록 연결했다. 상세 실험 이력과 완료 기준은 기존 문서에 유지한다.
+- 저장소 전용 `notification-reliability` 스킬에 접수·Outbox ACK·Worker offset·재시도·공급자 보호의 실패 경계와 검증 선택 기준을 정리했다.
+- `.codex/environments/environment.toml`에 기본 테스트와 CI 빌드 Actions를 추가했다. 자동 setup은 비어 있으며 원격/부하 실행을 추가하지 않았다.
+- 스킬 validator, Codex `skills/list`의 저장소 범위 검색, TOML 구조, Action 셸 문법과 현재 요약의 로컬 링크 검사를 통과했다. `git diff --check`도 통과했다.
+- `./gradlew --no-daemon --console=plain test`는 3초에 성공했다. 6개 task가 모두 `UP-TO-DATE`로 새 JUnit 실행은 0개다. 이번 변경은 지침·스킬·실행 바로가기이며 앱 코드/의존성/기본값을 변경하지 않았다. 원격 CI·부하·실제 공급자 검증은 실행하지 않았다.
+
 ## 2026-11-17 서울 EC2 가상 알림 100건 후속 검증
 
 - 기존 EC2와 DB·Kafka 볼륨을 재사용했다. 서버에 있는 JAR와 Compose 파일의 체크섬을 확인했고, 실행 전 DB 20건과 요청 오프셋 3·10·7을 직전 결과와 대조했다.

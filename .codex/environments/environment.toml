@@ -1,0 +1,15 @@
+version = 1
+name = "Notification Lab"
+
+[setup]
+script = ""
+
+[[actions]]
+name = "기본 테스트 · Docker 필요"
+icon = "test"
+command = "./gradlew --no-daemon --console=plain test"
+
+[[actions]]
+name = "CI 빌드 · Docker 필요"
+icon = "tool"
+command = "./gradlew --no-daemon --console=plain build"
