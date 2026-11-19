@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 public final class SmokeMessagingService extends FirebaseMessagingService {
     static final String RECEIPT = "fcm_smoke_receipt";
+    private static final String TEST_TITLE_PREFIX = "Notification Lab FCM ";
 
     @Override
     public void onNewToken(String token) {
@@ -21,11 +22,20 @@ public final class SmokeMessagingService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage message) {
         String id = message.getData().get("smokeId");
+        String idSource = "data";
+        if (id == null && message.getNotification() != null) {
+            // The console's single-device test also accepts the correlation ID in a notification title.
+            String title = message.getNotification().getTitle();
+            if (title != null && title.startsWith(TEST_TITLE_PREFIX)) {
+                id = title.substring(TEST_TITLE_PREFIX.length());
+                idSource = "notification_title";
+            }
+        }
         if (id == null || !id.matches("[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}")) return;
         SharedPreferences receipt = getSharedPreferences(RECEIPT, MODE_PRIVATE);
         int count = id.equals(receipt.getString("smoke_id", "")) ? receipt.getInt("count", 0) + 1 : 1;
         receipt.edit().putString("smoke_id", id).putLong("received_at_ms", System.currentTimeMillis())
-                .putInt("count", count).apply();
+                .putString("id_source", idSource).putInt("count", count).apply();
     }
 
     static synchronized boolean saveToken(Context context, String token) {

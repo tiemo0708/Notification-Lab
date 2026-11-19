@@ -3308,3 +3308,14 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - Android 앱 한 인스턴스가 `smokeId`를 수신하면 ID·UTC 시각·같은 ID의 수신 횟수를 앱 화면에 표시한다. 별도 발송 도구는 기본값으로 FCM 요청 검증을 수행하며 `--send`를 지정하면 한 번만 발송한다. 서버 응답과 앱 콜백은 각각 기록한다.
 - Android 디버그 APK 빌드와 lint를 통과했다. 합성 설정 파일에서 Firebase 앱 ID 리소스가 생성되는 것도 확인했다. 기존 Android API 34 기본 이미지로 새 로컬 에뮬레이터를 만들어 APK 설치와 연결 대기 화면을 확인했다. Python 모의 테스트 7개와 ADC가 없을 때 토큰을 출력하지 않고 중단되는 경로를 확인했다.
 - Firebase 콘솔은 현재 계정의 2단계 인증을 요구했다. FCM 수신용 Google APIs 에뮬레이터 이미지는 Android SDK 약관 동의가 필요했다. 전용 Firebase 프로젝트 연결과 실제 FCM 수락·Android 콜백 관측은 대기 중이다. [실행 절차](FCM_DEVICE_SMOKE.md)
+
+## 2026-11-19 FCM 시험용 Google APIs 에뮬레이터 준비
+
+- Android SDK 약관 동의 후 API 34 Google APIs ARM64 이미지를 설치했다. 전용 에뮬레이터를 부팅해 Google Play 서비스 패키지와 앱 설치·실행을 확인했다. 앱의 Firebase 연결 대기 화면을 로컬 증거로 보관했다.
+- Google 계정의 2단계 인증을 마쳐 Firebase 콘솔에 접근했다. 전용 프로젝트를 만드는 최초 화면에서 별도의 Firebase 이용 약관 동의가 필요해 실제 FCM 발송·수신은 대기 중이다. [실행 절차](FCM_DEVICE_SMOKE.md)
+
+## 2026-11-19 Android 에뮬레이터에서 실제 FCM 수신 확인
+
+- Firebase 약관 동의 후 Spark 시험 프로젝트를 만들고 Android 패키지 `dev.jinhyeon.notificationlab.fcmsmoke`를 등록했다. `google-services.json`을 로컬 앱에 연결하고 구성된 APK 빌드와 lint를 통과했다. 기존 설치와 같은 디버그 서명으로 앱을 갱신했다. 에뮬레이터가 자동으로 DNS를 찾지 못해 실행 옵션에 DNS를 지정한 뒤 Firebase 기기 등록을 확인했다.
+- 11:56:31 KST에 Firebase 콘솔의 기기 테스트에서 전용 에뮬레이터 한 대를 선택하고 발송 버튼을 한 번 눌렀다. 알림 제목에 넣은 `smokeId` `4df21f11-d3f2-40fc-9c5f-0fe300f91ff3`과 11:56:33 KST 앱 콜백의 ID가 일치했다. 화면과 앱 저장 기록에서 수신 횟수 1회를 대조했다.
+- 콘솔 발송을 사용했으며 HTTP v1 검증 요청과 공급자 메시지 ID는 관측 범위에 포함되지 않았다. 앱의 실제 콜백을 확인한 실험이며 Notification-Lab의 Worker 발송과 OS 알림 배너는 별도 범위다. 실행 후 전용 에뮬레이터를 종료했고, `build/reports/fcm-smoke/emulator-console.Fu80M8/`에 `console-send.json`, `reconciliation.json`, `received.png`를 보관했다. [실험 방법](FCM_DEVICE_SMOKE.md#firebase-콘솔에서-에뮬레이터-한-대로-보내기)
