@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("app.provider")
 public record ProviderProperties(Mode mode, Http http) {
-    public enum Mode { MOCK, HTTP }
+    public enum Mode { MOCK, HTTP, FCM }
 
     public ProviderProperties {
         if (mode == null || http == null) throw new IllegalArgumentException("Provider settings required");

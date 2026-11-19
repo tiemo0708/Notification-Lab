@@ -18,7 +18,7 @@
 - HTTP Mock의 멱등성 키와 최초 수락 ID를 로컬 H2 파일에 저장하도록 보완했다. 서울 EC2에서 MySQL이 응답하지 않는 동안 Mock을 강제 종료했고, 새 Mock 프로세스가 같은 파일에서 수락 기록 1건을 복구했다. Worker 재시작 후 합성 알림 3건이 완료됐고 HTTP 요청 4회 중 기존 결과 재응답은 1회였다. 중복 수락·유실·Kafka 미처리는 0건이었고 SSH 규칙을 원복했다. [서울 EC2의 Mock 재시작 실험](S9_SEPARATE_HOST_PREPARATION.md#서울-ec2에서-mock-재시작-검증)
 - 2026-11-19에 Mock 수락 직후 MySQL 응답을 중단하고 서울 EC2를 중지·시작했다. 같은 EBS의 H2에 남은 최초 수락 ID가 Worker 재처리 후 MySQL에 저장된 공급자 ID와 일치했다. 합성 알림 3건 완료, Mock 최초 수락 3회·기존 결과 재응답 1회, 유실·중복 수락·Kafka 미처리 각각 0건이었다. 실험 서비스를 종료하고 SSH 규칙을 원복했다. [EC2 중지·시작 검증 결과](S9_SEPARATE_HOST_PREPARATION.md#ec2-중지시작-후-ebs-수락-기록-검증)
 - Worker 자동 재개와 HTTP Mock 멱등성 변경을 포함한 로컬 전체 빌드에서 테스트 403개를 새로 실행해 모두 통과했다. [전체 회귀 검증 기록](PROGRESS.md#2026-11-19-정합성-변경-전체-회귀-검증)
-- 전용 Firebase 프로젝트와 Android API 34 Google APIs 에뮬레이터를 연결했다. Firebase 콘솔에서 에뮬레이터 한 대에 시험 메시지 1건을 보내 발송·앱 수신의 `smokeId` 일치와 수신 1회를 확인했다. Notification-Lab 발송 경로의 FCM HTTP v1 연동은 남아 있다. [FCM 단건 수신 검증](FCM_DEVICE_SMOKE.md#firebase-콘솔에서-에뮬레이터-한-대로-보내기)
+- 전용 Firebase 프로젝트와 Android API 34 Google APIs 에뮬레이터를 연결했다. 콘솔 단건 검증에 이어 Notification-Lab Worker가 FCM HTTP v1로 실제 발송 1건을 수락받았다. 앱의 `smokeId`는 Worker의 알림 ID와 같고, 수신과 Kafka 요청 커밋은 각각 1회였다. 실험용 키와 발송 권한은 회수했다. [Worker 단건 결과](FCM_DEVICE_SMOKE.md#notification-lab-worker에서-fcm-http-v1로-보내기)
 
 ## 작업별로 읽을 자료
 

@@ -3319,3 +3319,10 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - Firebase 약관 동의 후 Spark 시험 프로젝트를 만들고 Android 패키지 `dev.jinhyeon.notificationlab.fcmsmoke`를 등록했다. `google-services.json`을 로컬 앱에 연결하고 구성된 APK 빌드와 lint를 통과했다. 기존 설치와 같은 디버그 서명으로 앱을 갱신했다. 에뮬레이터가 자동으로 DNS를 찾지 못해 실행 옵션에 DNS를 지정한 뒤 Firebase 기기 등록을 확인했다.
 - 11:56:31 KST에 Firebase 콘솔의 기기 테스트에서 전용 에뮬레이터 한 대를 선택하고 발송 버튼을 한 번 눌렀다. 알림 제목에 넣은 `smokeId` `4df21f11-d3f2-40fc-9c5f-0fe300f91ff3`과 11:56:33 KST 앱 콜백의 ID가 일치했다. 화면과 앱 저장 기록에서 수신 횟수 1회를 대조했다.
 - 콘솔 발송을 사용했으며 HTTP v1 검증 요청과 공급자 메시지 ID는 관측 범위에 포함되지 않았다. 앱의 실제 콜백을 확인한 실험이며 Notification-Lab의 Worker 발송과 OS 알림 배너는 별도 범위다. 실행 후 전용 에뮬레이터를 종료했고, `build/reports/fcm-smoke/emulator-console.Fu80M8/`에 `console-send.json`, `reconciliation.json`, `received.png`를 보관했다. [실험 방법](FCM_DEVICE_SMOKE.md#firebase-콘솔에서-에뮬레이터-한-대로-보내기)
+
+## 2026-11-19 Notification-Lab Worker의 실제 FCM HTTP v1 실험
+
+- 루프백 비동기 실험용 `FCM` 공급자를 추가했다. 등록 토큰 하나를 파일로 받고 `fcm-smoke-emulator`의 합성 알림 UUID만 전달한다. DB 최대 시도는 1회이며 동일 경로의 신규 마커를 만들 수 있는 실행만 FCM에 POST한다. 응답을 잃어도 마커를 유지한다.
+- 새 로컬 Gradle 테스트 25개가 실패·오류·건너뜀 없이 통과했다. 실제 MySQL·Kafka와 합성 FCM 응답으로 접수, 요청 ID, MySQL 완료 기록, Kafka 오프셋과 접수 재응답을 검증했다. 연결 끊김 뒤 공급자 재호출을 막는 테스트도 포함했다.
+- 전용 Firebase 프로젝트의 임시 역할에는 `cloudmessaging.messages.create`만 넣었다. `firebase.messaging` 범위의 OAuth 토큰으로 발송 없는 검증 요청에서 HTTP 200을 확인한 뒤 MySQL·Kafka를 분리해 실제 접수 1건을 실행했다. Worker는 `55c87392-71a7-4151-93d8-a649a301f830`과 FCM 메시지 이름을 `PROVIDER_ACCEPTED`로 저장했다. Android 앱은 13:28:15 KST에 같은 ID를 데이터에서 1회 읽었다. DB 시도와 Kafka 커밋은 각각 1회, Kafka 미처리는 0건이었다.
+- 실험 컨테이너와 에뮬레이터를 종료했다. 임시 계정의 키 목록이 비고 프로젝트 IAM의 발송 역할 부여가 제거된 것을 확인한 뒤 로컬 키와 토큰을 삭제했다. `build/reports/fcm-worker/live.pAXdfS/`에 발송·수신 대조와 권한 회수 증거를 보관했다. [Worker 실험 절차](FCM_DEVICE_SMOKE.md#notification-lab-worker에서-fcm-http-v1로-보내기)

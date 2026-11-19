@@ -522,7 +522,8 @@ API 제외 후 재접수·본문 충돌, 작업을 비운 Worker 종료 후 6파
 
 ## 한계와 문서
 
-자동 Redis failover, 실제 회원 DB 대상자 조회, 다중 DB/failover 환경의 Batch 복구, 실제 FCM/APNs, 인증과 운영 배포는 아직 구현하지 않았다.
+실제 FCM HTTP v1 경로는 루프백에서 실행하는 단일 Android 에뮬레이터 실험에 한정한다. [Worker 단건 실험](docs/FCM_DEVICE_SMOKE.md#notification-lab-worker에서-fcm-http-v1로-보내기)
+자동 Redis failover, 실제 회원 DB 대상자 조회, 다중 DB/failover 환경의 Batch 복구, APNs, 인증과 운영 배포는 향후 범위다.
 데이터 보관/정리 정책도 없다. 브로커 보관 기간이 지난 미처리 메시지, volume 손실까지 보호하지 않는다.
 
 - [PLAN.md](PLAN.md): 순서와 완료 조건

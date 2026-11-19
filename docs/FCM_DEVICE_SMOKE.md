@@ -1,6 +1,6 @@
 # Android 기기 한 대의 FCM 수신 시험
 
-시험 앱 한 인스턴스에 합성 메시지 한 건을 보내고 발송에 사용한 `smokeId`와 Android 앱이 수신한 값을 대조한다. Firebase 콘솔 방식은 앱 콜백을 검증한다. HTTP v1 발송 도구를 사용하면 요청 검증, 공급자 응답, 앱 콜백 수신을 각각 확인할 수 있다. Notification-Lab의 Worker에서 FCM을 호출하는 경로와 OS 알림 배너 표시는 별도 검증 범위다. [FCM 메시지 전송](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages/send) · [Android 수신 처리](https://firebase.google.com/docs/cloud-messaging/android/receive-messages)
+시험 앱 한 인스턴스에 합성 메시지 한 건을 보내고 발송에 사용한 `smokeId`와 Android 앱이 수신한 값을 대조한다. Firebase 콘솔 방식은 앱 콜백을, Worker 방식은 API 접수부터 Kafka·FCM을 거친 앱 콜백까지 확인한다. OS 알림 배너 표시는 별도 검증 범위다. [FCM 메시지 전송](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages/send) · [Android 수신 처리](https://firebase.google.com/docs/cloud-messaging/android/receive-messages)
 
 ## 시험 환경 연결
 
@@ -33,7 +33,29 @@ build/fcm-smoke-private/venv/bin/python -m pip install -r tools/fcm-smoke/requir
 
 2026-11-19 서울 시간 11:56:31에 콘솔에서 전용 에뮬레이터 한 대에 발송을 한 번 요청했다. 앱은 11:56:33에 제목의 `4df21f11-d3f2-40fc-9c5f-0fe300f91ff3`을 1회 수신했다. 앱 저장 기록과 화면에서 같은 ID와 횟수를 확인했다.
 
-## HTTP v1로 한 건 발송과 대조
+## Notification-Lab Worker에서 FCM HTTP v1로 보내기
+
+루프백에 바인딩한 비동기 앱과 실험 전용 MySQL·Kafka를 사용한다. 아래 `FCM_DEVICE_TOKEN_FILE`은 등록 토큰 하나를 담은 비공개 파일, `FCM_ACCESS_TOKEN_FILE`은 `firebase.messaging` 범위의 짧은 수명 토큰을 담은 비공개 파일이다. `FCM_SEND_MARKER`에는 부모 디렉터리가 있고 파일 자체는 아직 존재하지 않는 경로를 사용한다. Worker는 FCM 호출 전에 마커를 원자적으로 만들고, 결과가 불명확해도 그대로 둔다. 같은 마커 경로를 사용한 재실행에서도 두 번째 POST를 막는다. [FCM 접근 범위와 전송 요청](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages/send)
+
+```sh
+./gradlew --no-daemon --console=plain bootJar
+java -jar build/libs/notification-lab-0.3.0-SNAPSHOT.jar \
+  --server.address=127.0.0.1 --app.provider.mode=FCM --app.delivery.max-attempts=1 \
+  --app.provider.fcm.project-id="$FCM_PROJECT_ID" \
+  --app.provider.fcm.device-token-file="$FCM_DEVICE_TOKEN_FILE" \
+  --app.provider.fcm.access-token-file="$FCM_ACCESS_TOKEN_FILE" \
+  --app.provider.fcm.send-marker="$FCM_SEND_MARKER" \
+  --logging.level.org.apache.hc.client5.http.headers=OFF \
+  --logging.level.org.apache.hc.client5.http.wire=OFF
+```
+
+1. 등록이 끝난 전용 에뮬레이터의 시험 앱을 열어 둔다. 필요하면 발송 없는 `validate_only` 요청으로 권한과 기기 등록을 먼저 확인한다.
+2. `POST /notifications`에 `recipientId`가 `fcm-smoke-emulator`인 합성 알림 한 건을 접수하고 `202` 응답의 `notificationId`를 기록한다. Worker는 그 UUID를 `data.smokeId`로 보낸다.
+3. `GET /notifications/{id}`의 `PROVIDER_ACCEPTED`와 FCM 메시지 이름, `GET /notifications/{id}/delivery`의 시도 횟수, Kafka 커밋, 앱 화면의 동일한 수신 ID와 수신 횟수를 대조한다. 메시지 이름은 공급자가 부여하고 `smokeId`는 Notification-Lab에서 부여한다.
+
+2026-11-19 실험에서 MySQL·Kafka를 거친 Worker의 실제 발송 1건이 수락됐다. Worker와 Android 앱의 ID는 `55c87392-71a7-4151-93d8-a649a301f830`으로 일치했다. 시도·수신·Kafka 커밋은 각각 1회였고 Kafka 미처리는 0건이었다. 대량 실험은 HTTP Mock으로 실행한다.
+
+## 독립 HTTP v1 발송 도구
 
 `FCM_PROJECT_ID`에는 등록 토큰과 같은 프로젝트의 ID를 사용한다. 먼저 `validate_only` 요청을 실행한다.
 
