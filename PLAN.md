@@ -351,7 +351,7 @@ Consumer 문서의 운영 기본3 설명은 당시/현재 설정 원본에 맞�
 - [x] HTTP Mock에 공급자 호출 멱등성 키 적용. 같은 서울 EC2 장애에서 최초 수락 3회, 기존 수락 재응답 1회, 중복 수락 0회 확인
 - [x] Mock 수락 결과를 파일에 저장하고 MySQL 중단 중 Mock을 강제 종료. 서울 EC2에서 기존 수락 1건 복구, 재응답 1회, 중복 수락 0회 확인
 - [x] Mock 수락 직후 MySQL이 응답하지 않는 상태에서 서울 EC2 중지·시작. 기존 EBS의 수락 ID와 재처리 후 MySQL 공급자 ID 일치, 알림 3건 완료, 중복 수락·유실 0건 확인
-- [ ] 실제 FCM 연동은 본인 테스트 디바이스에 한정, 대량 부하는 HTTP Mock 사용
+- [ ] 실제 FCM 연동은 본인 테스트 디바이스에 한정, 대량 부하는 HTTP Mock 사용. [Android 한 대의 수락·수신 검증 절차](docs/FCM_DEVICE_SMOKE.md)
 
 [S9 로컬 검증](docs/S9_LOCAL_TOPOLOGY.md)에 실제 HAProxy/4개 JVM 시나리오를 추가했다. 전체 회귀397개와 표본 강화 후 집중1개를 통과했다.
 실제 timed commit Wakeup1회 뒤 동일 offset 재시도와 HTTP/DB/offset 정합성을 확인했다. 단말 도착·호스트 HA·처리량 검증은 아니다.

@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Notification Lab FCM 시험</string>
+    <string name="screen_title">Notification Lab · FCM 수신 시험</string>
+    <string name="registration_pending">기기 등록 확인 중</string>
+    <string name="project_required">Firebase 프로젝트 연결 정보가 필요해요.</string>
+    <string name="registration_ready">기기 등록 완료</string>
+    <string name="registration_failed">기기 등록 실패. 프로젝트 연결과 Google Play 서비스를 확인하세요.</string>
+    <string name="receipt_pending">수신 대기 중</string>
+    <string name="receipt">수신 ID  %1$s\n수신 시각  %2$s\n수신 횟수  %3$d</string>
+</resources>

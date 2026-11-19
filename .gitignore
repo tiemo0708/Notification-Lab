@@ -8,3 +8,6 @@ build/
 *.log
 .DS_Store
 scripts/__pycache__/
+/tools/fcm-smoke/__pycache__/
+/tools/fcm-smoke/android/google-services.json
+/tools/fcm-smoke/android/local.properties

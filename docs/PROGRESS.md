@@ -3302,3 +3302,9 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - Mac의 Java 21과 Docker 29.9.2에서 `./gradlew --no-daemon --console=plain build --rerun-tasks`를 실행했다. 18분 34초에 완료했고 새 JUnit 테스트 403개 통과, 실패·오류·건너뜀 각각 0개였다. 앱과 HTTP Mock 실행 JAR를 새로 생성했다.
 - 실제 MySQL·Kafka를 쓴 Worker 재개 테스트에서 미커밋 작업이 같은 소비자로 처리됐다. HTTP 타임아웃 뒤 재요청과 H2 파일을 다시 열었을 때의 동일 수락 ID 반환도 통과했다.
 - 첫 전체 실행은 403개 중 2개가 실패했다. 로그에 사용한 `umask 077`이 테스트에 상속돼 Prometheus·HAProxy 설정 파일이 소유자만 읽을 수 있는 모드로 생성됐다. Prometheus의 설정 읽기 거부를 컨테이너 로그로 확인했다. Gradle을 기본 `umask 022`로 다시 실행하자 두 통합 테스트도 통과했다.
+
+## 2026-11-19 Android FCM 단건 수신 시험 준비
+
+- Android 앱 한 인스턴스가 `smokeId`를 수신하면 ID·UTC 시각·같은 ID의 수신 횟수를 앱 화면에 표시한다. 별도 발송 도구는 기본값으로 FCM 요청 검증을 수행하며 `--send`를 지정하면 한 번만 발송한다. 서버 응답과 앱 콜백은 각각 기록한다.
+- Android 디버그 APK 빌드와 lint를 통과했다. 합성 설정 파일에서 Firebase 앱 ID 리소스가 생성되는 것도 확인했다. 기존 Android API 34 기본 이미지로 새 로컬 에뮬레이터를 만들어 APK 설치와 연결 대기 화면을 확인했다. Python 모의 테스트 7개와 ADC가 없을 때 토큰을 출력하지 않고 중단되는 경로를 확인했다.
+- Firebase 콘솔은 현재 계정의 2단계 인증을 요구했다. FCM 수신용 Google APIs 에뮬레이터 이미지는 Android SDK 약관 동의가 필요했다. 전용 Firebase 프로젝트 연결과 실제 FCM 수락·Android 콜백 관측은 대기 중이다. [실행 절차](FCM_DEVICE_SMOKE.md)
