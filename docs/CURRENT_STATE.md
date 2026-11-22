@@ -1,6 +1,6 @@
 # 현재 작업 진입점
 
-기준일: 2026-11-19. 이 파일은 탐색용 요약이며 완료 근거는 연결된 원본에서 확인한다.
+기준일: 2026-11-23. 이 파일은 탐색용 요약이며 완료 근거는 연결된 원본에서 확인한다.
 
 ## 현재 구현과 다음 작업
 
@@ -19,6 +19,7 @@
 - 2026-11-19에 Mock 수락 직후 MySQL 응답을 중단하고 서울 EC2를 중지·시작했다. 같은 EBS의 H2에 남은 최초 수락 ID가 Worker 재처리 후 MySQL에 저장된 공급자 ID와 일치했다. 합성 알림 3건 완료, Mock 최초 수락 3회·기존 결과 재응답 1회, 유실·중복 수락·Kafka 미처리 각각 0건이었다. 실험 서비스를 종료하고 SSH 규칙을 원복했다. [EC2 중지·시작 검증 결과](S9_SEPARATE_HOST_PREPARATION.md#ec2-중지시작-후-ebs-수락-기록-검증)
 - Worker 자동 재개와 HTTP Mock 멱등성 변경을 포함한 로컬 전체 빌드에서 테스트 403개를 새로 실행해 모두 통과했다. [전체 회귀 검증 기록](PROGRESS.md#2026-11-19-정합성-변경-전체-회귀-검증)
 - 전용 Firebase 프로젝트와 Android API 34 Google APIs 에뮬레이터를 연결했다. 콘솔 단건 검증에 이어 Notification-Lab Worker가 FCM HTTP v1로 실제 발송 1건을 수락받았다. 앱의 `smokeId`는 Worker의 알림 ID와 같고, 수신과 Kafka 요청 커밋은 각각 1회였다. 실험용 키와 발송 권한은 회수했다. [Worker 단건 결과](FCM_DEVICE_SMOKE.md#notification-lab-worker에서-fcm-http-v1로-보내기)
+- 마감에 여유 있는 캠페인에 `campaign-flexible` 프로필을 선택할 수 있다. UUID를 지정한 Batch 명령으로 초기 Outbox를 최대 100명씩 저장하고, 별도 캠페인 JVM의 소비와 동시 발송 상한을 2로 실행한다. 기존 실시간 3개 실행 인자와 MySQL 내구성 설정을 유지한다. [적용 절차](S7_CAMPAIGN_BATCH.md#마감에-여유-있는-대형-캠페인)
 
 ## 작업별로 읽을 자료
 

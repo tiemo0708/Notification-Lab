@@ -6,6 +6,7 @@ import com.github.dockerjava.api.model.Ports;
 import dev.jinhyeon.notificationlab.NotificationLabApplication;
 import com.sun.net.httpserver.HttpServer;
 import dev.jinhyeon.notificationlab.config.TrafficRouting;
+import dev.jinhyeon.notificationlab.config.WorkerProperties;
 import dev.jinhyeon.notificationlab.outbox.PipelineMetrics;
 import dev.jinhyeon.notificationlab.outbox.OutboxRelay;
 import org.springframework.core.io.ClassPathResource;
@@ -24,6 +25,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.DriverManager;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -120,6 +122,28 @@ class TrafficIsolationIntegrationTest {
             redis.eval(new ClassPathResource("redis/initialize-split-quota.lua").getContentAsString(StandardCharsets.UTF_8),
                     List.of(quotaKey), List.of("10", "10", "2", "2"));
         }
+    }
+
+    @Test
+    void flexibleCampaignUsesTwoWorkersAlongsideThreeRealtimeWorkers() throws Exception {
+        realtime = application("REALTIME", "--app.worker.consumers=3", "--app.worker.max-active=3");
+        campaign = applicationWithRole("--spring.profiles.active=campaign-flexible");
+        await().atMost(Duration.ofSeconds(20)).until(() -> assigned(realtime) == 6 && assigned(campaign) == 6);
+
+        assertThat(container(realtime).getContainers()).hasSize(3);
+        assertThat(container(campaign).getContainers()).hasSize(2);
+        assertThat(realtime.getBean(WorkerProperties.class).maxActive()).isEqualTo(3);
+        assertThat(campaign.getBean(WorkerProperties.class).maxActive()).isEqualTo(2);
+        assertThat(realtime.getBean(TrafficRouting.class).group()).isEqualTo(topic);
+        assertThat(campaign.getBean(TrafficRouting.class).group()).isEqualTo(topic + ".campaign");
+
+        var bulk = create(campaign, "CAMPAIGN", null);
+        var urgent = create(realtime, "REALTIME", null);
+        await().atMost(Duration.ofSeconds(15)).until(() -> offsets(campaign) == 1 && offsets(realtime) == 1);
+        assertThat(status(bulk)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(status(urgent)).isEqualTo("PROVIDER_ACCEPTED");
+        assertThat(campaignCalls.get()).isEqualTo(1);
+        assertThat(realtimeCalls.get()).isEqualTo(1);
     }
 
     @Test
@@ -267,18 +291,28 @@ class TrafficIsolationIntegrationTest {
         await().atMost(Duration.ofSeconds(20)).until(() -> assigned(realtime) == 6 && assigned(campaign) == 6);
     }
 
-    private ServletWebServerApplicationContext application(String lane) {
-        return (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class).run(
-                "--server.port=0", "--app.provider.mode=HTTP", "--app.traffic.split-enabled=true", "--app.traffic.lane=" + lane,
+    private ServletWebServerApplicationContext application(String lane, String... options) {
+        var arguments = new ArrayList<>(List.of("--app.traffic.split-enabled=true", "--app.traffic.lane=" + lane,
+                "--app.rate-limit.client-enabled=true"));
+        arguments.addAll(List.of(options));
+        return applicationWithRole(arguments.toArray(String[]::new));
+    }
+
+    private ServletWebServerApplicationContext applicationWithRole(String... options) {
+        var arguments = new ArrayList<>(List.of(
+                "--server.port=0", "--app.provider.mode=HTTP",
                 "--app.provider.http.base-url=http://127.0.0.1:" + server.getAddress().getPort(),
                 "--app.provider.http.max-connections=1", "--app.provider.http.response-timeout-ms=5000", "--app.provider.http.deadline-ms=10000",
                 "--spring.datasource.url=" + url, "--spring.datasource.username=root", "--spring.datasource.password=" + MYSQL.getPassword(),
                 "--spring.kafka.bootstrap-servers=" + KAFKA.getBootstrapServers(), "--app.async.topic=" + topic, "--app.async.group=" + topic,
-                "--app.rate-limit.client-enabled=true", "--app.rate-limit.pause-enabled=true",
+                "--app.rate-limit.pause-enabled=true",
                 "--app.rate-limit.port=" + REDIS.getMappedPort(6379), "--app.rate-limit.key=" + quotaKey,
                 "--app.rate-limit.rate-per-second=10", "--app.rate-limit.burst=10", "--app.rate-limit.timeout-ms=250",
                 "--app.delivery.max-attempts=2", "--app.delivery.retry-base-delay-ms=100", "--app.delivery.retry-max-delay-ms=100",
-                "--logging.level.root=WARN", "--spring.main.banner-mode=off");
+                "--logging.level.root=WARN", "--spring.main.banner-mode=off"));
+        arguments.addAll(List.of(options));
+        return (ServletWebServerApplicationContext) new SpringApplicationBuilder(NotificationLabApplication.class)
+                .run(arguments.toArray(String[]::new));
     }
 
     @AfterEach

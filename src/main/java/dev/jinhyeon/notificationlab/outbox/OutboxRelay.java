@@ -114,7 +114,7 @@ public class OutboxRelay {
                         var ack = Timer.start(registry);
                         try {
                             // No surrounding DB transaction. Only confirmed ACKs can become PUBLISHED.
-                            kafka.send(routing.destination(claim.eventType()), claim.notificationId(), claim.payload()).get(ackWaitNanos, TimeUnit.NANOSECONDS);
+                            kafka.send(routing.destination(claim.eventType()), claim.kafkaKey(), claim.payload()).get(ackWaitNanos, TimeUnit.NANOSECONDS);
                         } finally {
                             ack.stop(ackTime);
                         }
@@ -172,7 +172,7 @@ public class OutboxRelay {
                     }
                     long started = System.nanoTime();
                     try {
-                        var future = kafka.send(routing.destination(claim.eventType()), claim.notificationId(), claim.payload());
+                        var future = kafka.send(routing.destination(claim.eventType()), claim.kafkaKey(), claim.payload());
                         pending.add(new Pending(claim, future, started));
                         if (future.isCompletedExceptionally()) {
                             halt = true;

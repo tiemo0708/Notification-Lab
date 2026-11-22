@@ -1,5 +1,6 @@
 package dev.jinhyeon.notificationlab.config;
 
+import dev.jinhyeon.notificationlab.campaign.CampaignChunk;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -21,7 +22,7 @@ public record AsyncProperties(@NotBlank String topic, @NotBlank String retryTopi
 
     public String destination(String eventType) {
         return switch (eventType) {
-            case "NOTIFICATION_REQUESTED" -> topic;
+            case "NOTIFICATION_REQUESTED", CampaignChunk.EVENT_TYPE -> topic;
             case "NOTIFICATION_RETRY" -> retryTopic;
             case "NOTIFICATION_DEAD_LETTER" -> deadLetterTopic;
             default -> throw new IllegalArgumentException("Unsupported outbox event type");

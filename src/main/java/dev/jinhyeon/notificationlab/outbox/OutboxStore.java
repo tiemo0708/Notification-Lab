@@ -24,7 +24,9 @@ public class OutboxStore {
         this.traffic = traffic;
     }
 
-    public record Claim(String eventId, String notificationId, String payload, String token, int attempt, String eventType) { }
+    public record Claim(String eventId, String notificationId, String payload, String token, int attempt, String eventType) {
+        public String kafkaKey() { return notificationId == null ? eventId : notificationId; }
+    }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<Claim> claim(int maxAttempts) {

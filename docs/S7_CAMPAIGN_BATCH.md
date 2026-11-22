@@ -38,6 +38,40 @@ Reader의 update에서 마지막 순번을 ExecutionContext에 넣으며, 커밋
 Batch 명령 자체는 Relay/Worker를 끈다. 명령 종료 시 그 프로세스의 미전송 메모리 작업에 의존하지 않는다.
 Relay/Worker 앱을 따로 켜 두면 커밋된 앞 chunk부터 처리될 수 있으므로, **나중 chunk 실패가 이미 인계된 발송을 취소하지 않는다.**
 
+### 캠페인 Outbox 100명 묶음
+
+기본값은 대상당 Outbox 한 건이다. 새 캠페인의 Batch 명령에 `APP_CAMPAIGN_BATCH_GROUPED_OUTBOX=true`를 지정하면 최대 100명의 초기
+발송을 Outbox 한 행에 담는다. 마지막 묶음은 남은 대상 수만 담는다. 묶음 모드는 저장과 체크포인트도
+100명 단위로 커밋한다. 같은 캠페인을 재개할 때는 처음 실행에 기록한 발행 형식을 사용한다.
+사용 전에 Flyway V10을 적용하고 Relay와 Worker를 묶음 이벤트를 읽을 수 있는 버전으로 실행한다.
+
+마감 전에 대상 확장과 발송을 끝낼 여유가 있는 새 대형 캠페인은 [워커 2개 실행 절차](#마감에-여유-있는-대형-캠페인)로 시작한다. 캠페인 완료 시간과 발송 중 실시간 API 접수 p95가 각각 서비스 목표를 충족할 때 적용 범위를 넓힌다.
+
+묶음은 캠페인 ID와 첫 대상 순번으로 식별하고, 대상별 알림·발송 작업은 같은 DB 트랜잭션에 저장한다.
+Relay는 묶음 이벤트 ID를 Kafka 키로 쓴다. 워커는 묶음의 대상 매핑을 읽고 각 대상의 발송 예산,
+시도 이력, 결과와 재시도를 개별 처리한다. 묶음 레코드의 오프셋은 모든 대상의 결과 또는
+재시도 인계가 커밋된 뒤 반영된다. 다시 소비하면 완료되거나 재시도로 인계된 대상을 건너뛴다.
+처리가 길어지면 대상 사이에서 같은 레코드를 보유한 채 잠시 소비를 미룬다.
+
+1만 건 비교 조건과 발송 결과는 [HTTP 발송 사전 실험](S7_DELIVERY_PILOT.md)을 참고한다.
+수신자 묶음을 Kafka 메시지로 만드는 사례는 [Grab 기술 블로그](https://engineering.grab.com/supporting-large-campaigns-at-scale)에 설명돼 있다.
+
+### 마감에 여유 있는 대형 캠페인
+
+로컬 100만 건에서 캠페인 워커를 3개에서 2개로 조정하자 발송 시간은 2시간 15분에서 2시간 44분으로 늘었다. 같은 시간 구간의 실시간 접수 p95는 228.3ms에서 21.7ms로, JDBC 커밋 p95는 33.5ms에서 7.9ms로 낮아졌다. 마감 여유를 판단할 때는 사전 대상 확장 시간과 발송 시간, 재시도 여유를 합산한다. [적용 근거와 검증](PROGRESS.md#2026-11-23-마감-여유가-있는-캠페인의-선택-실행)
+
+`campaign-flexible`은 캠페인 JVM의 Kafka 소비자 수와 동시 발송 상한을 각각 2로 설정한다. 같은 캠페인 토픽과 consumer group을 쓰므로 이미 큐에 들어간 작업도 그 기간에는 같은 상한을 공유한다. 이전 캠페인의 미발행 Outbox와 Kafka 요청·재시도를 소진한 뒤 선택한 캠페인 하나를 시작한다. 발송이 끝날 때까지 마감이 촉박한 캠페인의 실행을 겹치지 않는다.
+
+1. [S6 역할 실행](S6_TRAFFIC_ISOLATION.md#실행과-전환)의 공용 DB·Kafka·Redis 설정을 사용한다. 캠페인 Relay와 Worker를 Flyway V10 및 묶음 이벤트를 지원하는 버전으로 올린다. 실시간 JVM은 소비자와 동시 발송 상한을 각각 3으로 유지한다.
+2. 기존 캠페인 JVM을 정상 종료하고 `--spring.profiles.active=campaign-flexible`을 붙여 캠페인 JVM 한 대를 실행한다. `app.worker.consumers`와 `app.worker.max-active`를 덮어쓰는 실행 인자나 환경 설정이 있다면 그 JVM에서 빼서 프로필의 2가 적용되게 한다. 사용하던 연결, quota, 공급자 설정을 이어서 사용한다.
+3. 대상 캠페인에 `/campaigns/{id}/start`를 호출한 뒤 해당 UUID를 지정해 Batch를 실행한다. 프로필은 캠페인 JVM과 아래 명령에만 지정한다.
+
+```bash
+SPRING_PROFILES_ACTIVE=campaign-flexible ./gradlew campaignBatch --args='선택한_캠페인_UUID'
+```
+
+MySQL의 내구성 설정은 기존 값을 사용한다. 실험에서 확인한 값은 `log_bin=1`, `sync_binlog=1`, `innodb_flush_log_at_trx_commit=1`이었다. 캠페인의 대상별 완료, 미발행 Outbox, Kafka lag와 발송 중 실시간 접수 p95를 함께 확인한다. 이후 캠페인 JVM을 기존 워커 3개 인자로 재시작하면 같은 consumer group에서 이어받으며, 이미 저장된 발행 형식과 재개 위치는 유지된다.
+
 ## 실행과 조회
 
 기존 [S6 역할 실행](S6_TRAFFIC_ISOLATION.md)과 [캠페인 API](S7_CAMPAIGN_API.md)를 따른다.
@@ -47,6 +81,9 @@ MySQL/Kafka 연결 환경을 설정하고, 생성 후 `/campaigns/{id}/start`를
 ```bash
 # 시작 요청을 저장한 캠페인 한 개만 실행
 ./gradlew campaignBatch --args='생성한_UUID'
+
+# 새 캠페인 한 개의 첫 실행에만 묶음 옵션 지정
+APP_CAMPAIGN_BATCH_GROUPED_OUTBOX=true ./gradlew campaignBatch --args='선택한_캠페인_UUID'
 
 # 동일 명령: FAILED/STOPPED는 마지막 커밋에서 재시작, COMPLETED는 기존 결과 반환
 ./gradlew campaignBatch --args='같은_UUID'

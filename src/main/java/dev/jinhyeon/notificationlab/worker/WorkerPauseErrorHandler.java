@@ -85,6 +85,9 @@ public class WorkerPauseErrorHandler extends CommonContainerStoppingErrorHandler
         ensureRunning();
         Throwable cause = failure;
         for (int depth = 0; cause != null && depth < 8; depth++, cause = cause.getCause()) {
+            if (cause instanceof NotificationWorker.ChunkDeferred) {
+                return defer(failure, record, consumer, container, 10, "campaign.chunk");
+            }
             if (cause instanceof WorkerDatabaseUnavailable) {
                 return defer(failure, record, consumer, container, DATABASE_PROBE_INTERVAL_MS, "database");
             }

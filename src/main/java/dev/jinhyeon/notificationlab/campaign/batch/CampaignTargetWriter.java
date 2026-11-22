@@ -2,6 +2,7 @@ package dev.jinhyeon.notificationlab.campaign.batch;
 
 import dev.jinhyeon.notificationlab.campaign.Campaign;
 import dev.jinhyeon.notificationlab.campaign.CampaignAudiencePage.Target;
+import dev.jinhyeon.notificationlab.campaign.CampaignChunk;
 import java.nio.charset.StandardCharsets;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
@@ -13,11 +14,17 @@ public class CampaignTargetWriter implements ItemWriter<Target> {
     private final Campaign campaign;
     private final JdbcTemplate jdbc;
     private final int maxAttempts;
+    private final boolean groupedOutbox;
 
     public CampaignTargetWriter(Campaign campaign, JdbcTemplate jdbc, int maxAttempts) {
+        this(campaign, jdbc, maxAttempts, false);
+    }
+
+    public CampaignTargetWriter(Campaign campaign, JdbcTemplate jdbc, int maxAttempts, boolean groupedOutbox) {
         this.campaign = campaign;
         this.jdbc = jdbc;
         this.maxAttempts = maxAttempts;
+        this.groupedOutbox = groupedOutbox;
     }
 
     @Override
@@ -26,25 +33,53 @@ public class CampaignTargetWriter implements ItemWriter<Target> {
             throw new IllegalStateException("Campaign writer requires a chunk transaction");
         }
         try {
-            for (Target target : chunk) persist(target);
+            String chunkEventId = groupedOutbox && !chunk.isEmpty() ? storeChunk(chunk) : null;
+            for (Target target : chunk) persist(target, chunkEventId);
         } catch (DataAccessException failure) {
             // Spring Batch logs/persists failures. Never attach SQL/bound payloads as a cause.
             throw new IllegalStateException("Campaign chunk storage failed: " + failure.getClass().getSimpleName());
         }
     }
 
-    private void persist(Target target) {
+    private String storeChunk(Chunk<? extends Target> targets) {
+        var chunk = new CampaignChunk(campaign.campaignId(), targets.getItems().getFirst().ordinal(), targets.size());
+        if (chunk.targetCount() != Math.min(CampaignChunk.SIZE, campaign.targetCount() - chunk.firstOrdinal() + 1)) {
+            throw new IllegalStateException("Incomplete campaign chunk");
+        }
+        long ordinal = chunk.firstOrdinal();
+        for (Target target : targets) {
+            if (target.ordinal() != ordinal++) throw new IllegalStateException("Noncontiguous campaign chunk");
+        }
+        String eventId = chunk.eventId().toString();
+        Integer existing = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM outbox_event WHERE event_id=? AND event_type=?
+                    AND payload->>'$.campaignId'=? AND payload->>'$.firstOrdinal'=? AND payload->>'$.targetCount'=?
+                """, Integer.class, eventId, CampaignChunk.EVENT_TYPE, chunk.campaignId().toString(),
+                chunk.firstOrdinal(), chunk.targetCount());
+        if (existing == 0) {
+            jdbc.update("""
+                    INSERT INTO outbox_event (event_id, event_type, payload, traffic_class, created_at, available_at)
+                    VALUES (?, ?, JSON_OBJECT('schemaVersion', 1, 'eventType', ?, 'eventId', ?,
+                        'campaignId', ?, 'firstOrdinal', ?, 'targetCount', ?), 'CAMPAIGN', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))
+                    """, eventId, CampaignChunk.EVENT_TYPE, CampaignChunk.EVENT_TYPE, eventId,
+                    chunk.campaignId().toString(), chunk.firstOrdinal(), chunk.targetCount());
+        }
+        return eventId;
+    }
+
+    private void persist(Target target, String chunkEventId) {
         if (target.ordinal() < 1 || target.ordinal() > campaign.targetCount()
                 || !target.recipientId().equals("synthetic-v1-" + target.ordinal())) {
             throw new IllegalStateException("Invalid campaign target");
         }
         var ids = CampaignTargetIds.of(campaign.campaignId(), target.ordinal());
+        String eventId = chunkEventId == null ? ids.eventId().toString() : chunkEventId;
         var existing = jdbc.query("""
                 SELECT c.notification_id, c.task_id, c.event_id, n.recipient_id, n.title, n.body, n.traffic_class
                 FROM campaign_target c JOIN notification n ON n.notification_id = c.notification_id
                 WHERE c.campaign_id = ? AND c.target_ordinal = ?
                 """, (rs, row) -> ids.notificationId().toString().equals(rs.getString(1))
-                && ids.taskId().toString().equals(rs.getString(2)) && ids.eventId().toString().equals(rs.getString(3))
+                && ids.taskId().toString().equals(rs.getString(2)) && eventId.equals(rs.getString(3))
                 && target.recipientId().equals(rs.getString(4)) && campaign.title().equals(rs.getString(5))
                 && campaign.body().equals(rs.getString(6)) && "CAMPAIGN".equals(rs.getString(7)),
                 campaign.campaignId().toString(), target.ordinal());
@@ -63,16 +98,18 @@ public class CampaignTargetWriter implements ItemWriter<Target> {
                 VALUES (?, ?, ?, ?, UTC_TIMESTAMP(6))
                 """, ids.taskId().toString(), ids.notificationId().toString(),
                 target.recipientId().getBytes(StandardCharsets.UTF_8), maxAttempts);
-        jdbc.update("""
-                INSERT INTO outbox_event (event_id, notification_id, event_type, payload, traffic_class, created_at, available_at)
-                VALUES (?, ?, 'NOTIFICATION_REQUESTED', JSON_OBJECT('schemaVersion', 2,
-                    'eventId', ?, 'notificationId', ?, 'taskId', ?), 'CAMPAIGN', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))
-                """, ids.eventId().toString(), ids.notificationId().toString(), ids.eventId().toString(),
-                ids.notificationId().toString(), ids.taskId().toString());
+        if (chunkEventId == null) {
+            jdbc.update("""
+                    INSERT INTO outbox_event (event_id, notification_id, event_type, payload, traffic_class, created_at, available_at)
+                    VALUES (?, ?, 'NOTIFICATION_REQUESTED', JSON_OBJECT('schemaVersion', 2,
+                        'eventId', ?, 'notificationId', ?, 'taskId', ?), 'CAMPAIGN', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))
+                    """, eventId, ids.notificationId().toString(), eventId,
+                    ids.notificationId().toString(), ids.taskId().toString());
+        }
         jdbc.update("""
                 INSERT INTO campaign_target (campaign_id, target_ordinal, notification_id, task_id, event_id)
                 VALUES (?, ?, ?, ?, ?)
                 """, campaign.campaignId().toString(), target.ordinal(), ids.notificationId().toString(),
-                ids.taskId().toString(), ids.eventId().toString());
+                ids.taskId().toString(), eventId);
     }
 }

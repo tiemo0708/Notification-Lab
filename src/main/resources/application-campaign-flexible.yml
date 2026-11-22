@@ -1,0 +1,13 @@
+app:
+  traffic:
+    lane: CAMPAIGN
+    split-enabled: true
+  rate-limit:
+    client-enabled: true
+  worker:
+    consumers: 2
+    max-active: 2
+  campaign:
+    batch:
+      # Applied only when the explicit command expands a selected campaign.
+      grouped-outbox: true

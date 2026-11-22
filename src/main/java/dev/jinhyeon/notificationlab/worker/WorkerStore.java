@@ -1,11 +1,13 @@
 package dev.jinhyeon.notificationlab.worker;
 
+import dev.jinhyeon.notificationlab.campaign.CampaignChunk;
 import dev.jinhyeon.notificationlab.config.TrafficProperties;
 import dev.jinhyeon.notificationlab.notification.Notification;
 import dev.jinhyeon.notificationlab.notification.NotificationStatus;
 import dev.jinhyeon.notificationlab.notification.NotificationStore;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.context.annotation.Profile;
@@ -36,6 +38,32 @@ public class WorkerStore {
     }
     private record Task(String id, int attempts, int limit, int generation) { }
 
+    record ChunkTarget(long ordinal, UUID notificationId, UUID taskId, boolean pending) { }
+
+    @Transactional(readOnly = true)
+    public List<ChunkTarget> campaignTargets(CampaignChunk chunk) {
+        if (traffic.lane() != TrafficProperties.Lane.CAMPAIGN) {
+            throw new IllegalStateException("Campaign chunk reached the wrong lane");
+        }
+        var targets = jdbc.query("""
+                SELECT c.target_ordinal, c.notification_id, c.task_id,
+                    t.retry_generation=0 AND n.status IN ('QUEUED', 'PROCESSING', 'WAITING_RETRY') AS pending
+                FROM campaign_target c JOIN outbox_event o ON o.event_id=c.event_id
+                JOIN notification n ON n.notification_id=c.notification_id AND n.traffic_class='CAMPAIGN'
+                JOIN delivery_task t ON t.task_id=c.task_id AND t.notification_id=n.notification_id
+                WHERE c.event_id=? AND c.campaign_id=? AND o.event_type='CAMPAIGN_CHUNK_REQUESTED'
+                ORDER BY c.target_ordinal LIMIT ?
+                """, (rs, row) -> new ChunkTarget(rs.getLong(1), UUID.fromString(rs.getString(2)),
+                UUID.fromString(rs.getString(3)), rs.getBoolean(4)),
+                chunk.eventId().toString(), chunk.campaignId().toString(), CampaignChunk.SIZE + 1);
+        if (targets.size() != chunk.targetCount()) throw new IllegalStateException("Campaign chunk size mismatch");
+        long ordinal = chunk.firstOrdinal();
+        for (var target : targets) {
+            if (target.ordinal() != ordinal++) throw new IllegalStateException("Campaign chunk target mismatch");
+        }
+        return targets;
+    }
+
     @Transactional
     public Optional<Claim> claim(UUID id, UUID eventId, String token) {
         return claim(id, eventId, token, null);
@@ -48,8 +76,14 @@ public class WorkerStore {
 
     @Transactional
     public Optional<Claim> claim(UUID id, UUID eventId, String token, UUID expectedTaskId, boolean sendPermitted) {
+        return claim(id, eventId, token, expectedTaskId, sendPermitted, false);
+    }
+
+    @Transactional
+    public Optional<Claim> claim(UUID id, UUID eventId, String token, UUID expectedTaskId,
+                                 boolean sendPermitted, boolean grouped) {
         try {
-            return claimInTransaction(id, eventId, token, expectedTaskId, sendPermitted);
+            return claimInTransaction(id, eventId, token, expectedTaskId, sendPermitted, grouped);
         } catch (DataAccessException failure) {
             // A commit error from the transaction proxy has an uncertain outcome.
             if (WorkerDatabaseUnavailable.isConnectionFailure(failure)) throw new WorkerDatabaseUnavailable();
@@ -57,7 +91,8 @@ public class WorkerStore {
         }
     }
 
-    private Optional<Claim> claimInTransaction(UUID id, UUID eventId, String token, UUID expectedTaskId, boolean sendPermitted) {
+    private Optional<Claim> claimInTransaction(UUID id, UUID eventId, String token, UUID expectedTaskId,
+                                              boolean sendPermitted, boolean grouped) {
         // One lock order for every claim/completion; no provider I/O while this lock is held.
         var roles = jdbc.queryForList("SELECT traffic_class FROM notification WHERE notification_id = ? FOR UPDATE",
                 String.class, id.toString());
@@ -66,7 +101,10 @@ public class WorkerStore {
             throw new IllegalStateException("Worker traffic class mismatch");
         }
         Notification notification = notifications.find(id).orElseThrow();
-        var events = jdbc.queryForList("""
+        var events = grouped ? jdbc.queryForList("""
+                SELECT o.retry_generation FROM campaign_target c JOIN outbox_event o ON o.event_id = c.event_id
+                WHERE c.notification_id = ? AND c.event_id = ? AND o.event_type = 'CAMPAIGN_CHUNK_REQUESTED'
+                """, Integer.class, id.toString(), eventId.toString()) : jdbc.queryForList("""
                 SELECT retry_generation FROM outbox_event WHERE event_id = ? AND notification_id = ?
                     AND event_type IN ('NOTIFICATION_REQUESTED', 'NOTIFICATION_RETRY')
                 """, Integer.class, eventId.toString(), id.toString());
@@ -184,16 +222,24 @@ public class WorkerStore {
         String eventId = UUID.randomUUID().toString();
         int inserted = jdbc.update("""
                 INSERT INTO outbox_event (event_id, notification_id, event_type, payload, traffic_class, created_at, available_at)
-                SELECT ?, notification_id, 'NOTIFICATION_DEAD_LETTER',
+                SELECT ?, ?, 'NOTIFICATION_DEAD_LETTER',
                     JSON_OBJECT('schemaVersion', 1, 'eventType', 'NOTIFICATION_DEAD_LETTER',
-                        'eventId', ?, 'notificationId', notification_id, 'taskId', ?,
+                        'eventId', ?, 'notificationId', ?, 'taskId', ?,
                         'sourceEventId', event_id, 'retryGeneration', retry_generation,
                         'status', ?, 'errorCode', ?, 'attemptCount', ?, 'maxAttempts', ?),
                     traffic_class, UTC_TIMESTAMP(6), UTC_TIMESTAMP(6)
-                FROM outbox_event WHERE notification_id = ? AND retry_generation = ?
-                    AND event_type IN ('NOTIFICATION_REQUESTED', 'NOTIFICATION_RETRY')
-                """, eventId, eventId, task.id(), result.status().name(), result.errorCode(),
-                task.attempts(), task.limit(), result.notificationId().toString(), task.generation());
+                FROM (
+                    SELECT event_id, retry_generation, traffic_class FROM outbox_event
+                    WHERE notification_id = ? AND retry_generation = ?
+                        AND event_type IN ('NOTIFICATION_REQUESTED', 'NOTIFICATION_RETRY')
+                    UNION ALL
+                    SELECT o.event_id, o.retry_generation, o.traffic_class
+                    FROM campaign_target c JOIN outbox_event o ON o.event_id=c.event_id
+                    WHERE c.notification_id = ? AND o.retry_generation = ? AND o.event_type = 'CAMPAIGN_CHUNK_REQUESTED'
+                ) source
+                """, eventId, result.notificationId().toString(), eventId, result.notificationId().toString(), task.id(),
+                result.status().name(), result.errorCode(), task.attempts(), task.limit(), result.notificationId().toString(),
+                task.generation(), result.notificationId().toString(), task.generation());
         if (inserted != 1) throw new IllegalStateException("Dead-letter handoff was not recorded");
     }
 }

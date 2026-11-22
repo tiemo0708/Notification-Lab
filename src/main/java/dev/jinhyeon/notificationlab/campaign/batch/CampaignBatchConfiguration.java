@@ -45,7 +45,8 @@ public class CampaignBatchConfiguration extends DefaultBatchConfiguration {
     CampaignBatchService campaignBatchService(CampaignStore campaigns, DataSourceProperties database,
                                              DeliveryProperties delivery, Environment environment) {
         int chunkSize = environment.getProperty("app.campaign.batch.chunk-size", Integer.class, 100);
+        boolean groupedOutbox = environment.getProperty("app.campaign.batch.grouped-outbox", Boolean.class, false);
         return new CampaignBatchService(campaigns, database, dataSource,
-                delivery.maxAttempts(), chunkSize);
+                delivery.maxAttempts(), chunkSize, groupedOutbox);
     }
 }

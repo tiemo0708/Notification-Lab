@@ -4,6 +4,7 @@ import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import dev.jinhyeon.notificationlab.NotificationLabApplication;
 import dev.jinhyeon.notificationlab.campaign.Campaign;
+import dev.jinhyeon.notificationlab.campaign.CampaignChunk;
 import dev.jinhyeon.notificationlab.campaign.CampaignRequest;
 import dev.jinhyeon.notificationlab.campaign.CampaignService;
 import dev.jinhyeon.notificationlab.campaign.SyntheticCampaignAudience;
@@ -34,6 +35,8 @@ import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.explore.JobExplorer;
@@ -45,6 +48,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -116,8 +120,8 @@ class CampaignBatchTest {
         app = application(false);
     }
 
-    private ConfigurableApplicationContext application(boolean worker) {
-        var context = new SpringApplicationBuilder(NotificationLabApplication.class).web(WebApplicationType.NONE).run(
+    private ConfigurableApplicationContext application(boolean worker, String... options) {
+        var arguments = new ArrayList<>(List.of(
                 "--app.campaign.batch.enabled=true", "--app.campaign.batch.chunk-size=3",
                 "--app.traffic.lane=CAMPAIGN", "--app.traffic.split-enabled=true",
                 "--app.rate-limit.client-enabled=true", "--app.async.worker-enabled=" + worker,
@@ -128,9 +132,109 @@ class CampaignBatchTest {
                 "--app.rate-limit.port=" + REDIS.getMappedPort(6379), "--app.rate-limit.key=" + quotaKey,
                 "--app.rate-limit.rate-per-second=100", "--app.rate-limit.burst=100",
                 "--app.traffic.campaign-rate=50", "--app.traffic.campaign-burst=50",
-                "--logging.level.root=WARN", "--spring.main.banner-mode=off");
+                "--logging.level.root=WARN", "--spring.main.banner-mode=off"));
+        arguments.addAll(List.of(options));
+        var context = new SpringApplicationBuilder(NotificationLabApplication.class).web(WebApplicationType.NONE)
+                .run(arguments.toArray(String[]::new));
         contexts.add(context);
         return context;
+    }
+
+    @Test
+    void groupedOutboxRollsBackPartialTailAndResumesInTheRecordedFormat() throws Exception {
+        app.close();
+        app = application(false, "--app.campaign.batch.grouped-outbox=true");
+        var campaign = requested(101);
+        root("CREATE TRIGGER fail_target BEFORE INSERT ON campaign_target FOR EACH ROW BEGIN IF NEW.target_ordinal = 101 THEN SIGNAL SQLSTATE '45000'; END IF; END");
+        JobExecution failed;
+        try { failed = run(campaign); } finally { root("DROP TRIGGER fail_target"); }
+        assertThat(failed.getStatus()).isEqualTo(BatchStatus.FAILED);
+        assertThat(checkpoint(failed)).isEqualTo(100);
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM campaign_target", Integer.class)).isEqualTo(100);
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM outbox_event", Integer.class)).isEqualTo(1);
+
+        app.close();
+        app = application(false);
+        var resumed = run(campaign);
+        assertThat(resumed.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(resumed.getJobInstance().getInstanceId()).isEqualTo(failed.getJobInstance().getInstanceId());
+        assertThat(checkpoint(resumed)).isEqualTo(101);
+        assertThat(db().queryForList("""
+                SELECT COUNT(*) FROM campaign_target GROUP BY event_id ORDER BY COUNT(*) DESC
+                """, Integer.class)).containsExactly(100, 1);
+        assertThat(db().queryForList("""
+                SELECT event_id FROM outbox_event
+                WHERE notification_id IS NULL AND event_type=? ORDER BY CAST(payload->>'$.firstOrdinal' AS UNSIGNED)
+                """, String.class, CampaignChunk.EVENT_TYPE)).containsExactly(
+                new CampaignChunk(campaign.campaignId(), 1, 100).eventId().toString(),
+                new CampaignChunk(campaign.campaignId(), 101, 1).eventId().toString());
+        assertThat(run(campaign).getId()).isEqualTo(resumed.getId());
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM delivery_task", Integer.class)).isEqualTo(101);
+        assertThat(endOffset()).isZero();
+    }
+
+    @Test
+    void groupedRecordStaysUncommittedAfterPartialFailureAndResumesPerTarget() throws Exception {
+        app.close();
+        app = application(false, "--app.campaign.batch.grouped-outbox=true");
+        var campaign = requested(3);
+        assertThat(run(campaign).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        relay(template()).relay();
+        assertThat(endOffset()).isEqualTo(1);
+        root("""
+                CREATE TRIGGER fail_claim BEFORE UPDATE ON notification FOR EACH ROW
+                BEGIN
+                    IF NEW.status='PROCESSING' AND NEW.recipient_id='synthetic-v1-2' THEN
+                        SIGNAL SQLSTATE '45000';
+                    END IF;
+                END
+                """);
+        try (var worker = application(true)) {
+            var listener = worker.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker");
+            await().atMost(Duration.ofSeconds(20)).until(() -> !listener.isRunning());
+            assertThat(committedOffset(worker)).isZero();
+            assertThat(db().queryForObject("SELECT COUNT(*) FROM delivery_attempt", Integer.class)).isEqualTo(1);
+            assertThat(db().queryForList("SELECT status FROM notification ORDER BY recipient_id", String.class))
+                    .containsExactly("PROVIDER_ACCEPTED", "QUEUED", "QUEUED");
+        } finally { root("DROP TRIGGER fail_claim"); }
+
+        try (var worker = application(true, "--app.mock.outcome=PERMANENT_FAILURE")) {
+            await().atMost(Duration.ofSeconds(20)).until(() -> committedOffset(worker) == 1);
+            assertThat(db().queryForList("SELECT status FROM notification ORDER BY recipient_id", String.class))
+                    .containsExactly("PROVIDER_ACCEPTED", "PERMANENT_FAILURE", "PERMANENT_FAILURE");
+            assertThat(db().queryForList("SELECT attempt_count FROM delivery_task", Integer.class))
+                    .containsExactly(1, 1, 1);
+            assertThat(db().queryForObject("SELECT COUNT(*) FROM delivery_attempt", Integer.class)).isEqualTo(3);
+            assertThat(db().queryForObject("""
+                    SELECT COUNT(*) FROM outbox_event
+                    WHERE event_type='NOTIFICATION_DEAD_LETTER' AND payload->>'$.sourceEventId'=?
+                    """, Integer.class, new CampaignChunk(campaign.campaignId(), 1, 3).eventId().toString())).isEqualTo(2);
+        }
+    }
+
+    @Test
+    void slowChunkYieldsBetweenTargetsAndFinishesWithoutRepeatingWork() throws Exception {
+        app.close();
+        app = application(false, "--app.campaign.batch.grouped-outbox=true");
+        var campaign = requested(2);
+        assertThat(run(campaign).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        relay(template()).relay();
+        root("""
+                CREATE TRIGGER slow_completion BEFORE UPDATE ON notification FOR EACH ROW
+                BEGIN
+                    IF NEW.status='PROVIDER_ACCEPTED' AND NEW.recipient_id='synthetic-v1-1' THEN
+                        DO SLEEP(4.2);
+                    END IF;
+                END
+                """);
+        try (var worker = application(true, "--spring.kafka.consumer.properties.max.poll.interval.ms=8000")) {
+            await().atMost(Duration.ofSeconds(22)).until(() -> committedOffset(worker) == 1);
+            assertThat(db().queryForObject("SELECT COUNT(*) FROM delivery_attempt", Integer.class)).isEqualTo(2);
+            assertThat(db().queryForList("SELECT status FROM notification", String.class))
+                    .containsExactly("PROVIDER_ACCEPTED", "PROVIDER_ACCEPTED");
+            assertThat(worker.getBean(MeterRegistry.class).counter("notification.worker.campaign.chunk.pauses").count())
+                    .isEqualTo(1);
+        } finally { root("DROP TRIGGER slow_completion"); }
     }
 
     @Test
@@ -250,6 +354,25 @@ class CampaignBatchTest {
         assertThat(command(campaign.campaignId())).isZero();
         assertRows(4);
         assertThat(db().queryForObject("SELECT COUNT(*) FROM BATCH_JOB_EXECUTION", Integer.class)).isEqualTo(1);
+        assertThat(endOffset()).isZero();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"APP_CAMPAIGN_BATCH_GROUPED_OUTBOX,true", "SPRING_PROFILES_ACTIVE,campaign-flexible"})
+    void groupedOutboxAppliesOnlyToTheSelectedCampaignCommand(String option, String value) throws Exception {
+        Campaign grouped = requested(101);
+        Campaign individual = requested(4);
+
+        assertThat(command(grouped.campaignId(), 0, Map.of(option, value))).isZero();
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM campaign_target WHERE campaign_id=?", Integer.class,
+                individual.campaignId().toString())).isZero();
+        assertThat(command(individual.campaignId())).isZero();
+
+        String referencesPerEvent = "SELECT COUNT(*) FROM campaign_target WHERE campaign_id=? GROUP BY event_id ORDER BY COUNT(*) DESC";
+        assertThat(db().queryForList(referencesPerEvent, Integer.class, grouped.campaignId().toString())).containsExactly(100, 1);
+        assertThat(db().queryForList(referencesPerEvent, Integer.class, individual.campaignId().toString())).containsExactly(1, 1, 1, 1);
+        assertThat(db().queryForObject("SELECT COUNT(*) FROM outbox_event WHERE event_type=?", Integer.class,
+                CampaignChunk.EVENT_TYPE)).isEqualTo(2);
         assertThat(endOffset()).isZero();
     }
 
@@ -469,9 +592,13 @@ class CampaignBatchTest {
     private int command(UUID id) throws Exception { return command(id, 0); }
 
     private int command(UUID id, int expectedExit) throws Exception {
+        return command(id, expectedExit, Map.of());
+    }
+
+    private int command(UUID id, int expectedExit, Map<String, String> environment) throws Exception {
         boolean expectedOutcome = false;
         Path output = Files.createTempFile("campaign-command-", ".log");
-        Process process = startCommand(id, output);
+        Process process = startCommand(id, output, environment);
         try {
             assertThat(process.waitFor(40, TimeUnit.SECONDS)).as("campaign command exited; log %s", output).isTrue();
             assertThat(Files.readString(output)).contains("CAMPAIGN_BATCH");
@@ -490,11 +617,18 @@ class CampaignBatchTest {
     }
 
     private Process startCommand(UUID id, Path output) throws Exception {
+        return startCommand(id, output, Map.of());
+    }
+
+    private Process startCommand(UUID id, Path output, Map<String, String> environment) throws Exception {
         var builder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
                 "-cp", System.getProperty("notificationLab.testClasspath"), CampaignBatchCommand.class.getName(), id.toString());
         builder.environment().putAll(Map.of("SPRING_DATASOURCE_URL", url, "SPRING_DATASOURCE_USERNAME", MYSQL.getUsername(),
                 "SPRING_DATASOURCE_PASSWORD", MYSQL.getPassword(), "SPRING_KAFKA_BOOTSTRAP_SERVERS", KAFKA.getBootstrapServers(),
                 "APP_ASYNC_TOPIC", topic, "APP_ASYNC_GROUP", topic, "LOGGING_LEVEL_ROOT", "WARN", "SPRING_MAIN_BANNER_MODE", "off", "APP_CAMPAIGN_BATCH_CHUNK_SIZE", "3"));
+        builder.environment().remove("APP_CAMPAIGN_BATCH_GROUPED_OUTBOX");
+        builder.environment().remove("SPRING_PROFILES_ACTIVE");
+        builder.environment().putAll(environment);
         builder.redirectErrorStream(true).redirectOutput(output.toFile());
         return builder.start();
     }

@@ -3326,3 +3326,10 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - 새 로컬 Gradle 테스트 25개가 실패·오류·건너뜀 없이 통과했다. 실제 MySQL·Kafka와 합성 FCM 응답으로 접수, 요청 ID, MySQL 완료 기록, Kafka 오프셋과 접수 재응답을 검증했다. 연결 끊김 뒤 공급자 재호출을 막는 테스트도 포함했다.
 - 전용 Firebase 프로젝트의 임시 역할에는 `cloudmessaging.messages.create`만 넣었다. `firebase.messaging` 범위의 OAuth 토큰으로 발송 없는 검증 요청에서 HTTP 200을 확인한 뒤 MySQL·Kafka를 분리해 실제 접수 1건을 실행했다. Worker는 `55c87392-71a7-4151-93d8-a649a301f830`과 FCM 메시지 이름을 `PROVIDER_ACCEPTED`로 저장했다. Android 앱은 13:28:15 KST에 같은 ID를 데이터에서 1회 읽었다. DB 시도와 Kafka 커밋은 각각 1회, Kafka 미처리는 0건이었다.
 - 실험 컨테이너와 에뮬레이터를 종료했다. 임시 계정의 키 목록이 비고 프로젝트 IAM의 발송 역할 부여가 제거된 것을 확인한 뒤 로컬 키와 토큰을 삭제했다. `build/reports/fcm-worker/live.pAXdfS/`에 발송·수신 대조와 권한 회수 증거를 보관했다. [Worker 실험 절차](FCM_DEVICE_SMOKE.md#notification-lab-worker에서-fcm-http-v1로-보내기)
+
+## 2026-11-23 마감 여유가 있는 캠페인의 선택 실행
+
+- `campaign-flexible` 프로필을 추가했다. 프로필을 지정한 캠페인 JVM은 Kafka 소비자와 동시 발송 상한을 각각 2로 둔다. 같은 프로필로 명시적 Batch 명령을 실행하면 지정 UUID의 초기 Outbox를 100명씩 묶는다. 기존 실시간 3개 실행 인자와 MySQL 내구성 설정을 유지한다. [적용 절차](S7_CAMPAIGN_BATCH.md#마감에-여유-있는-대형-캠페인)
+- `./gradlew --offline --no-daemon --console=plain test --tests '*CampaignBatchTest' --tests '*TrafficIsolationIntegrationTest' --tests '*WorkerConcurrencyTest' --tests '*RateLimitConfigurationTest'`로 관련 테스트 45개를 새로 실행했다. 새 프로필로 지정한 캠페인은 100명·1명으로 저장됐고, 같은 DB의 다른 캠페인은 4개 단건을 저장했다. 실제 Kafka 소비자가 캠페인 2개·실시간 3개로 함께 동작했고, 두 역할의 발송 완료와 커밋을 확인했다.
+- 같은 Gradle 실행에 추가한 `campaignDeliveryPilot -PdeliveryTargets=1000 -PgroupedOutbox=true -PcampaignConsumers=2 -PtraceAdmission=commit` 1개도 통과했다. MySQL에서 `log_bin=1`, `sync_binlog=1`, `innodb_flush_log_at_trx_commit=1`, `innodb_flush_method=O_DIRECT`를 조회했다. 캠페인 1,000명과 실시간 90건의 HTTP Mock 수락·DB 완료, Kafka 캠페인 초기 요청 10개와 두 역할의 최종 커밋을 대조했고 중복은 0건이었다. 두 테스트 task의 실패·오류·건너뜀은 각각 0개였다.
+- `bootJar`를 새로 실행해 패키지 안의 프로필을 확인했다. 검증은 로컬 격리 환경에서 끝냈으며 운영 적용은 대기 중이다.

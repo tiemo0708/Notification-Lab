@@ -2,6 +2,7 @@ package dev.jinhyeon.notificationlab.campaign.batch;
 
 import dev.jinhyeon.notificationlab.campaign.Campaign;
 import dev.jinhyeon.notificationlab.campaign.CampaignAudiencePage.Target;
+import dev.jinhyeon.notificationlab.campaign.CampaignChunk;
 import dev.jinhyeon.notificationlab.campaign.CampaignNotFoundException;
 import dev.jinhyeon.notificationlab.campaign.CampaignStore;
 import java.time.LocalDateTime;
@@ -12,7 +13,6 @@ import javax.sql.DataSource;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
@@ -23,21 +23,24 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 public class CampaignBatchService {
     public static final String JOB_NAME = "campaign-expand-v1";
+    private static final String GROUPED_OUTBOX = "groupedOutbox";
     private final CampaignStore campaigns;
     private final DataSourceProperties database;
     private final DataSource sequences;
     private final int maxAttempts;
     private final int chunkSize;
+    private final boolean groupedOutbox;
     private final Semaphore slot = new Semaphore(1);
 
     public CampaignBatchService(CampaignStore campaigns, DataSourceProperties database, DataSource sequences,
-                                int maxAttempts, int chunkSize) {
+                                int maxAttempts, int chunkSize, boolean groupedOutbox) {
         if (chunkSize < 1 || chunkSize > 1000) throw new IllegalArgumentException("Invalid campaign chunk size");
         this.campaigns = campaigns;
         this.database = database;
         this.sequences = sequences;
         this.maxAttempts = maxAttempts;
         this.chunkSize = chunkSize;
+        this.groupedOutbox = groupedOutbox;
     }
 
     public JobExecution execute(UUID id) throws Exception {
@@ -51,13 +54,20 @@ public class CampaignBatchService {
                 throw new IllegalStateException("Campaign start must be requested before expansion");
             }
             try (var session = CampaignBatchSession.open(database, sequences, id)) {
-                var parameters = new JobParametersBuilder().addString("campaignId", id.toString())
+                var identity = new JobParametersBuilder().addString("campaignId", id.toString())
                         .addString("ownershipProtocol", CampaignBatchSession.PROTOCOL, false).toJobParameters();
-                recoverOrphan(session, parameters);
+                var last = session.repository.getLastJobExecution(JOB_NAME, identity);
+                // Existing executions keep the dispatch format selected before their first checkpoint.
+                boolean grouped = last == null ? groupedOutbox
+                        : Boolean.parseBoolean(last.getJobParameters().getString(GROUPED_OUTBOX));
+                var parameters = new JobParametersBuilder(identity)
+                        .addString(GROUPED_OUTBOX, Boolean.toString(grouped), false).toJobParameters();
+                recoverOrphan(session, last);
+                int commitSize = grouped ? CampaignChunk.SIZE : chunkSize;
                 var step = new StepBuilder("expand-targets-v1", session.repository)
-                        .<Target, Target>chunk(chunkSize, session.transactions)
-                        .reader(new CampaignTargetReader(campaign, chunkSize))
-                        .writer(new CampaignTargetWriter(campaign, session.jdbc, maxAttempts))
+                        .<Target, Target>chunk(commitSize, session.transactions)
+                        .reader(new CampaignTargetReader(campaign, commitSize))
+                        .writer(new CampaignTargetWriter(campaign, session.jdbc, maxAttempts, grouped))
                         .build();
                 var job = new JobBuilder(JOB_NAME, session.repository).start(step).build();
                 try {
@@ -71,8 +81,7 @@ public class CampaignBatchService {
         }
     }
 
-    private void recoverOrphan(CampaignBatchSession session, JobParameters parameters) {
-        var last = session.repository.getLastJobExecution(JOB_NAME, parameters);
+    private void recoverOrphan(CampaignBatchSession session, JobExecution last) {
         if (last == null) return;
         var execution = session.explorer.getJobExecution(last.getId());
         boolean uncertainStep = execution.getStepExecutions().stream().anyMatch(step -> uncertain(step.getStatus()));
