@@ -106,6 +106,9 @@ class MySqlNotificationTest {
         assertThat(before.path("title").asText()).isEqualTo("테스트 🌱");
         String location = created.headers().firstValue("Location").orElseThrow();
         assertThat(json(request("GET", location, null))).isEqualTo(before);
+        String migrationHistoryQuery = "SELECT * FROM flyway_schema_history ORDER BY installed_rank";
+        var migrationHistoryBefore = jdbc().queryForList(migrationHistoryQuery);
+        assertThat(migrationHistoryBefore).isNotEmpty();
 
         app.close();
         startApplication();
@@ -113,7 +116,7 @@ class MySqlNotificationTest {
         HttpResponse<String> after = request("GET", location, null);
         assertThat(after.statusCode()).isEqualTo(200);
         assertThat(json(after)).isEqualTo(before);
-        assertThat(app.getBean(Flyway.class).info().applied()).hasSize(9);
+        assertThat(jdbc().queryForList(migrationHistoryQuery)).containsExactlyElementsOf(migrationHistoryBefore);
         assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM outbox_event", Integer.class)).isZero();
         assertThat(probe().attempts.get()).isZero();
     }
