@@ -3333,3 +3333,12 @@ e5e5b01의승인된재실험이02:06:26~06:25:37 KST에완료됐다. Gradle4시�
 - `./gradlew --offline --no-daemon --console=plain test --tests '*CampaignBatchTest' --tests '*TrafficIsolationIntegrationTest' --tests '*WorkerConcurrencyTest' --tests '*RateLimitConfigurationTest'`로 관련 테스트 45개를 새로 실행했다. 새 프로필로 지정한 캠페인은 100명·1명으로 저장됐고, 같은 DB의 다른 캠페인은 4개 단건을 저장했다. 실제 Kafka 소비자가 캠페인 2개·실시간 3개로 함께 동작했고, 두 역할의 발송 완료와 커밋을 확인했다.
 - 같은 Gradle 실행에 추가한 `campaignDeliveryPilot -PdeliveryTargets=1000 -PgroupedOutbox=true -PcampaignConsumers=2 -PtraceAdmission=commit` 1개도 통과했다. MySQL에서 `log_bin=1`, `sync_binlog=1`, `innodb_flush_log_at_trx_commit=1`, `innodb_flush_method=O_DIRECT`를 조회했다. 캠페인 1,000명과 실시간 90건의 HTTP Mock 수락·DB 완료, Kafka 캠페인 초기 요청 10개와 두 역할의 최종 커밋을 대조했고 중복은 0건이었다. 두 테스트 task의 실패·오류·건너뜀은 각각 0개였다.
 - `bootJar`를 새로 실행해 패키지 안의 프로필을 확인했다. 검증은 로컬 격리 환경에서 끝냈으며 운영 적용은 대기 중이다.
+
+## 2026-11-26 마감 여유가 있는 캠페인의 HTTP Mock 성공 결과 묶음 커밋
+
+- `campaign-flexible`의 캠페인 워커에 최대 5건·첫 성공 후 100ms 결과 커밋을 적용했다. 실시간 알림, 단건 캠페인 이벤트, 실패, 개별 재시도와 FCM은 단건 경로를 사용한다. 실행 JAR에서 워커 구현과 프로필을 확인했다. 강제 종료용 시험 코드와 대기 지점은 테스트 클래스 경로에 있다. [실행 조건과 단건 복귀](S7_CAMPAIGN_BATCH.md#http-mock-수락-결과를-최대-5건씩-커밋하기)
+- 로컬에서 Outbox 100명, 캠페인 워커 2개, 실시간 워커 3개, 동일한 키·파티션 배정과 MySQL 내구성으로 캠페인 1,000건씩 실행했다. 단건은 결과 커밋 1,000회, 최대 5건은 정확히 5건씩 200회였다. 두 실행의 캠페인 2,000건과 실시간 164건에서 DB 완료·Mock 고유 수락·Kafka 최종 위치를 대조했다. 중복 수락과 잘못된 대상 매핑은 각각 0건이었다. 원본 두 건은 로컬 `build/reports/campaign-completion-rollout.1q9nxR/pilot-{1,5}.json`에 있다.
+- 두 번째 수신자의 선점 토큰을 틀리게 넣으면 첫 번째 수신자의 결과와 시도 이력까지 롤백되고 완료 지표는 0이었다. 별도 테스트에서는 묶음 내 HTTP 오류 2건이 각각 재시도로 인계됐고, 공급자 복구 후 재시도 성공 2건을 개별 커밋했다.
+- Mock이 5건을 수락하고 MySQL 커밋 전인 순간에 워커 JVM을 강제 종료했다. 최초 워커의 타이머만 2초로 늘려 다섯 건이 한 트랜잭션에 들어가게 했다. 기본 프로필 설정의 100ms 타이머를 쓰는 교체 워커가 복구한 뒤 HTTP 호출은 10회, 고유 수락과 DB 완료는 각각 5건이었다. 최초 수락 ID 5개와 최종 DB 기록이 일치했고 Kafka 오프셋은 복구 후 0에서 1로 진행했다. 별도의 100ms 타이머 테스트에서는 다음 대상의 선점이 지연돼도 앞선 성공을 저장했고, 그 저장이 실패하면 두 번째 HTTP 호출과 오프셋 진행이 멈췄다.
+- 선점 조회 변경과 실험 계측이 함께 있던 로컬 작업본에서 `./gradlew --offline --no-daemon --console=plain build`의 기본 테스트 430개와 별도 `campaignDeliveryPilot` 2회를 새로 실행했다. 최종 실행에서 실패·오류·건너뜀은 모두 0개였다. 첫 예비 실행은 Docker가 꺼져 MySQL 시작 전에 중단됐다.
+- 이번 변경만 담은 별도 검증본에서 Gradle `bootJar`와 관련 테스트 36개를 새로 실행했다. 캠페인 Batch 23개, 적용 조건 5개, 캠페인·실시간 격리 6개, DB 저장 실패와 선점 토큰 회귀 2개가 모두 통과했다.

@@ -7,6 +7,8 @@ app:
   worker:
     consumers: 2
     max-active: 2
+    # Only grouped success results on the idempotent HTTP Mock path use this option.
+    campaign-completion-batch-enabled: true
   campaign:
     batch:
       # Applied only when the explicit command expands a selected campaign.

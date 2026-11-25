@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.jinhyeon.notificationlab.campaign.CampaignChunk;
 import dev.jinhyeon.notificationlab.notification.NotificationService;
+import dev.jinhyeon.notificationlab.notification.NotificationStatus;
 import dev.jinhyeon.notificationlab.provider.ProviderCircuitBreaker;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -36,11 +37,14 @@ public class NotificationWorker {
     private final Timer providerTime;
     private final Timer completionTime;
     private final long chunkBudgetNanos;
+    private final CampaignCompletionBatch.Factory completionBatches;
 
     public NotificationWorker(WorkerStore store, NotificationService service,
                               ObjectMapper mapper, MeterRegistry registry, WorkerAdmission admission,
                               WorkerQuota quota, ProviderCircuitBreaker circuit,
+                              Optional<CampaignCompletionBatch.Factory> completionBatches,
                               @Value("${spring.kafka.consumer.properties.max.poll.interval.ms:60000}") long pollIntervalMs) {
+        this.completionBatches = completionBatches.orElse(null);
         this.circuit = circuit;
         this.admission = admission;
         this.quota = quota;
@@ -94,7 +98,7 @@ public class NotificationWorker {
         UUID taskId = version == 2 ? UUID.fromString(event.path("taskId").asText()) : null;
         UUID id = UUID.fromString(event.path("notificationId").asText());
         if (!id.toString().equals(record.key())) throw new IllegalArgumentException();
-        processTarget(id, eventId, taskId, false);
+        processTarget(id, eventId, taskId, false, null);
     }
 
     private void processChunk(UUID eventId, CampaignChunk chunk) {
@@ -107,21 +111,27 @@ public class NotificationWorker {
             if (WorkerDatabaseUnavailable.isConnectionFailure(failure)) throw new WorkerDatabaseUnavailable();
             throw failure;
         }
-        boolean processed = false;
-        for (var target : targets) {
-            if (!target.pending()) continue;
-            // Allow a poll between portions of a slow chunk. Results already committed per target are skipped on replay.
-            if (admission.isStopping() || (processed && System.nanoTime() - start >= chunkBudgetNanos)) {
-                throw new ChunkDeferred();
+        var batch = completionBatches == null ? null : completionBatches.open();
+        try {
+            boolean processed = false;
+            for (var target : targets) {
+                if (!target.pending()) continue;
+                if (batch != null) batch.check();
+                if (admission.isStopping() || (processed && System.nanoTime() - start >= chunkBudgetNanos)) {
+                    throw new ChunkDeferred();
+                }
+                processTarget(target.notificationId(), eventId, target.taskId(), true, batch);
+                processed = true;
             }
-            processTarget(target.notificationId(), eventId, target.taskId(), true);
-            processed = true;
+        } finally {
+            // Even a retryable pause must surface a failed result commit before offset handling.
+            if (batch != null) batch.close();
         }
     }
 
     static final class ChunkDeferred extends RuntimeException { }
 
-    private void processTarget(UUID id, UUID eventId, UUID taskId, boolean grouped) {
+    private void processTarget(UUID id, UUID eventId, UUID taskId, boolean grouped, CampaignCompletionBatch batch) {
         String token = UUID.randomUUID().toString();
         var claimed = initialClaimTime.record(() -> claim(id, eventId, token, taskId, !quota.enabled() && !circuit.enabled(), grouped));
         try (var permit = claimed.isPresent() && claimed.get().needsPermit() ? circuit.acquire() : null) {
@@ -140,8 +150,13 @@ public class NotificationWorker {
                 service.recordCompletion(claim.notification(), sample);
                 return;
             }
+            if (batch != null) batch.check(); // A timer can fail while this target waits for its claim or quota.
             var completed = providerTime.record(() -> service.attempt(claim.notification())); // Outside all DB transactions.
             if (permit != null) permit.complete(completed);
+            if (batch != null && completed.status() == NotificationStatus.PROVIDER_ACCEPTED) {
+                batch.accepted(completed, token, sample);
+                return;
+            }
             if (completionTime.record(() -> store.complete(completed, token))) {
                 registry.counter("notification.retry.scheduled").increment();
                 sample.stop(Timer.builder("notification.processing").tag("status", "WAITING_RETRY")

@@ -72,6 +72,14 @@ SPRING_PROFILES_ACTIVE=campaign-flexible ./gradlew campaignBatch --args='선택�
 
 MySQL의 내구성 설정은 기존 값을 사용한다. 실험에서 확인한 값은 `log_bin=1`, `sync_binlog=1`, `innodb_flush_log_at_trx_commit=1`이었다. 캠페인의 대상별 완료, 미발행 Outbox, Kafka lag와 발송 중 실시간 접수 p95를 함께 확인한다. 이후 캠페인 JVM을 기존 워커 3개 인자로 재시작하면 같은 consumer group에서 이어받으며, 이미 저장된 발행 형식과 재개 위치는 유지된다.
 
+#### HTTP Mock 수락 결과를 최대 5건씩 커밋하기
+
+`campaign-flexible` 캠페인 워커가 `app.provider.mode=HTTP`로 프로젝트의 로컬 HTTP Mock을 사용할 때 적용한다. 하나의 Kafka 묶음에는 최대 100명이 들어간다. 발송 시도마다 수신자 한 명분의 HTTP 요청을 Mock에 보내고, 같은 레코드에서 **성공한 결과만 최대 5명씩** 한 MySQL 트랜잭션에 저장한다. 다섯 번째 성공이 도착하거나 첫 성공 후 100ms 타이머가 실행되면 저장을 시작한다. 레코드 처리가 끝나거나 중간에 양보할 때도 남은 성공 결과를 저장한다. 실시간 알림, 단건 캠페인 이벤트, 실패와 개별 재시도, FCM은 각각 한 건씩 저장한다.
+
+각 수신자의 선점 토큰을 확인한 뒤 알림 상태·공급자 수락 ID·시도 이력을 함께 갱신한다. 한 건이라도 토큰이 맞지 않거나 SQL 갱신이 실패하면 그 트랜잭션의 앞선 갱신도 롤백한다. 워커는 레코드 안의 결과 또는 재시도 인계가 모두 커밋된 뒤 Kafka 오프셋을 진행한다. DB 커밋 전에 워커가 종료되면 Mock이 먼저 수락한 대상도 다시 호출될 수 있다. 워커는 같은 알림 UUID로 재호출하며, Mock은 저장해 둔 최초 수락 ID를 돌려준다. 이 복구가 가능하도록 Mock 재시작 시에도 같은 수락 기록 파일(`mock.http.idempotency-file`)을 사용한다.
+
+결과 커밋 횟수는 캠페인 워커의 `notification.worker.campaign.completion.commits`에서 `size=1`부터 `5`까지 확인한다. 커밋 단위만 단건으로 되돌리려면 같은 프로필의 **캠페인 워커**를 `--app.worker.campaign-completion-batch-enabled=false`로 정상 재시작한다. 해당 워커는 기존 Kafka 위치에서 100명 묶음을 이어받아 각 성공을 한 건씩 커밋한다. [1천 건 비교와 장애 복구 결과](PROGRESS.md#2026-11-26-마감-여유가-있는-캠페인의-http-mock-성공-결과-묶음-커밋)
+
 ## 실행과 조회
 
 기존 [S6 역할 실행](S6_TRAFFIC_ISOLATION.md)과 [캠페인 API](S7_CAMPAIGN_API.md)를 따른다.

@@ -264,6 +264,7 @@ RECORD89.676~98.933/s, COUNT_TIME115.079~123.383/s를 관측했다. 마지막 of
 실제 검증 명령과 결과는 [PROGRESS](docs/PROGRESS.md)의 S7 기록을 따른다.
 
 [100만 건 성공 결과와 한계](docs/S7_DELIVERY_MILLION_SUCCESS.md)를 보존했다. 최초API timeout 원인조사는미확정으로남긴다.
+마감에 여유 있는 대형 캠페인은 멱등 HTTP Mock 경로에서 수신자별 성공 결과를 최대 5건씩 커밋한다. [적용 범위와 단건 복귀](docs/S7_CAMPAIGN_BATCH.md#http-mock-수락-결과를-최대-5건씩-커밋하기)
 
 ### S8. 성능 실험
 - [x] 캠페인 Consumer/Worker 활성 상한 1/1·2/2·3/3에서 처리량/lag/DB/CPU 측정(1만 건, 각 2회)

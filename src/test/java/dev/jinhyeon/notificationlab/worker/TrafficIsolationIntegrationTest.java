@@ -134,6 +134,8 @@ class TrafficIsolationIntegrationTest {
         assertThat(container(campaign).getContainers()).hasSize(2);
         assertThat(realtime.getBean(WorkerProperties.class).maxActive()).isEqualTo(3);
         assertThat(campaign.getBean(WorkerProperties.class).maxActive()).isEqualTo(2);
+        assertThat(campaign.getBeansOfType(CampaignCompletionBatch.Factory.class)).hasSize(1);
+        assertThat(realtime.getBeansOfType(CampaignCompletionBatch.Factory.class)).isEmpty();
         assertThat(realtime.getBean(TrafficRouting.class).group()).isEqualTo(topic);
         assertThat(campaign.getBean(TrafficRouting.class).group()).isEqualTo(topic + ".campaign");
 
@@ -144,6 +146,8 @@ class TrafficIsolationIntegrationTest {
         assertThat(status(urgent)).isEqualTo("PROVIDER_ACCEPTED");
         assertThat(campaignCalls.get()).isEqualTo(1);
         assertThat(realtimeCalls.get()).isEqualTo(1);
+        assertThat(campaign.getBean(MeterRegistry.class).get("notification.worker.campaign.completion.commits").counters())
+                .hasSize(5).allMatch(counter -> counter.count() == 0);
     }
 
     @Test

@@ -10,9 +10,17 @@ import dev.jinhyeon.notificationlab.campaign.CampaignService;
 import dev.jinhyeon.notificationlab.campaign.SyntheticCampaignAudience;
 import dev.jinhyeon.notificationlab.config.AsyncProperties;
 import dev.jinhyeon.notificationlab.config.TrafficRouting;
+import dev.jinhyeon.notificationlab.notification.Notification;
+import dev.jinhyeon.notificationlab.notification.NotificationService;
 import dev.jinhyeon.notificationlab.outbox.OutboxRelay;
 import dev.jinhyeon.notificationlab.outbox.OutboxStore;
+import dev.jinhyeon.notificationlab.worker.CampaignCompletionBatch;
+import dev.jinhyeon.notificationlab.worker.WorkerStore;
+import dev.jinhyeon.notificationmock.HttpMockProperties.Mode;
+import dev.jinhyeon.notificationmock.MockPushEndpoint;
+import dev.jinhyeon.notificationmock.MockServerApplication;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,8 +43,11 @@ import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.explore.JobExplorer;
@@ -44,6 +55,7 @@ import org.springframework.batch.core.repository.JobExecutionAlreadyRunningExcep
 import org.springframework.batch.item.Chunk;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -120,22 +132,27 @@ class CampaignBatchTest {
         app = application(false);
     }
 
-    private ConfigurableApplicationContext application(boolean worker, String... options) {
-        var arguments = new ArrayList<>(List.of(
-                "--app.campaign.batch.enabled=true", "--app.campaign.batch.chunk-size=3",
+    private ArrayList<String> arguments(boolean worker) {
+        return new ArrayList<>(List.of(
                 "--app.traffic.lane=CAMPAIGN", "--app.traffic.split-enabled=true",
                 "--app.rate-limit.client-enabled=true", "--app.async.worker-enabled=" + worker,
                 "--app.async.relay-enabled=false", "--app.mock.delay-ms=0",
                 "--spring.datasource.url=" + url, "--spring.datasource.username=" + MYSQL.getUsername(),
-                "--spring.datasource.password=" + MYSQL.getPassword(), "--spring.kafka.bootstrap-servers=" + KAFKA.getBootstrapServers(),
+                "--spring.kafka.bootstrap-servers=" + KAFKA.getBootstrapServers(),
                 "--app.async.topic=" + topic, "--app.async.group=" + topic,
                 "--app.rate-limit.port=" + REDIS.getMappedPort(6379), "--app.rate-limit.key=" + quotaKey,
                 "--app.rate-limit.rate-per-second=100", "--app.rate-limit.burst=100",
                 "--app.traffic.campaign-rate=50", "--app.traffic.campaign-burst=50",
                 "--logging.level.root=WARN", "--spring.main.banner-mode=off"));
+    }
+
+    private ConfigurableApplicationContext application(boolean worker, String... options) {
+        var arguments = arguments(worker);
+        arguments.addAll(List.of("--app.campaign.batch.enabled=true", "--app.campaign.batch.chunk-size=3",
+                "--spring.datasource.password=" + MYSQL.getPassword()));
         arguments.addAll(List.of(options));
-        var context = new SpringApplicationBuilder(NotificationLabApplication.class).web(WebApplicationType.NONE)
-                .run(arguments.toArray(String[]::new));
+        var builder = new SpringApplicationBuilder(NotificationLabApplication.class).web(WebApplicationType.NONE);
+        var context = builder.run(arguments.toArray(String[]::new));
         contexts.add(context);
         return context;
     }
@@ -209,6 +226,233 @@ class CampaignBatchTest {
                     SELECT COUNT(*) FROM outbox_event
                     WHERE event_type='NOTIFICATION_DEAD_LETTER' AND payload->>'$.sourceEventId'=?
                     """, Integer.class, new CampaignChunk(campaign.campaignId(), 1, 3).eventId().toString())).isEqualTo(2);
+        }
+    }
+
+    @Test
+    @Timeout(160)
+    void killingWorkerBeforeFiveSuccessesCommitRecoversEveryOriginalMockReceipt(@TempDir Path directory) throws Exception {
+        app.close();
+        app = application(false, "--app.campaign.batch.grouped-outbox=true");
+        assertThat(run(requested(5)).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        relay(template()).relay();
+        assertThat(endOffset()).isOne();
+        var ledger = directory.resolve("mock-acceptances");
+        var marker = directory.resolve("five-before-commit");
+        try (var mock = startHttpMock(ledger.toString())) {
+            String endpoint = "http://127.0.0.1:" + mock.getWebServer().getPort();
+            var provider = mock.getBean(MockPushEndpoint.class);
+            Path originalLog = directory.resolve("original.log");
+            Process first = startCompletionWorker(endpoint, originalLog, marker);
+            try {
+                await().atMost(Duration.ofSeconds(45)).until(() -> Files.exists(marker) || !first.isAlive());
+                assertThat(first.isAlive()).as("original worker: %s", workerExitDetails(originalLog)).isTrue();
+                assertThat(marker).hasContent("5");
+                assertThat(provider.stats().requests()).isEqualTo(5);
+                assertThat(provider.stats().accepted()).isEqualTo(5);
+                assertThat(count("SELECT COUNT(*) FROM notification WHERE status='PROCESSING'")).isEqualTo(5);
+                assertThat(count("SELECT COUNT(*) FROM delivery_attempt WHERE outcome='STARTED'")).isEqualTo(5);
+                assertThat(committedOffset(app)).isZero();
+            } finally {
+                stopCompletionWorker(first);
+            }
+            assertThat(first.exitValue()).isNotZero();
+            assertThat(count("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'")).isZero();
+            assertThat(committedOffset(app)).isZero();
+            await().atMost(Duration.ofSeconds(35)).until(() ->
+                    count("SELECT COUNT(*) FROM notification WHERE worker_lease_until <= UTC_TIMESTAMP(6)") == 5);
+            Path replacementLog = directory.resolve("replacement.log");
+            Process replacement = startCompletionWorker(endpoint, replacementLog, null);
+            try {
+                await().atMost(Duration.ofSeconds(50)).until(() -> !replacement.isAlive() || committedOffset(app) == 1);
+                assertThat(replacement.isAlive()).as("replacement worker: %s", workerExitDetails(replacementLog)).isTrue();
+                assertThat(committedOffset(app)).isOne();
+                assertThat(count("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'")).isEqualTo(5);
+                assertThat(count("SELECT COUNT(*) FROM delivery_attempt WHERE attempt_no=1 AND outcome='UNKNOWN'")).isEqualTo(5);
+                assertThat(count("SELECT COUNT(*) FROM delivery_attempt WHERE attempt_no=2 AND outcome='PROVIDER_ACCEPTED'")).isEqualTo(5);
+                assertThat(count("SELECT COUNT(*) FROM delivery_attempt")).isEqualTo(10);
+                assertThat(count("SELECT COUNT(*) FROM outbox_event")).isOne();
+                assertThat(endOffset()).isOne();
+                assertThat(provider.stats().requests()).isEqualTo(10);
+                assertThat(provider.stats().accepted()).isEqualTo(5);
+                assertThat(provider.stats().idempotencyReplays()).isEqualTo(5);
+                try (var connection = DriverManager.getConnection("jdbc:h2:file:" + ledger + ";WRITE_DELAY=0", "sa", "");
+                     var query = connection.createStatement();
+                     var rows = query.executeQuery("SELECT notification_id, provider_id FROM mock_acceptance")) {
+                    int matched = 0;
+                    while (rows.next()) {
+                        assertThat(db().queryForObject("SELECT provider_message_id FROM notification WHERE notification_id=?",
+                                String.class, rows.getString(1))).isEqualTo("http-mock-" + rows.getString(2));
+                        matched++;
+                    }
+                    assertThat(matched).isEqualTo(5);
+                }
+                System.out.println("CAMPAIGN_COMPLETION_CRASH targets=5 beforeCommitVisible=0 finalDb=5 httpRequests=10 "
+                        + "firstAcceptances=5 replayedReceipts=5 matchedReceipts=5 offsetBefore=0 offsetAfter=1");
+            } finally {
+                stopCompletionWorker(replacement);
+            }
+        }
+    }
+
+    private ServletWebServerApplicationContext startHttpMock(String ledger) {
+        return startHttpMock(ledger, Mode.SUCCESS);
+    }
+
+    private ServletWebServerApplicationContext startHttpMock(String ledger, Mode mode) {
+        return (ServletWebServerApplicationContext) new SpringApplicationBuilder(MockServerApplication.class)
+                .run("--spring.config.name=mock-server", "--server.port=0", "--mock.http.response-delay-ms=1",
+                        "--mock.http.idempotency-file=" + ledger, "--mock.http.mode=" + mode, "--logging.level.root=WARN");
+    }
+
+    @Test
+    void staleSecondOwnerRollsBackBothResultsAndTheirCompletionCounts() throws Exception {
+        app.close();
+        try (var mock = startHttpMock(":memory:")) {
+            app = application(false, "--spring.profiles.active=campaign-flexible", "--app.provider.mode=HTTP",
+                    "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort());
+            var campaign = requested(2);
+            assertThat(run(campaign).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+            var eventId = new CampaignChunk(campaign.campaignId(), 1, 2).eventId();
+            var store = app.getBean(WorkerStore.class);
+            var service = app.getBean(NotificationService.class);
+            var meters = app.getBean(MeterRegistry.class);
+            var factory = app.getBean(CampaignCompletionBatch.Factory.class);
+            var tokens = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+            var successes = new ArrayList<Notification>();
+            for (int index = 0; index < tokens.size(); index++) {
+                var ids = CampaignTargetIds.of(campaign.campaignId(), index + 1);
+                var claim = store.claim(ids.notificationId(), eventId, tokens.get(index), ids.taskId(), true, true).orElseThrow();
+                successes.add(service.attempt(claim.notification()));
+            }
+
+            var completed = meters.counter("notification.completed", "status", "PROVIDER_ACCEPTED");
+            var batch = factory.open();
+            batch.accepted(successes.getFirst(), tokens.getFirst(), Timer.start(meters));
+            batch.accepted(successes.getLast(), UUID.randomUUID().toString(), Timer.start(meters));
+            assertThatThrownBy(batch::close).isInstanceOf(IllegalStateException.class)
+                    .hasStackTraceContaining("Worker ownership was lost");
+            assertThat(count("SELECT COUNT(*) FROM notification WHERE status='PROCESSING' AND provider_message_id IS NULL")).isEqualTo(2);
+            assertThat(count("SELECT COUNT(*) FROM delivery_attempt WHERE outcome='STARTED'")).isEqualTo(2);
+            assertThat(completed.count()).isZero();
+            assertThat(CampaignCompletionExperiment.snapshot(meters, 5)).containsEntry("commits", 0L);
+
+            try (var retry = factory.open()) {
+                for (int index = 0; index < tokens.size(); index++) {
+                    retry.accepted(successes.get(index), tokens.get(index), Timer.start(meters));
+                }
+            }
+            assertThat(count("SELECT COUNT(*) FROM delivery_attempt WHERE outcome='PROVIDER_ACCEPTED'")).isEqualTo(2);
+            for (var success : successes) {
+                assertThat(service.get(success.notificationId()).providerMessageId()).isEqualTo(success.providerMessageId());
+            }
+            assertThat(completed.count()).isEqualTo(2);
+            assertThat(CampaignCompletionExperiment.snapshot(meters, 5)).containsEntry("rows", 2L);
+            assertThat(mock.getBean(MockPushEndpoint.class).stats().requests()).isEqualTo(2);
+        }
+    }
+
+    @Test
+    void failedGroupedTargetsHandOffToIndividualRetriesThatCommitOneAtATime() throws Exception {
+        app.close();
+        app = application(false, "--app.campaign.batch.grouped-outbox=true");
+        assertThat(run(requested(2)).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        relay(template()).relay();
+        try (var mock = startHttpMock(":memory:", Mode.SERVER_ERROR);
+             var worker = application(true, "--spring.profiles.active=campaign-flexible", "--app.provider.mode=HTTP",
+                     "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort())) {
+            await().atMost(Duration.ofSeconds(20)).until(() -> committedOffset(worker) == 1);
+            assertThat(count("SELECT COUNT(*) FROM notification WHERE status='WAITING_RETRY'")).isEqualTo(2);
+            assertThat(count("SELECT COUNT(*) FROM outbox_event WHERE event_type='NOTIFICATION_RETRY'")).isEqualTo(2);
+            var meters = worker.getBean(MeterRegistry.class);
+            assertThat(meters.get("notification.pipeline.stage").tag("stage", "worker.complete").timer().count()).isEqualTo(2);
+            assertThat(CampaignCompletionExperiment.snapshot(meters, 5)).containsEntry("commits", 0L);
+        }
+        try (var mock = startHttpMock(":memory:");
+             var worker = application(true, "--spring.profiles.active=campaign-flexible", "--app.provider.mode=HTTP",
+                     "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort())) {
+            var relay = relay(template());
+            await().atMost(Duration.ofSeconds(20)).until(() -> {
+                relay.relay();
+                return committedOffset(worker) == 3;
+            });
+            assertThat(count("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'")).isEqualTo(2);
+            assertThat(count("SELECT COUNT(*) FROM delivery_attempt WHERE attempt_no=2 AND outcome='PROVIDER_ACCEPTED'")).isEqualTo(2);
+            var meters = worker.getBean(MeterRegistry.class);
+            assertThat(meters.get("notification.pipeline.stage").tag("stage", "worker.complete").timer().count()).isEqualTo(2);
+            assertThat(CampaignCompletionExperiment.snapshot(meters, 5)).containsEntry("commits", 0L);
+            assertThat(mock.getBean(MockPushEndpoint.class).stats().accepted()).isEqualTo(2);
+        }
+    }
+
+    private Process startCompletionWorker(String endpoint, Path log, Path marker) throws Exception {
+        var command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-Xmx256m", "-cp", System.getProperty("notificationLab.testClasspath"),
+                (marker == null ? NotificationLabApplication.class : CampaignCompletionExperiment.class).getName()));
+        command.addAll(arguments(true));
+        command.addAll(List.of("--spring.profiles.active=campaign-flexible", "--spring.main.web-application-type=none",
+                "--app.campaign.batch.enabled=false", "--app.provider.mode=HTTP", "--app.provider.http.base-url=" + endpoint));
+        if (marker != null) command.add("--experiment.hold-five-before-commit=" + marker);
+        var builder = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(log.toFile());
+        builder.environment().put("SPRING_DATASOURCE_PASSWORD", MYSQL.getPassword());
+        return builder.start();
+    }
+
+    private static void stopCompletionWorker(Process worker) throws InterruptedException {
+        worker.destroyForcibly();
+        assertThat(worker.waitFor(10, TimeUnit.SECONDS)).isTrue();
+    }
+
+    private static String workerExitDetails(Path log) throws java.io.IOException {
+        return Files.readAllLines(log).stream().filter(line -> line.contains("Exception") || line.contains("Error:")
+                || line.contains("Could not") || line.contains("Parameter ") || line.contains("Reason:"))
+                .limit(8).collect(java.util.stream.Collectors.joining("\n"));
+    }
+
+    private int count(String sql) { return db().queryForObject(sql, Integer.class); }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void deadlineFlushWhileNextClaimIsBlockedPreservesTheCommitBoundary(boolean failWrite) throws Exception {
+        app.close();
+        app = application(false, "--app.campaign.batch.grouped-outbox=true");
+        assertThat(run(requested(2)).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        relay(template()).relay();
+        root("""
+                CREATE TRIGGER slow_second_claim BEFORE UPDATE ON notification FOR EACH ROW
+                BEGIN
+                    IF NEW.status='PROCESSING' AND NEW.recipient_id='synthetic-v1-2' THEN DO SLEEP(3); END IF;
+                END
+                """);
+        if (failWrite) root("""
+                CREATE TRIGGER fail_result BEFORE UPDATE ON delivery_attempt FOR EACH ROW
+                BEGIN
+                    IF NEW.outcome='PROVIDER_ACCEPTED' THEN SIGNAL SQLSTATE '45000'; END IF;
+                END
+                """);
+        try (var mock = startHttpMock(":memory:");
+             var worker = application(true, "--spring.profiles.active=campaign-flexible", "--app.provider.mode=HTTP",
+                     "--app.provider.http.base-url=http://127.0.0.1:" + mock.getWebServer().getPort())) {
+            var meters = worker.getBean(MeterRegistry.class);
+            if (failWrite) {
+                var listener = worker.getBean(KafkaListenerEndpointRegistry.class).getListenerContainer("notification-worker");
+                await().atMost(Duration.ofSeconds(20)).until(() -> !listener.isRunning());
+                assertThat(CampaignCompletionExperiment.snapshot(meters, 5)).containsEntry("rows", 0L).containsEntry("deadlineTriggers", 1L);
+                assertThat(count("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'")).isZero();
+                assertThat(committedOffset(worker)).isZero();
+                assertThat(mock.getBean(MockPushEndpoint.class).stats().requests()).isOne();
+                return;
+            }
+            await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
+                assertThat(count("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'")).isOne();
+                assertThat(CampaignCompletionExperiment.snapshot(meters, 5)).containsEntry("rows", 1L).containsEntry("deadlineTriggers", 1L);
+                assertThat(committedOffset(worker)).isZero();
+            });
+            await().atMost(Duration.ofSeconds(12)).until(() -> committedOffset(worker) == 1);
+            assertThat(CampaignCompletionExperiment.snapshot(meters, 5)).containsEntry("rows", 2L).containsEntry("commits", 2L);
+        } finally {
+            root("DROP TRIGGER slow_second_claim");
+            if (failWrite) root("DROP TRIGGER fail_result");
         }
     }
 
