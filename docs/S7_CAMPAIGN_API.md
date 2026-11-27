@@ -30,7 +30,7 @@ CAMPAIGN 역할은 S6의 split/shared Redis/pause 설정을 필요로 한다.
 | --- | --- | --- | --- |
 | `POST /campaigns` | 201, DRAFT 정의 커밋 | 같은 키·같은 정의는 200과 현재 저장 상태 | 다른 정의 409, 잘못된 입력/키 400 |
 | `GET /campaigns/{id}` | 200, 현재 상태 | 동일 | 존재하지 않는 UUID 404, 잘못된 UUID 400 |
-| `POST /campaigns/{id}/start` | 202, START_REQUESTED 커밋 | 200, 같은 상태와 최초 시작 요청 시각 | 없는 캠페인 404, 저장 실패 503 |
+| `POST /campaigns/{id}/start` | 202, 즉시 캠페인은 START_REQUESTED, 예약 캠페인은 PREPARATION_REQUESTED 커밋 | 200, 같은 상태와 최초 시작 요청 시각 | 없는 캠페인 404, 저장 실패 503 |
 
 생성/시작 응답의 `Location`은 `/campaigns/{id}`다. DB 장애는 기존 공통 오류 처리로 503이며
 SQL/본문/수신자 정보는 오류 응답에 넣지 않는다. HTTP 응답은 커밋 후 반환한다.
@@ -44,10 +44,11 @@ SQL/본문/수신자 정보는 오류 응답에 넣지 않는다. HTTP 응답은
 - 문자열 길이는 Java Bean Validation의 UTF-16 길이 기준이다. 이모지는 두 단위를 차지할 수 있다.
 - `Idempotency-Key`: 필수 헤더 1개, `[A-Za-z0-9._:-]{1,128}`. 대소문자를 구분한다.
   키는 campaign 테이블 내에서 유일하며 `/notifications`의 키 공간과 별개다. 만료/삭제 기능은 없다.
-- 같은 키의 `name/title/body/targetCount`를 정확히 비교한다. 공백 정규화는 하지 않는다.
+- 선택 필드 `scheduledAt`은 시간대가 포함된 ISO 8601 문자열이다. 최초 생성 시 미래여야 하며 최대 마이크로초 정밀도로 저장한다. 생략하거나 null을 주면 기존 즉시 발송 방식을 쓴다.
+- 같은 키의 `name/title/body/targetCount`와 UTC로 환산한 `scheduledAt`을 정확히 비교한다. 공백 정규화는 하지 않는다.
   잘못된 입력은 키를 예약하지 않는다. 시작 후 생성 재요청도 기존 캠페인의 현재 상태를 반환한다.
 
-응답은 `campaignId/name/title/body/audience/targetCount/status/createdAt/startRequestedAt`이다.
+응답은 `campaignId/name/title/body/audience/targetCount/status/createdAt/startRequestedAt/scheduledAt/preparedAt`이다. 예약 캠페인의 대상 준비가 끝나면 `preparedAt`을 반환한다. [예약 발송 절차](S7_CAMPAIGN_BATCH.md#예약-전에-대상을-준비하고-예약-시각에-발송하기)
 `audience`는 서버가 `SYNTHETIC_V1`로 고정한다. 이는 후속 가상 대상자 규칙의 버전 식별자이며,
 후속 [고정 가상 집합 조회](S7_CAMPAIGN_AUDIENCE.md)에서는 이 버전과 targetCount로 대상을 재현한다.
 DB에 대상자 행을 적재하거나 실제 회원 스냅샷을 만든 것은 아니다.
@@ -71,7 +72,7 @@ curl -i -X POST http://127.0.0.1:8082/campaigns/응답_UUID/start
 curl http://127.0.0.1:8082/campaigns/응답_UUID
 ```
 
-첫 시작은 202, 두 번째는 200이다. **현재 START_REQUESTED에서 자동으로 다음 상태로 진행하지 않는다.**
+첫 시작은 202, 두 번째는 200이다. 예약 캠페인은 PREPARATION_REQUESTED로 시작 의도를 구분하고 준비 완료 시각을 별도로 저장한다.
 이 API는 알림/Outbox/발송 작업 행, Kafka 이벤트, Redis 발송 허가 또는 공급자 호출을 만들지 않는다.
 `targetCount=1000000` 생성은 작은 정의 한 행을 저장할 뿐, 100만 건 발송 성능 검증이 아니다.
 

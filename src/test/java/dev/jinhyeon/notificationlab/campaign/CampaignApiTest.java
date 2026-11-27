@@ -127,6 +127,38 @@ class CampaignApiTest {
     }
 
     @Test
+    void scheduleIsAnImmutableUtcInstantAndInvalidDatesDoNotReserveTheKey() throws Exception {
+        String key = UUID.randomUUID().toString();
+        var payload = JSON.readValue(PAYLOAD, com.fasterxml.jackson.databind.node.ObjectNode.class);
+        for (String invalid : List.of("2020-01-01T10:00:00Z", "2099-01-01T10:00:00",
+                "invalid", "2099-01-01T01:00:00.1234567Z", "+10000-01-01T00:00:00Z")) {
+            payload.put("scheduledAt", invalid);
+            assertThat(call(first, "POST", "/campaigns", payload.toString(), key).statusCode()).isEqualTo(400);
+        }
+        payload.put("scheduledAt", "2099-01-01T10:00:00.123456+09:00");
+        var created = call(first, "POST", "/campaigns", payload.toString(), key);
+        assertThat(created.statusCode()).isEqualTo(201);
+        var draft = json(created);
+        assertThat(draft.path("scheduledAt").asText()).isEqualTo("2099-01-01T01:00:00.123456Z");
+        assertThat(draft.path("preparedAt").isNull()).isTrue();
+        payload.put("scheduledAt", "2099-01-01T01:00:00.123456Z");
+        var replay = call(second, "POST", "/campaigns", payload.toString(), key);
+        assertThat(replay.statusCode()).isEqualTo(200);
+        assertThat(json(replay)).isEqualTo(draft);
+        String location = created.headers().firstValue("Location").orElseThrow();
+        assertThatThrownBy(() -> jdbc().update("""
+                UPDATE campaign SET status='START_REQUESTED', start_requested_at=UTC_TIMESTAMP(6)
+                WHERE campaign_id=?
+                """, draft.path("campaignId").asText())).isInstanceOf(DataAccessException.class);
+        var started = call(first, "POST", location + "/start", null, null);
+        assertThat(json(started).path("status").asText()).isEqualTo("PREPARATION_REQUESTED");
+        assertThat(json(call(second, "POST", location + "/start", null, null))).isEqualTo(json(started));
+        payload.put("scheduledAt", "2099-01-01T01:00:01Z");
+        assertThat(call(second, "POST", "/campaigns", payload.toString(), key).statusCode()).isEqualTo(409);
+        assertThat(call(second, "POST", "/campaigns", PAYLOAD, key).statusCode()).isEqualTo(409);
+    }
+
+    @Test
     void concurrentStartsAcrossTwoApplicationsAcceptExactlyOnce() throws Exception {
         String location = create();
         var results = concurrent((app, i) -> call(app, "POST", location + "/start", null, null));

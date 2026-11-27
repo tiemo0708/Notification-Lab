@@ -213,7 +213,10 @@ class MySqlNotificationTest {
             var outboxBeforeRedrive = db.queryForList("SELECT * FROM outbox_event ORDER BY event_id");
             var tasksBeforeRedrive = db.queryForList("SELECT * FROM delivery_task ORDER BY task_id");
             // V7 adds only the REALTIME default; all previous values and task/attempt history must survive.
-            outboxBeforeRedrive.forEach(row -> row.put("traffic_class", "REALTIME"));
+            outboxBeforeRedrive.forEach(row -> {
+                row.put("traffic_class", "REALTIME");
+                row.put("scheduled_campaign_id", null);
+            });
             beforeRetryMigration.forEach(row -> row.put("traffic_class", "REALTIME"));
             Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).load().migrate();
             assertThat(db.queryForList("SELECT * FROM outbox_event ORDER BY event_id")).isEqualTo(outboxBeforeRedrive);

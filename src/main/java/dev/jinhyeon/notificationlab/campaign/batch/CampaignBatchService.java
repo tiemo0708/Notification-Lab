@@ -50,7 +50,8 @@ public class CampaignBatchService {
         if (!slot.tryAcquire()) throw new IllegalStateException("Campaign executor is busy");
         try {
             Campaign campaign = campaigns.find(id).orElseThrow(CampaignNotFoundException::new);
-            if (campaign.status() != Campaign.Status.START_REQUESTED) {
+            if (campaign.status() != Campaign.Status.START_REQUESTED
+                    && campaign.status() != Campaign.Status.PREPARATION_REQUESTED) {
                 throw new IllegalStateException("Campaign start must be requested before expansion");
             }
             try (var session = CampaignBatchSession.open(database, sequences, id)) {
@@ -58,7 +59,7 @@ public class CampaignBatchService {
                         .addString("ownershipProtocol", CampaignBatchSession.PROTOCOL, false).toJobParameters();
                 var last = session.repository.getLastJobExecution(JOB_NAME, identity);
                 // Existing executions keep the dispatch format selected before their first checkpoint.
-                boolean grouped = last == null ? groupedOutbox
+                boolean grouped = last == null ? (groupedOutbox || campaign.scheduledAt() != null)
                         : Boolean.parseBoolean(last.getJobParameters().getString(GROUPED_OUTBOX));
                 var parameters = new JobParametersBuilder(identity)
                         .addString(GROUPED_OUTBOX, Boolean.toString(grouped), false).toJobParameters();

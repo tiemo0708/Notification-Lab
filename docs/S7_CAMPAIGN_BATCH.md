@@ -36,7 +36,7 @@ Reader의 update에서 마지막 순번을 ExecutionContext에 넣으며, 커밋
 7. 기존 CAMPAIGN Worker가 발송 예산·회로·시도 제한·DB 완료/offset 정책으로 처리한다.
 
 Batch 명령 자체는 Relay/Worker를 끈다. 명령 종료 시 그 프로세스의 미전송 메모리 작업에 의존하지 않는다.
-Relay/Worker 앱을 따로 켜 두면 커밋된 앞 chunk부터 처리될 수 있으므로, **나중 chunk 실패가 이미 인계된 발송을 취소하지 않는다.**
+예약 시각을 생략한 캠페인에서 Relay/Worker 앱을 따로 켜 두면 커밋된 앞 chunk부터 처리될 수 있으므로, **나중 chunk 실패가 이미 인계된 발송을 취소하지 않는다.**
 
 ### 캠페인 Outbox 100명 묶음
 
@@ -71,6 +71,20 @@ SPRING_PROFILES_ACTIVE=campaign-flexible ./gradlew campaignBatch --args='선택�
 ```
 
 MySQL의 내구성 설정은 기존 값을 사용한다. 실험에서 확인한 값은 `log_bin=1`, `sync_binlog=1`, `innodb_flush_log_at_trx_commit=1`이었다. 캠페인의 대상별 완료, 미발행 Outbox, Kafka lag와 발송 중 실시간 접수 p95를 함께 확인한다. 이후 캠페인 JVM을 기존 워커 3개 인자로 재시작하면 같은 consumer group에서 이어받으며, 이미 저장된 발행 형식과 재개 위치는 유지된다.
+
+#### 예약 전에 대상을 준비하고 예약 시각에 발송하기
+
+1. CAMPAIGN API와 Batch 명령을 Flyway V11 및 예약 기능을 포함한 버전으로 맞춘다. 예약 캠페인의 생성 요청에 미래 시각을 넣는다. 아래 예시는 한국 시간 12월 1일 오전 9시다. 실제 실행 시 원하는 미래 날짜로 바꾼다.
+
+   ```bash
+   curl -i http://127.0.0.1:8082/campaigns \
+     -H 'Content-Type: application/json' -H 'Idempotency-Key: winter-coupon-001' \
+     -d '{"name":"겨울 쿠폰","title":"쿠폰 안내","body":"합성 대상용 안내","targetCount":1000000,"scheduledAt":"2026-12-01T09:00:00+09:00"}'
+   ```
+
+2. 예약 전에 생성 응답의 UUID로 `POST /campaigns/{id}/start`를 한 번 호출하고 위의 `campaignBatch` 명령을 실행한다. `GET /campaigns/{id}`의 `preparedAt`에 시각이 있으면 전체 대상 준비가 끝났다. 지난 100만 건 실험의 대상 준비에는 약 24~26분이 걸렸다. 예약 시각을 정할 때 실행 환경의 여유 시간을 포함한다.
+3. 캠페인 Relay와 Worker를 켜 둔다. 준비한 100명 묶음의 이벤트는 MySQL 예약 시각에 도달한 뒤 Relay의 다음 조회부터 자동 발행된다. 예약 시각에 별도의 시작 요청이나 Batch 실행은 필요 없다. Relay가 내려가 있었다면 재가동 뒤 처리한다.
+4. 준비 도중 일부만 저장되면 이벤트는 `HELD`로 남는다. 실패한 Batch는 같은 UUID로 재실행한다. 마지막 대상과 체크포인트를 커밋하는 트랜잭션이 해당 캠페인의 묶음을 `PENDING`으로 전환하고 `preparedAt`을 저장한다. 이미 예약 시각이 지났다면 그 커밋 직후부터 처리한다.
 
 #### HTTP Mock 수락 결과를 최대 5건씩 커밋하기
 

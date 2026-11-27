@@ -4,6 +4,7 @@ import dev.jinhyeon.notificationlab.notification.NotificationNotFoundException;
 import dev.jinhyeon.notificationlab.campaign.CampaignNotFoundException;
 import dev.jinhyeon.notificationlab.campaign.CampaignAudienceUnavailableException;
 import dev.jinhyeon.notificationlab.campaign.InvalidCampaignPageException;
+import dev.jinhyeon.notificationlab.campaign.InvalidCampaignScheduleException;
 import dev.jinhyeon.notificationlab.deadletter.DeadLetterNotFoundException;
 import dev.jinhyeon.notificationlab.deadletter.RedriveConflictException;
 import dev.jinhyeon.notificationlab.notification.InvalidIdempotencyKeyException;
@@ -56,8 +57,8 @@ public class ApiExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
     }
 
-    @ExceptionHandler(InvalidCampaignPageException.class)
-    public ProblemDetail invalidCampaignPage(InvalidCampaignPageException exception) {
+    @ExceptionHandler({InvalidCampaignPageException.class, InvalidCampaignScheduleException.class})
+    public ProblemDetail invalidCampaignInput(RuntimeException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 

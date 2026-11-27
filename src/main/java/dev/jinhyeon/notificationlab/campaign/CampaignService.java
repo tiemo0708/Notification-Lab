@@ -2,6 +2,7 @@ package dev.jinhyeon.notificationlab.campaign;
 
 import dev.jinhyeon.notificationlab.notification.IdempotencyConflictException;
 import dev.jinhyeon.notificationlab.notification.InvalidIdempotencyKeyException;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -28,7 +29,8 @@ public class CampaignService {
         } catch (DuplicateKeyException duplicate) {
             Campaign existing = store.findByKey(key).orElseThrow(() -> duplicate);
             if (!existing.name().equals(request.name()) || !existing.title().equals(request.title())
-                    || !existing.body().equals(request.body()) || existing.targetCount() != request.targetCount()) {
+                    || !existing.body().equals(request.body()) || existing.targetCount() != request.targetCount()
+                    || !Objects.equals(existing.scheduledAt(), request.scheduledAt())) {
                 throw new IdempotencyConflictException();
             }
             return new Creation(existing, true);

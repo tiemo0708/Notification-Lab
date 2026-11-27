@@ -26,6 +26,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -155,6 +157,82 @@ class CampaignBatchTest {
         var context = builder.run(arguments.toArray(String[]::new));
         contexts.add(context);
         return context;
+    }
+
+    @Test
+    void preparedCampaignWaitsForItsScheduleThenDispatchesAutomatically() throws Exception {
+        // Start the regular relay and worker before creating any work.
+        var options = arguments(true);
+        options.remove("--app.async.relay-enabled=false");
+        options.add("--app.async.relay-enabled=true");
+        options.add("--spring.datasource.password=" + MYSQL.getPassword());
+        try (var worker = new SpringApplicationBuilder(NotificationLabApplication.class).web(WebApplicationType.NONE)
+                .run(options.toArray(String[]::new))) {
+            var scheduled = scheduled(101, 15);
+            assertThat(run(scheduled).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+            var prepared = app.getBean(CampaignService.class).get(scheduled.campaignId());
+            assertThat(prepared.preparedAt()).isBefore(scheduled.scheduledAt());
+            assertThat(count("""
+                    SELECT COUNT(*) FROM outbox_event o JOIN campaign c ON c.campaign_id=o.scheduled_campaign_id
+                    WHERE o.available_at=c.scheduled_at AND o.status='PENDING' AND o.attempt_count=0
+                    """)).isEqualTo(2);
+            assertThat(run(requested(1)).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+            await().atMost(Duration.ofSeconds(10)).until(() -> committedOffset(worker) == 1);
+            assertThat(count("SELECT COUNT(*) FROM outbox_event WHERE scheduled_campaign_id IS NOT NULL AND attempt_count>0")).isZero();
+            await().atMost(Duration.ofSeconds(35)).until(() -> committedOffset(worker) == 3);
+            assertThat(count("""
+                    SELECT COUNT(*) FROM delivery_attempt a JOIN campaign_target t ON t.task_id=a.task_id
+                    JOIN campaign c ON c.campaign_id=t.campaign_id WHERE a.started_at < c.scheduled_at
+                    """)).isZero();
+            assertThat(count("SELECT COUNT(*) FROM notification WHERE status='PROVIDER_ACCEPTED'")).isEqualTo(102);
+            assertThat(run(scheduled).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+            assertThat(endOffset()).isEqualTo(3);
+        }
+    }
+
+    @Test
+    void missedScheduleWaitsForLastCheckpointAndResumesAfterPreparationFailure() throws Exception {
+        var service = app.getBean(CampaignService.class);
+        var due = Instant.now().plusSeconds(2).truncatedTo(ChronoUnit.MICROS);
+        var request = new CampaignRequest("late", "title", "synthetic body", 101, due);
+        String key = UUID.randomUUID().toString();
+        var campaign = service.start(service.create(request, key).campaign().campaignId()).campaign();
+        root("""
+                CREATE TRIGGER fail_final_checkpoint BEFORE UPDATE ON BATCH_STEP_EXECUTION_CONTEXT FOR EACH ROW
+                BEGIN IF EXISTS(SELECT 1 FROM campaign WHERE prepared_at IS NOT NULL)
+                THEN SIGNAL SQLSTATE '45000'; END IF; END
+                """);
+        try {
+            assertThat(run(campaign).getStatus()).isEqualTo(BatchStatus.FAILED);
+        } finally {
+            root("DROP TRIGGER fail_final_checkpoint");
+        }
+        await().atMost(Duration.ofSeconds(6)).until(() -> count("SELECT COUNT(*) FROM campaign WHERE scheduled_at<=UTC_TIMESTAMP(6)") == 1);
+        assertThat(count("SELECT COUNT(*) FROM campaign_target")).isEqualTo(100);
+        assertThat(service.create(request, key).replayed()).isTrue();
+        assertThat(count("SELECT COUNT(*) FROM outbox_event WHERE status='HELD'")).isOne();
+        assertThat(app.getBean(CampaignService.class).get(campaign.campaignId()).preparedAt()).isNull();
+        relay(template()).relay();
+        assertThat(endOffset()).isZero();
+
+        app.close();
+        app = application(false);
+        assertThat(run(campaign).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(app.getBean(CampaignService.class).get(campaign.campaignId()).preparedAt()).isAfter(campaign.scheduledAt());
+        assertThat(count("SELECT COUNT(*) FROM campaign_target")).isEqualTo(101);
+        relay(template()).relay();
+        assertThat(endOffset()).isEqualTo(2);
+        assertThat(run(campaign).getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        relay(template()).relay();
+        assertThat(endOffset()).isEqualTo(2);
+    }
+
+    private Campaign scheduled(int count, int secondsFromNow) {
+        var service = app.getBean(CampaignService.class);
+        var due = Instant.now().plusSeconds(secondsFromNow).truncatedTo(ChronoUnit.MICROS);
+        var campaign = service.create(new CampaignRequest("scheduled", "title", "synthetic body", count, due),
+                UUID.randomUUID().toString()).campaign();
+        return service.start(campaign.campaignId()).campaign();
     }
 
     @Test

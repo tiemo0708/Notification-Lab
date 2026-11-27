@@ -4,6 +4,8 @@ import dev.jinhyeon.notificationlab.campaign.Campaign;
 import dev.jinhyeon.notificationlab.campaign.CampaignAudiencePage.Target;
 import dev.jinhyeon.notificationlab.campaign.CampaignChunk;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.dao.DataAccessException;
@@ -21,6 +23,9 @@ public class CampaignTargetWriter implements ItemWriter<Target> {
     }
 
     public CampaignTargetWriter(Campaign campaign, JdbcTemplate jdbc, int maxAttempts, boolean groupedOutbox) {
+        if (campaign.scheduledAt() != null && !groupedOutbox) {
+            throw new IllegalArgumentException("Scheduled campaigns require grouped outbox events");
+        }
         this.campaign = campaign;
         this.jdbc = jdbc;
         this.maxAttempts = maxAttempts;
@@ -35,10 +40,25 @@ public class CampaignTargetWriter implements ItemWriter<Target> {
         try {
             String chunkEventId = groupedOutbox && !chunk.isEmpty() ? storeChunk(chunk) : null;
             for (Target target : chunk) persist(target, chunkEventId);
+            if (campaign.scheduledAt() != null && !chunk.isEmpty()
+                    && chunk.getItems().getLast().ordinal() == campaign.targetCount()) {
+                finishPreparation();
+            }
         } catch (DataAccessException failure) {
             // Spring Batch logs/persists failures. Never attach SQL/bound payloads as a cause.
             throw new IllegalStateException("Campaign chunk storage failed: " + failure.getClass().getSimpleName());
         }
+    }
+
+    // The last target, its checkpoint and the release of at most 10,000 grouped events commit together.
+    private void finishPreparation() {
+        String campaignId = campaign.campaignId().toString();
+        jdbc.update("""
+                UPDATE outbox_event FORCE INDEX (idx_outbox_scheduled_campaign) SET status='PENDING'
+                WHERE scheduled_campaign_id=? AND status='HELD'
+                """, campaignId);
+        jdbc.update("UPDATE campaign SET prepared_at=UTC_TIMESTAMP(6) WHERE campaign_id=? AND prepared_at IS NULL",
+                campaignId);
     }
 
     private String storeChunk(Chunk<? extends Target> targets) {
@@ -57,12 +77,17 @@ public class CampaignTargetWriter implements ItemWriter<Target> {
                 """, Integer.class, eventId, CampaignChunk.EVENT_TYPE, chunk.campaignId().toString(),
                 chunk.firstOrdinal(), chunk.targetCount());
         if (existing == 0) {
+            var scheduledAt = campaign.scheduledAt();
+            var availableAt = scheduledAt == null ? null : LocalDateTime.ofInstant(scheduledAt, ZoneOffset.UTC);
             jdbc.update("""
-                    INSERT INTO outbox_event (event_id, event_type, payload, traffic_class, created_at, available_at)
+                    INSERT INTO outbox_event (event_id, event_type, payload, traffic_class, created_at, available_at,
+                        scheduled_campaign_id, status)
                     VALUES (?, ?, JSON_OBJECT('schemaVersion', 1, 'eventType', ?, 'eventId', ?,
-                        'campaignId', ?, 'firstOrdinal', ?, 'targetCount', ?), 'CAMPAIGN', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))
+                        'campaignId', ?, 'firstOrdinal', ?, 'targetCount', ?), 'CAMPAIGN', UTC_TIMESTAMP(6),
+                        COALESCE(?, UTC_TIMESTAMP(6)), ?, ?)
                     """, eventId, CampaignChunk.EVENT_TYPE, CampaignChunk.EVENT_TYPE, eventId,
-                    chunk.campaignId().toString(), chunk.firstOrdinal(), chunk.targetCount());
+                    chunk.campaignId().toString(), chunk.firstOrdinal(), chunk.targetCount(), availableAt,
+                    scheduledAt == null ? null : chunk.campaignId().toString(), scheduledAt == null ? "PENDING" : "HELD");
         }
         return eventId;
     }
